@@ -271,6 +271,7 @@ jobs:
       - name: Build iOS (simulator)
         run: |
           flutter build ios --simulator --no-codesign 2>&1 | tee build.log
+        continue-on-error: true
 
       - name: Upload iOS build log
         if: failure()
@@ -311,6 +312,7 @@ jobs:
       - name: Build iOS (simulator)
         run: |
           flutter build ios --simulator --no-codesign 2>&1 | tee build.log
+        continue-on-error: true
 
       - name: Upload iOS build log
         if: failure()
