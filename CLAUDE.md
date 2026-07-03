@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Reference Docs — read these BEFORE exploring (token protocol)
 
-This is a large repo (1 489 backend PHP files, ~840 Dart files). To avoid burning tokens
+This is a large repo (~1 730 backend PHP files, ~860 Dart files). To avoid burning tokens
 re-discovering structure, consult these committed index docs first; they are kept current and
 usually answer "where is X" without reading source:
 
@@ -61,8 +61,11 @@ php artisan passport:keys --force
 php artisan migrate
 php artisan serve
 
-# Run all Vito tests (SQLite in-memory, no DB setup needed)
+# Run the end-to-end Vito flow test (SQLite in-memory, no DB setup needed)
 php artisan test --filter=VitoFlowTest
+
+# Run the mart unit tests (order totals, promo codes, product/stock rules)
+php artisan test tests/Unit
 
 # Run static analysis (only on Vito controllers)
 ./vendor/bin/phpstan analyse --level=0 \
@@ -138,9 +141,11 @@ Legacy routes (phone/password, social-login, Firebase-OTP) also remain active �
 
 `tests/Feature/VitoFlowTest.php` — creates all needed tables in-memory per test run (no external DB). Covers QR tokens, user registration, login, rides, parcels, mart orders (with promo codes), driver acceptance, delivery proof, Stripe payment, and wallet. **Always update tearDown's `dropIfExists` list when adding new tables to the test.**
 
+`tests/Unit/` — pure unit tests that don't touch the DB: `MartOrderTotalCalculationTest` (server-side total math), `MartPromoCodeTest`, `MartProductTest`, `MartOrderTest`. Add unit coverage here for new server-side calculation/business rules.
+
 ### Key Patterns
 
-- **Server-side order totals:** The client never sends a price. Backend computes total = (Σ product.price × qty) − promo_discount + tip.
+- **Server-side order totals:** The client never sends a price. Backend computes total = (Σ product.price × qty) − promo_discount + tip + delivery_fee. The delivery fee comes from the `mart_delivery_fee` cached config (default 0, no tax applied) and is exposed to the app via `ConfigController`; the persisted order stores it in the `delivery_fee` column.
 - **Atomic DB operations:** Use `DB::transaction()` with `lockForUpdate()` for promo code `used_count`, stock decrement, token redemption, etc.
 - **Idempotency middleware:** `idempotent` (`app/Http/Middleware/IdempotencyKey.php`) deduplicates POST/PUT/PATCH by request signature. Applied to order creation routes. Stripe webhook uses `stripe_event_id` UNIQUE constraint for its own dedup.
 - **Polymorphic chat channels:** `channel_lists.channelable_type` is either `TripRequest::class` or `MartOrder::class`. Check `channelable_type` in `ChattingController` before branching.
@@ -239,7 +244,7 @@ lib/features/{feature}/
 
 ### Localization
 
-Translation keys live in `assets/language/en.json` (and `es.json`, `ar.json`). Always add a key to **all three** language files when introducing new UI strings. The test `vito_flows_test.dart` enforces parity between EN, ES, and AR key sets.
+Translation keys live in `assets/language/en.json` and `es.json` (Arabic `ar.json` has been removed — English and Spanish are the only supported languages). Always add a new UI string to **both** language files. The test `vito_flows_test.dart` enforces exact key parity between EN and ES (same key count, no keys missing from or extra in either file), so an unmatched key fails CI.
 
 Use `.tr` extension on string literals: `'some_key'.tr`.
 
@@ -282,8 +287,8 @@ significant inline state — migrate them onto the controller incrementally (met
 
 ## CI/CD
 
-`.github/workflows/vito-ci.yml` — runs on every push/PR to `master`:
-1. Laravel: PHPStan level 0 on Vito controllers + `VitoFlowTest`
+`.github/workflows/vito-ci.yml` — runs on every push/PR to `master` and `vlad`:
+1. Laravel: PHPStan level 0 on Vito controllers + `VitoFlowTest` (with clover coverage)
 2. Flutter User App: analyze + unit tests + debug APK build (artifact retained 14 days)
 3. Flutter Driver App: same
 
