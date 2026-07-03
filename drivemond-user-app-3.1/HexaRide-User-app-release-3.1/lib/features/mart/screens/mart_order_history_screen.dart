@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/empty_state_widget.dart';
 import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
@@ -48,15 +49,12 @@ class _MartOrderHistoryScreenState extends State<MartOrderHistoryScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (martController.orders.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.receipt_long, size: 64, color: Theme.of(context).disabledColor),
-                  const SizedBox(height: Dimensions.paddingSizeDefault),
-                  Text('no_orders_yet'.tr, style: textRegular.copyWith(color: Theme.of(context).disabledColor)),
-                ],
-              ),
+            return EmptyStateWidget(
+              icon: Icons.shopping_bag_outlined,
+              title: 'no_orders_yet'.tr,
+              description: 'start_shopping_to_see_orders_here'.tr,
+              buttonText: 'browse_mart'.tr,
+              onButtonPressed: () => Get.offAllNamed('/mart'),
             );
           }
           return RefreshIndicator(

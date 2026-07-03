@@ -76,8 +76,8 @@ class VitoMartDriverController extends Controller
         // Notify customer their order was accepted
         $this->notifyCustomer(
             $order,
-            title: 'Order Accepted',
-            description: "Your mart order #{$order->ref_id} has been accepted by a driver.",
+            title: 'Mart Order Accepted',
+            description: "Your Mart order #{$order->ref_id} has been accepted by a driver.",
             action: 'mart_order_accepted',
         );
 
@@ -205,9 +205,9 @@ class VitoMartDriverController extends Controller
         }
 
         $messages = [
-            'picked_up' => ['title' => 'Order Picked Up', 'description' => "Your mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],
-            'delivered' => ['title' => 'Order Delivered', 'description' => "Your mart order #{$order->ref_id} has been delivered. Enjoy!", 'action' => 'mart_order_delivered'],
-            'cancelled' => ['title' => 'Order Cancelled', 'description' => "Your mart order #{$order->ref_id} was cancelled by the driver. We are finding another driver.", 'action' => 'mart_order_cancelled'],
+            'picked_up' => ['title' => 'Mart Order Picked Up', 'description' => "Your Mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],
+            'delivered' => ['title' => 'Mart Order Delivered', 'description' => "Your Mart order #{$order->ref_id} has been delivered. Enjoy!", 'action' => 'mart_order_delivered'],
+            'cancelled' => ['title' => 'Mart Order Cancelled', 'description' => "Your Mart order #{$order->ref_id} was cancelled by the driver. We are finding another driver.", 'action' => 'mart_order_cancelled'],
         ];
 
         $this->notifyCustomer(

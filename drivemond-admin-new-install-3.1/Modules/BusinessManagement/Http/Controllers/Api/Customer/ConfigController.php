@@ -153,6 +153,7 @@ class ConfigController extends Controller
             'google_login' => (bool)$info->firstWhere('key_name', 'google_login')?->value['status'] ?? 0,
             'otp_resend_time' => (int)($info->firstWhere('key_name', 'otp_resend_time')?->value ?? 60),
             'vat_tax' => (double)get_cache('vat_percent') ?? 1,
+            'mart_delivery_fee' => (float)get_cache('mart_delivery_fee') ?? 0.0,
             'payment_gateways' => collect($this->getPaymentMethods()),
             'referral_earning_status' => (bool)referralEarningSetting('referral_earning_status', CUSTOMER)?->value,
             'external_system' => $martExternalSetting,

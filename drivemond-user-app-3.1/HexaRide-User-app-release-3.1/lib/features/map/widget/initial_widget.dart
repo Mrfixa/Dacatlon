@@ -255,7 +255,27 @@ class _InitialWidgetState extends State<InitialWidget> {
     final fare = rideController.discountAmount.toDouble() > 0
         ? rideController.discountFare
         : rideController.estimatedFare;
-    return '$pickup → $destination\n${'estimated_fare'.tr}: \$$fare';
+    final vehicleName = rideController.tripDetails?.vehicleCategoryName ?? 
+        (rideController.selectedCategory?.name ?? 'ride'.tr);
+    final paymentMethod = _getPaymentMethodText(rideController);
+    
+    return '${'pickup'.tr}: $pickup\n'
+        '${'destination'.tr}: $destination\n'
+        '${'vehicle_type'.tr}: $vehicleName\n'
+        '${'payment_method'.tr}: $paymentMethod\n'
+        '${'estimated_fare'.tr}: \$$fare';
+  }
+
+  String _getPaymentMethodText(RideController rideController) {
+    final paymentController = Get.find<PaymentController>();
+    switch (paymentController.paymentType) {
+      case 'wallet':
+        return 'wallet'.tr;
+      case 'card':
+        return 'card'.tr;
+      default:
+        return 'cash'.tr;
+    }
   }
 
   void _submitRideRequest(RideController rideController) {

@@ -10,6 +10,7 @@ import 'package:ride_sharing_user_app/features/home/widgets/coupon_home_widget.d
 import 'package:ride_sharing_user_app/features/home/widgets/home_map_view.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/home_search_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/home_referral_view_widget.dart';
+import 'package:ride_sharing_user_app/features/home/widgets/home_shimmer_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/visit_to_mart_widget.dart';
 import 'package:ride_sharing_user_app/features/my_offer/controller/offer_controller.dart';
 import 'package:ride_sharing_user_app/features/parcel/controllers/parcel_controller.dart';
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
   JustTheController parcelDeliveryToolTip = JustTheController();
   final ScrollController _scrollController = ScrollController();
   bool _isShowRideIcon = true;
+  bool _isLoading = true;
 
 
   String greetingMessage() {
@@ -96,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool clickedMenu = false;
   Future<void> loadData({bool isReload = false}) async{
+    if (mounted) setState(() => _isLoading = true);
 
     if(isReload) {
       Get.find<ConfigController>().getConfigData();
@@ -145,6 +148,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     HomeScreenHelper.checkMaintanceMode();
+    
+    if (mounted) setState(() => _isLoading = false);
   }
 
 
@@ -165,7 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 onRefresh: () async {
                   await loadData(isReload: true);
                 },
-                child: CustomScrollView(
+                child: _isLoading
+                    ? const HomeShimmerWidget()
+                    : CustomScrollView(
                   controller: _scrollController,
                   slivers: [
                     SliverToBoxAdapter(child: Column(children: [
@@ -400,8 +407,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ) :
           const SizedBox()
-        ]);
-      }),
+        ]),
+      ),
     );
   }
 

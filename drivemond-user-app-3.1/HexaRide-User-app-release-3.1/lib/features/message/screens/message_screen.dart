@@ -4,6 +4,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_pop_scope_widget.dart';
 import 'package:ride_sharing_user_app/features/message/widget/message_bubble.dart';
+import 'package:ride_sharing_user_app/features/message/widget/typing_indicator_widget.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/localization/localization_controller.dart';
@@ -162,7 +163,17 @@ class _MessageScreenState extends State<MessageScreen> {
 
                 const SizedBox(height: 20),
                 messageController.channelRideStatus ?
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Column(children: [
+                  // Typing indicator
+                  if (messageController.isOtherUserTyping)
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: Dimensions.paddingSizeDefault),
+                        child: TypingIndicatorWidget(),
+                      ),
+                    ),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Expanded(child: Container(
                     margin: const EdgeInsets.only(
                       left: Dimensions.paddingSizeSmall,
@@ -256,7 +267,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       ),
                     ),
                   )
-                ]) :
+                ]),
                 SizedBox(height: 50, child: Container(
                   padding: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
                   decoration: BoxDecoration(

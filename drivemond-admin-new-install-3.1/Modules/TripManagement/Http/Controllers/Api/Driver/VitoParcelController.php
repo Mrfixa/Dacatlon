@@ -55,6 +55,34 @@ class VitoParcelController extends Controller
             return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
         }
 
+        // Reload with customer relation for notification
+        $trip = TripRequest::with('customer')->find($result->id);
+
+        // Notify customer that driver accepted the parcel
+        try {
+            $push = getNotification('parcel_accepted');
+            if ($push) {
+                sendDeviceNotification(
+                    fcm_token: $trip->customer->fcm_token,
+                    title: translate(key: $push['title'], locale: $trip->customer->current_language_key),
+                    description: textVariableDataFormat(
+                        value: $push['description'],
+                        tripId: $trip->ref_id,
+                        sentTime: pushSentTime($trip->updated_at),
+                        locale: $trip->customer->current_language_key
+                    ),
+                    status: $push['status'],
+                    ride_request_id: $trip->id,
+                    type: 'parcel',
+                    notification_type: 'parcel',
+                    action: $push['action'],
+                    user_id: $trip->customer_id
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Push notification failed in atomicAcceptParcel: ' . $e->getMessage());
+        }
+
         return response()->json(responseFormatter(DEFAULT_200, $result));
     }
 }

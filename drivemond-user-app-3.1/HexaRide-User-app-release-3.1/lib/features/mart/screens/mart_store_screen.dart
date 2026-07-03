@@ -580,7 +580,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
     return total;
   }
 
-  double get _totalAmount => _subtotal - _discount + _tipAmount;
+  double get _totalAmount => _subtotal - _discount + _tipAmount + _martController.deliveryFee;
 
   @override
   void dispose() {
@@ -998,6 +998,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
           // Price breakdown
           _buildPriceLine('subtotal'.tr, _subtotal),
           if (_discount > 0) _buildPriceLine('discount'.tr, -_discount, isDiscount: true),
+          _buildPriceLine('delivery_fee'.tr, _martController.deliveryFee),
           if (_tipAmount > 0) _buildPriceLine('tip'.tr, _tipAmount),
           const Divider(),
           Row(

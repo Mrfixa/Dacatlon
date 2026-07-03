@@ -8,6 +8,7 @@ import 'package:ride_sharing_user_app/features/mart/domain/models/mart_category_
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service_interface.dart';
+import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 
 class MartController extends GetxController implements GetxService {
@@ -79,6 +80,16 @@ class MartController extends GetxController implements GetxService {
   }
 
   int get cartItemCount => _cartItems.length;
+
+  /// Delivery fee from backend config (defaults to 0.0 if not set)
+  double get deliveryFee {
+    try {
+      final config = Get.find<ConfigController>().config;
+      return config?.martDeliveryFee ?? 0.0;
+    } catch (_) {
+      return 0.0;
+    }
+  }
 
   /// Adds [product] to the cart. Items are always available, so this only
   /// increments the quantity or appends a new line. Always returns true.

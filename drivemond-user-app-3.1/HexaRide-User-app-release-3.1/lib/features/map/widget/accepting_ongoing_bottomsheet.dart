@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/confirmation_dialog_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/expandable_bottom_sheet.dart';
 import 'package:ride_sharing_user_app/common_widgets/swipable_button_widget/slider_button_widget.dart';
 import 'package:ride_sharing_user_app/features/dashboard/controllers/bottom_menu_controller.dart';
@@ -242,41 +243,50 @@ class _AcceptingAndOngoingBottomSheetState extends State<AcceptingAndOngoingBott
               borderColor: Theme.of(context).hintColor,
               radius: Dimensions.paddingSizeSmall,
               onPressed: (){
-                if(rideController.currentRideState == RideState.outForPickup){
-                  Get.find<RideController>().stopLocationRecord();
-                  rideController.tripStatusUpdate(
-                      rideController.tripDetails!.id!,
-                      'cancelled', 'ride_request_cancelled_successfully',
-                      (Get.find<TripController>().rideCancellationReasonList!.data!.acceptedRide!.length - 1) == Get.find<TripController>().rideCancellationCauseCurrentIndex ?
-                      Get.find<TripController>().othersCancellationController.text :
-                      Get.find<TripController>().rideCancellationReasonList!.data!.acceptedRide![Get.find<TripController>().rideCancellationCauseCurrentIndex]
-                  ).then((value){
-                    if(value.statusCode == 200){
-                      Get.find<MapController>().notifyMapController();
-                      Get.find<BottomMenuController>().navigateToDashboard();
-                    }
-                  });
-                }else{
-                  rideController.tripStatusUpdate(
-                      rideController.tripDetails!.id!,
-                      'cancelled', 'ride_request_cancelled_successfully',
-                      (Get.find<TripController>().rideCancellationReasonList!.data!.ongoingRide!.length - 1) == Get.find<TripController>().rideCancellationCauseCurrentIndex ?
-                      Get.find<TripController>().othersCancellationController.text :
-                      Get.find<TripController>().rideCancellationReasonList!.data!.ongoingRide![Get.find<TripController>().rideCancellationCauseCurrentIndex],
-                      afterAccept: true
-                  ).then((value) async {
-                    if(value.statusCode == 200){
+                // Show confirmation dialog before cancelling
+                Get.dialog(ConfirmationDialogWidget(
+                  icon: Images.logo,
+                  title: 'confirm_cancel'.tr,
+                  description: 'are_you_sure_you_want_to_cancel_this_trip'.tr,
+                  onYesPressed: () {
+                    Get.back(); // Close confirmation dialog
+                    if(rideController.currentRideState == RideState.outForPickup){
                       Get.find<RideController>().stopLocationRecord();
-                      rideController.getFinalFare(rideController.tripDetails!.id!).then((value) {
+                      rideController.tripStatusUpdate(
+                          rideController.tripDetails!.id!,
+                          'cancelled', 'ride_request_cancelled_successfully',
+                          (Get.find<TripController>().rideCancellationReasonList!.data!.acceptedRide!.length - 1) == Get.find<TripController>().rideCancellationCauseCurrentIndex ?
+                          Get.find<TripController>().othersCancellationController.text :
+                          Get.find<TripController>().rideCancellationReasonList!.data!.acceptedRide![Get.find<TripController>().rideCancellationCauseCurrentIndex]
+                      ).then((value){
                         if(value.statusCode == 200){
-                          Get.find<RideController>().updateRideCurrentState(RideState.completeRide);
                           Get.find<MapController>().notifyMapController();
-                          Get.off(() => const PaymentScreen());
+                          Get.find<BottomMenuController>().navigateToDashboard();
+                        }
+                      });
+                    }else{
+                      rideController.tripStatusUpdate(
+                          rideController.tripDetails!.id!,
+                          'cancelled', 'ride_request_cancelled_successfully',
+                          (Get.find<TripController>().rideCancellationReasonList!.data!.ongoingRide!.length - 1) == Get.find<TripController>().rideCancellationCauseCurrentIndex ?
+                          Get.find<TripController>().othersCancellationController.text :
+                          Get.find<TripController>().rideCancellationReasonList!.data!.ongoingRide![Get.find<TripController>().rideCancellationCauseCurrentIndex],
+                          afterAccept: true
+                      ).then((value) async {
+                        if(value.statusCode == 200){
+                          Get.find<RideController>().stopLocationRecord();
+                          rideController.getFinalFare(rideController.tripDetails!.id!).then((value) {
+                            if(value.statusCode == 200){
+                              Get.find<RideController>().updateRideCurrentState(RideState.completeRide);
+                              Get.find<MapController>().notifyMapController();
+                              Get.off(() => const PaymentScreen());
+                            }
+                          });
                         }
                       });
                     }
-                  });
-                }
+                  },
+                ));
               },
             )),
           ])

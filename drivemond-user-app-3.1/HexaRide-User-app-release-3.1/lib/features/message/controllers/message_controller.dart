@@ -50,6 +50,13 @@ class MessageController extends GetxController implements GetxService{
   final bool _paginationLoading = true;
   bool get paginationLoading => _paginationLoading;
 
+  bool _isOtherUserTyping = false;
+  bool get isOtherUserTyping => _isOtherUserTyping;
+  void setOtherUserTyping(bool value) {
+    _isOtherUserTyping = value;
+    update();
+  }
+
 
 
 
