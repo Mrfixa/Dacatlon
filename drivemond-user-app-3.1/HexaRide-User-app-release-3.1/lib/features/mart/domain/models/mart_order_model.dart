@@ -1,0 +1,110 @@
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_item_model.dart';
+
+class MartOrderModel {
+  final String? id;
+  final String? refId;
+  final String? status;
+  final double totalAmount;
+  final double tipAmount;
+  final double discountAmount;
+  final String? promoCode;
+  final String? paymentStatus;
+  final String? paymentMethod;
+  final String? deliveryAddress;
+  final String? signatureImage;
+  final String? deliveryPhoto;
+  final String? notes;
+  final String? driverId;
+  final String? driverName;
+  final String? createdAt;
+  final List<MartOrderItemModel> items;
+  // GAP-042: Added driver location fields for real-time tracking
+  final double? driverLat;
+  final double? driverLng;
+  final String? estimatedArrival;
+
+  MartOrderModel({
+    this.id,
+    this.refId,
+    this.status,
+    this.totalAmount = 0,
+    this.tipAmount = 0,
+    this.discountAmount = 0,
+    this.promoCode,
+    this.paymentStatus,
+    this.paymentMethod,
+    this.deliveryAddress,
+    this.signatureImage,
+    this.deliveryPhoto,
+    this.notes,
+    this.driverId,
+    this.driverName,
+    this.createdAt,
+    this.items = const [],
+    this.driverLat,
+    this.driverLng,
+    this.estimatedArrival,
+  });
+
+  factory MartOrderModel.fromJson(Map<String, dynamic> json) {
+    final driver = json['driver'];
+    return MartOrderModel(
+      id: json['id']?.toString(),
+      refId: json['ref_id']?.toString(),
+      status: json['status']?.toString(),
+      totalAmount: double.tryParse(json['total_amount']?.toString() ?? '') ?? 0,
+      tipAmount: double.tryParse(json['tip_amount']?.toString() ?? '') ?? 0,
+      discountAmount: double.tryParse(json['discount_amount']?.toString() ?? '') ?? 0,
+      promoCode: json['promo_code']?.toString(),
+      paymentStatus: json['payment_status']?.toString(),
+      paymentMethod: json['payment_method']?.toString(),
+      deliveryAddress: json['delivery_address']?.toString(),
+      signatureImage: json['signature_image']?.toString(),
+      deliveryPhoto: json['delivery_photo']?.toString(),
+      notes: json['notes']?.toString(),
+      driverId: json['driver_id']?.toString(),
+      driverName: driver is Map<String, dynamic>
+          ? '${driver['first_name'] ?? ''} ${driver['last_name'] ?? ''}'.trim()
+          : null,
+      createdAt: json['created_at']?.toString(),
+      items: json['items'] is List
+          ? (json['items'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(MartOrderItemModel.fromJson)
+              .toList()
+          : const [],
+      // GAP-042: Parse driver location fields
+      driverLat: double.tryParse(json['driver_lat']?.toString() ?? ''),
+      driverLng: double.tryParse(json['driver_lng']?.toString() ?? ''),
+      estimatedArrival: json['estimated_arrival']?.toString(),
+    );
+  }
+
+  int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ref_id': refId,
+      'status': status,
+      'total_amount': totalAmount,
+      'tip_amount': tipAmount,
+      'discount_amount': discountAmount,
+      'promo_code': promoCode,
+      'payment_status': paymentStatus,
+      'payment_method': paymentMethod,
+      'delivery_address': deliveryAddress,
+      'signature_image': signatureImage,
+      'delivery_photo': deliveryPhoto,
+      'notes': notes,
+      'driver_id': driverId,
+      'driver_name': driverName,
+      'created_at': createdAt,
+      'items': items.map((i) => i.toJson()).toList(),
+      // GAP-042: Include driver location fields
+      if (driverLat != null) 'driver_lat': driverLat,
+      if (driverLng != null) 'driver_lng': driverLng,
+      if (estimatedArrival != null) 'estimated_arrival': estimatedArrival,
+    };
+  }
+}

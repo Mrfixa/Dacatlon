@@ -1,0 +1,396 @@
+<?php
+
+namespace Modules\Gateways\Http\Controllers\Api;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Modules\TripManagement\Entities\MartOrder;
+use Modules\TripManagement\Entities\StripeEvent;
+
+class VitoStripeController extends Controller
+{
+    public function createPaymentIntent(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:1|max:10000',
+            'currency' => 'nullable|string|size:3',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
+        }
+
+        $stripeConfig = DB::table('settings')
+            ->where('key_name', 'stripe')
+            ->where('settings_type', PAYMENT_CONFIG)
+            ->first();
+        if (!$stripeConfig) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+        $stripeValues = $stripeConfig->mode === 'live'
+            ? json_decode($stripeConfig->live_values, true)
+            : json_decode($stripeConfig->test_values, true);
+        $stripeSecret = $stripeValues['api_key'] ?? null;
+        if (!$stripeSecret) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($stripeSecret);
+
+            // Idempotency key: one PaymentIntent per user per day for wallet top-ups.
+            // Using user_id + date means retrying within the same calendar day is safe
+            // and won't create duplicate charges.
+            $amountCents = (int) round($request->amount * 100);
+            $idempotencyKey = 'pi_' . $request->user()->id . '_walletTopup_' . date('Ymd') . '_' . $amountCents;
+
+            $paymentIntent = retry(3, function () use ($amountCents, $request, $idempotencyKey) {
+                return \Stripe\PaymentIntent::create(
+                    [
+                        'amount'   => $amountCents,
+                        'currency' => $request->input('currency', 'usd'),
+                        'metadata' => [
+                            'user_id' => $request->user()->id,
+                            'type'    => 'wallet_topup',
+                        ],
+                    ],
+                    ['idempotency_key' => $idempotencyKey],
+                );
+            }, 500);
+
+            StripeEvent::firstOrCreate(
+                ['stripe_event_id' => $paymentIntent->id],
+                [
+                    'type' => 'payment_intent.created',
+                    'user_id' => $request->user()->id,
+                    'amount' => $request->amount,
+                    'currency' => $request->input('currency', 'usd'),
+                    'status' => 'pending',
+                    'payment_intent_id' => $paymentIntent->id,
+                ]
+            );
+
+            return response()->json(responseFormatter(DEFAULT_200, [
+                'client_secret' => $paymentIntent->client_secret,
+                'payment_intent_id' => $paymentIntent->id,
+            ]));
+
+        } catch (\Exception $e) {
+            return response()->json(responseFormatter(constant: DEFAULT_400), 400);
+        }
+    }
+
+    public function createOrderPaymentIntent(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|uuid',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 400);
+        }
+
+        $order = MartOrder::where('id', $request->order_id)
+            ->where('customer_id', $request->user()->id)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->first();
+
+        if (!$order) {
+            return response()->json(responseFormatter(DEFAULT_404), 404);
+        }
+
+        if ($order->payment_status === 'paid') {
+            return response()->json(responseFormatter(DEFAULT_400, null, null, 'Order already paid'), 400);
+        }
+
+        $stripeConfig = DB::table('settings')
+            ->where('key_name', 'stripe')
+            ->where('settings_type', PAYMENT_CONFIG)
+            ->first();
+        if (!$stripeConfig) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+        $stripeValues = $stripeConfig->mode === 'live'
+            ? json_decode($stripeConfig->live_values, true)
+            : json_decode($stripeConfig->test_values, true);
+        $stripeSecret = $stripeValues['api_key'] ?? null;
+        if (!$stripeSecret) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 500);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($stripeSecret);
+
+            $amountCents = (int) round($order->total_amount * 100);
+            $idempotencyKey = 'pi_order_' . $order->id;
+
+            $paymentIntent = retry(3, function () use ($amountCents, $request, $order, $idempotencyKey) {
+                return \Stripe\PaymentIntent::create(
+                    [
+                        'amount'   => $amountCents,
+                        'currency' => 'usd',
+                        'metadata' => [
+                            'user_id'  => $request->user()->id,
+                            'type'     => 'order_payment',
+                            'order_id' => $order->id,
+                        ],
+                    ],
+                    ['idempotency_key' => $idempotencyKey],
+                );
+            }, 500);
+
+            StripeEvent::firstOrCreate(
+                ['stripe_event_id' => $paymentIntent->id],
+                [
+                    'type'              => 'payment_intent.created',
+                    'user_id'           => $request->user()->id,
+                    'amount'            => $order->total_amount,
+                    'currency'          => 'usd',
+                    'status'            => 'pending',
+                    'payment_intent_id' => $paymentIntent->id,
+                    'metadata'          => ['type' => 'order_payment', 'order_id' => $order->id],
+                ]
+            );
+
+            return response()->json(responseFormatter(DEFAULT_200, [
+                'client_secret'     => $paymentIntent->client_secret,
+                'payment_intent_id' => $paymentIntent->id,
+            ]));
+
+        } catch (\Exception $e) {
+            return response()->json(responseFormatter(constant: DEFAULT_400), 400);
+        }
+    }
+
+    public function webhook(Request $request): JsonResponse
+    {
+        $stripeWebhookSecret = env('STRIPE_WEBHOOK_SECRET');
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+
+        try {
+            if ($stripeWebhookSecret) {
+                $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $stripeWebhookSecret);
+            } else {
+                return response()->json(responseFormatter(DEFAULT_400, null, null, 'Webhook secret not configured'), 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json(responseFormatter(DEFAULT_400, null, null, 'Invalid signature'), 400);
+        }
+
+        // Check Stripe event ID idempotency first — if we have already stored a
+        // 'succeeded' record for this exact Stripe event, return immediately so
+        // retried webhook deliveries never double-credit the wallet.
+        $stripeEventId = is_object($event) && property_exists($event, 'id') ? $event->id : ($event['id'] ?? null);
+
+        if ($stripeEventId) {
+            $alreadyProcessed = StripeEvent::where('stripe_event_id', $stripeEventId)
+                ->where('status', 'succeeded')
+                ->exists();
+            if ($alreadyProcessed) {
+                return response()->json(responseFormatter(DEFAULT_200, ['status' => 'already_processed']));
+            }
+        }
+
+        $eventType = is_object($event) && property_exists($event, 'type') ? $event->type : ($event['type'] ?? '');
+        $data = is_object($event) && property_exists($event, 'data') ? $event->data->object : ($event['data']['object'] ?? null);
+
+        if ($eventType === 'payment_intent.succeeded' && $data) {
+            $paymentIntentId = is_object($data) ? $data->id : ($data['id'] ?? '');
+            $userId = is_object($data) && isset($data->metadata->user_id)
+                ? $data->metadata->user_id
+                : ($data['metadata']['user_id'] ?? null);
+            $amount = is_object($data) ? $data->amount / 100 : (($data['amount'] ?? 0) / 100);
+            $currency = is_object($data) ? ($data->currency ?? 'usd') : ($data['currency'] ?? 'usd');
+
+            DB::transaction(function () use ($paymentIntentId, $stripeEventId, $userId, $amount, $currency) {
+                $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$stripeEvent) {
+                    // Webhook arrived before createPaymentIntent stored the record.
+                    // Create it now so we can proceed and ensure idempotency on retries.
+                    $stripeEvent = StripeEvent::create([
+                        'stripe_event_id' => $stripeEventId,
+                        'type' => 'payment_intent.succeeded',
+                        'user_id' => $userId,
+                        'amount' => $amount,
+                        'currency' => $currency,
+                        'status' => 'pending',
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+                }
+
+                if ($stripeEvent->status === 'succeeded') {
+                    return;
+                }
+
+                // Record the Stripe event ID alongside the status so future duplicate
+                // webhook deliveries are rejected by the idempotency check above.
+                $stripeEvent->update([
+                    'status' => 'succeeded',
+                    'stripe_event_id' => $stripeEventId ?? $stripeEvent->stripe_event_id,
+                ]);
+
+                $meta = $stripeEvent->metadata ?? [];
+                $metaType = $meta['type'] ?? 'wallet_topup';
+
+                if ($metaType === 'order_payment' && !empty($meta['order_id'])) {
+                    $order = MartOrder::where('id', $meta['order_id'])->first();
+                    if ($order) {
+                        $order->update(['payment_status' => 'paid']);
+                        
+                        // Notify customer of successful payment
+                        try {
+                            $customer = $order->customer;
+                            if ($customer && $customer->fcm_token) {
+                                sendDeviceNotification(
+                                    fcm_token: $customer->fcm_token,
+                                    title: 'Payment Successful',
+                                    description: "Your payment for order #{$order->ref_id} has been received.",
+                                    status: 'paid',
+                                    ride_request_id: $order->id,
+                                    type: 'mart',
+                                    notification_type: 'mart',
+                                    action: 'mart_payment_received',
+                                    user_id: $customer->id,
+                                );
+                            }
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('Stripe webhook FCM notify failed: ' . $e->getMessage());
+                        }
+                    }
+                } elseif ($userId) {
+                    $user = \Modules\UserManagement\Entities\User::find($userId);
+                    if ($user) {
+                        $account = $user->userAccount ?? $user->userAccount()->create([
+                            'payable_balance'   => 0,
+                            'receivable_balance'=> 0,
+                            'received_balance'  => 0,
+                            'pending_balance'   => 0,
+                            'wallet_balance'    => 0,
+                            'total_withdrawn'   => 0,
+                            'referral_earn'     => 0,
+                        ]);
+                        $account->increment('wallet_balance', $amount);
+                        
+                        // Notify user of wallet top-up
+                        try {
+                            if ($user->fcm_token) {
+                                sendDeviceNotification(
+                                    fcm_token: $user->fcm_token,
+                                    title: 'Wallet Top-up Successful',
+                                    description: "Your wallet has been credited with {$currency} " . number_format($amount, 2),
+                                    status: 'success',
+                                    notification_type: 'wallet',
+                                    action: 'wallet_topup_success',
+                                    user_id: $user->id,
+                                );
+                            }
+                        } catch (\Throwable $e) {
+                            \Illuminate\Support\Facades\Log::warning('Wallet topup FCM notify failed: ' . $e->getMessage());
+                        }
+                    }
+                }
+            });
+        } elseif ($eventType === 'payment_intent.payment_failed' && $data) {
+            // Mark the stored event + any associated order as failed so the client
+            // and reporting reflect the declined charge.
+            $paymentIntentId = is_object($data) ? $data->id : ($data['id'] ?? '');
+            $userId = is_object($data) && isset($data->metadata->user_id)
+                ? $data->metadata->user_id
+                : ($data['metadata']['user_id'] ?? null);
+            try {
+                DB::transaction(function () use ($paymentIntentId, $userId) {
+                    $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                        ->lockForUpdate()
+                        ->first();
+                    if ($stripeEvent && $stripeEvent->status !== 'succeeded') {
+                        $stripeEvent->update(['status' => 'failed']);
+                        $meta = $stripeEvent->metadata ?? [];
+                        if (($meta['type'] ?? null) === 'order_payment' && !empty($meta['order_id'])) {
+                            $order = MartOrder::where('id', $meta['order_id'])->first();
+                            if ($order) {
+                                $order->update(['payment_status' => 'failed']);
+                                // Notify customer of payment failure
+                                try {
+                                    $customer = $order->customer;
+                                    if ($customer && $customer->fcm_token) {
+                                        sendDeviceNotification(
+                                            fcm_token: $customer->fcm_token,
+                                            title: 'Payment Failed',
+                                            description: "Your payment for order #{$order->ref_id} has failed. Please try again.",
+                                            status: 'failed',
+                                            ride_request_id: $order->id,
+                                            type: 'mart',
+                                            notification_type: 'mart',
+                                            action: 'mart_payment_failed',
+                                            user_id: $customer->id,
+                                        );
+                                    }
+                                } catch (\Throwable $e) {
+                                    \Illuminate\Support\Facades\Log::warning('Stripe payment_failed FCM notify failed: ' . $e->getMessage());
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Stripe payment_failed handling error: ' . $e->getMessage());
+            }
+        } elseif ($eventType === 'charge.refunded' && $data) {
+            // Reconcile a refund issued from the Stripe side: flag the order refunded
+            // or reverse a wallet top-up. Idempotent on the Stripe event id.
+            $paymentIntentId = is_object($data)
+                ? ($data->payment_intent ?? '')
+                : ($data['payment_intent'] ?? '');
+            try {
+                DB::transaction(function () use ($paymentIntentId, $stripeEventId) {
+                    $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
+                        ->where('payment_intent_id', '!=', '')
+                        ->lockForUpdate()
+                        ->first();
+                    if (!$stripeEvent) {
+                        return;
+                    }
+                    $meta = $stripeEvent->metadata ?? [];
+                    if (($meta['type'] ?? null) === 'order_payment' && !empty($meta['order_id'])) {
+                        MartOrder::where('id', $meta['order_id'])->update(['payment_status' => 'refunded']);
+                    } elseif ($stripeEvent->status === 'succeeded' && $stripeEvent->user_id) {
+                        // Reverse the wallet credit (guard against negative balance).
+                        $user = \Modules\UserManagement\Entities\User::find($stripeEvent->user_id);
+                        if ($user && $user->userAccount) {
+                            $reverse = min((float) $stripeEvent->amount, (float) $user->userAccount->wallet_balance);
+                            if ($reverse > 0) {
+                                $user->userAccount->decrement('wallet_balance', $reverse);
+                            }
+                        }
+                    }
+                    StripeEvent::firstOrCreate(
+                        ['stripe_event_id' => $stripeEventId ?: ('refund_' . $paymentIntentId)],
+                        [
+                            'type'              => 'charge.refunded',
+                            'user_id'           => $stripeEvent->user_id,
+                            'amount'            => $stripeEvent->amount,
+                            'currency'          => $stripeEvent->currency ?? 'usd',
+                            'status'            => 'succeeded',
+                            'payment_intent_id' => $paymentIntentId,
+                            'metadata'          => ['type' => 'refund'],
+                        ]
+                    );
+                });
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Stripe charge.refunded handling error: ' . $e->getMessage());
+            }
+        } else {
+            // Unknown / unhandled event type — acknowledge so Stripe stops retrying.
+            \Illuminate\Support\Facades\Log::debug('Unhandled Stripe event type: ' . $eventType);
+        }
+
+        return response()->json(responseFormatter(DEFAULT_200));
+    }
+}

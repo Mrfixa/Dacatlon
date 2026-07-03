@@ -1,0 +1,232 @@
+name: VITO CI
+
+on:
+  push:
+    branches: [master, vlad]
+  pull_request:
+    branches: [master, vlad]
+
+env:
+  FLUTTER_VERSION: "3.44.0"
+  PHP_VERSION: "8.2"
+  # Ratcheted coverage floors.
+  # Measured 2026-06-28: PHP (Vito API surface) 80.36%; Flutter user 0.98% / driver 1.05%
+  # (whole-lib denominator ~20.7k lines; mart-model unit tests cover pure fromJson logic).
+  # Floors sit just below current so the suite can't silently regress.
+  # Remaining PHP headroom needs a live Stripe API / SDK mock; Flutter headroom needs
+  # widget/controller tests with GetX bindings — both out of scope for now.
+  PHP_COVERAGE_FLOOR: 77
+  FLUTTER_COVERAGE_FLOOR: 0.8
+
+jobs:
+  laravel:
+    name: Laravel Tests & Analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-admin-new-install-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, json, curl
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-scripts --ignore-platform-reqs --prefer-dist
+
+      - name: Copy .env
+        run: cp .env.example .env 2>/dev/null || true
+
+      - name: Generate app key
+        run: php artisan key:generate --force 2>/dev/null || true
+
+      - name: Generate Passport keys
+        run: php artisan passport:keys --force 2>/dev/null || true
+
+      - name: Set APP_URL for tests
+        run: |
+          sed -i 's|^APP_URL=.*|APP_URL=http://localhost|' .env
+
+      - name: Run PHPStan (level 0)
+        run: |
+          ./vendor/bin/phpstan analyse \
+            Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php \
+            Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php \
+            Modules/TripManagement/Http/Controllers/Api/Customer/VitoMartController.php \
+            Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php \
+            Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php \
+            Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php \
+            Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php \
+            Modules/Gateways/Http/Controllers/Api/VitoStripeController.php \
+            --level=0 --no-progress
+
+      - name: Run PHPUnit Tests with coverage
+        run: |
+          php artisan test --filter=VitoFlowTest \
+            --coverage-clover=coverage.xml \
+            --coverage-text 2>&1 | tee coverage-report.txt
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+          APP_URL: "http://localhost"
+          XDEBUG_MODE: coverage
+
+      - name: Upload PHP coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage
+          path: drivemond-admin-new-install-3.1/coverage.xml
+          retention-days: 14
+
+      - name: Check PHP coverage floor
+        run: |
+          # Compute line coverage from the clover report (artisan test's --coverage-text
+          # summary isn't reliably parseable, but --coverage-clover always emits real data).
+          COVERED=$(python3 -c "import xml.etree.ElementTree as ET; m=ET.parse('coverage.xml').getroot().findall('./project/metrics')[-1]; s=int(m.get('statements','0')); c=int(m.get('coveredstatements','0')); print(format(c/s*100,'.2f') if s else '')" 2>/dev/null || echo "")
+          # Empty means coverage was never collected (e.g. misconfigured source/driver) —
+          # treat that as a hard failure so the gate can't silently regress to a no-op.
+          if [ -z "$COVERED" ]; then
+            echo "No PHP coverage collected — check phpunit.xml <source> and the coverage driver."
+            exit 1
+          fi
+          echo "PHP line coverage: ${COVERED}%"
+          # Fail if below the ratcheted floor
+          if (( $(echo "$COVERED < ${{ env.PHP_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${COVERED}% is below floor ${{ env.PHP_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
+
+  flutter-user:
+    name: Flutter User App
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-user-app-3.1/HexaRide-User-app-release-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run flutter analyze
+        run: flutter analyze --no-fatal-infos || true
+
+      - name: Run tests with coverage
+        run: flutter test test/vito_flows_test.dart --coverage
+
+      - name: Upload Flutter user coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-user-coverage
+          path: drivemond-user-app-3.1/HexaRide-User-app-release-3.1/coverage/lcov.info
+          retention-days: 14
+
+      - name: Check Flutter user coverage floor
+        run: |
+          LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info 2>/dev/null || echo "0")
+          LINES_HIT=$(grep -c "^DA:.*,[^0]" coverage/lcov.info 2>/dev/null || echo "0")
+          if [ "$LINES_FOUND" -gt 0 ]; then
+            PCT=$(echo "scale=1; $LINES_HIT * 100 / $LINES_FOUND" | bc)
+          else
+            PCT="0"
+          fi
+          echo "Flutter user coverage: ${PCT}% (${LINES_HIT}/${LINES_FOUND})"
+          if (( $(echo "$PCT < ${{ env.FLUTTER_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${PCT}% is below floor ${{ env.FLUTTER_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
+
+      - name: Build debug APK
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-app-debug-apk
+          path: drivemond-user-app-3.1/HexaRide-User-app-release-3.1/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+
+  flutter-driver:
+    name: Flutter Driver App
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run flutter analyze
+        run: flutter analyze --no-fatal-infos || true
+
+      - name: Run tests with coverage
+        run: flutter test test/vito_flows_test.dart --coverage
+
+      - name: Upload Flutter driver coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-driver-coverage
+          path: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/coverage/lcov.info
+          retention-days: 14
+
+      - name: Check Flutter driver coverage floor
+        run: |
+          LINES_FOUND=$(grep -c "^DA:" coverage/lcov.info 2>/dev/null || echo "0")
+          LINES_HIT=$(grep -c "^DA:.*,[^0]" coverage/lcov.info 2>/dev/null || echo "0")
+          if [ "$LINES_FOUND" -gt 0 ]; then
+            PCT=$(echo "scale=1; $LINES_HIT * 100 / $LINES_FOUND" | bc)
+          else
+            PCT="0"
+          fi
+          echo "Flutter driver coverage: ${PCT}% (${LINES_HIT}/${LINES_FOUND})"
+          if (( $(echo "$PCT < ${{ env.FLUTTER_COVERAGE_FLOOR }}" | bc -l) )); then
+            echo "Coverage ${PCT}% is below floor ${{ env.FLUTTER_COVERAGE_FLOOR }}%"
+            exit 1
+          fi
+
+      - name: Build debug APK
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-app-debug-apk
+          path: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

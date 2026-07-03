@@ -1,0 +1,329 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/data/api_client.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/qr_scanner_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/sign_in_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/sign_up_screen.dart';
+import 'package:ride_sharing_user_app/helper/display_helper.dart';
+import 'package:ride_sharing_user_app/util/app_constants.dart';
+import 'package:ride_sharing_user_app/util/dimensions.dart';
+import 'package:ride_sharing_user_app/util/images.dart';
+import 'package:ride_sharing_user_app/util/styles.dart';
+
+class TokenGateScreen extends StatefulWidget {
+  const TokenGateScreen({super.key});
+
+  @override
+  State<TokenGateScreen> createState() => _TokenGateScreenState();
+}
+
+class _TokenGateScreenState extends State<TokenGateScreen> {
+  final TextEditingController _tokenController = TextEditingController();
+  bool _isValidating = false;
+  List<Map<String, dynamic>> _tokenHistory = [];
+
+  static const String _tokenHistoryKey = 'customer_token_history';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTokenHistory();
+  }
+
+  @override
+  void dispose() {
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  // GAP-012: Check camera permission before opening QR scanner
+  Future<void> _openQrScanner() async {
+    final status = await Permission.camera.status;
+    if (status.isGranted) {
+      _navigateToScanner();
+    } else if (status.isDenied) {
+      final result = await Permission.camera.request();
+      if (result.isGranted) {
+        _navigateToScanner();
+      } else {
+        showCustomSnackBar('camera_permission_denied'.tr);
+      }
+    } else if (status.isPermanentlyDenied) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('camera_permission_required'.tr),
+          content: Text('camera_permission_message'.tr),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('cancel'.tr),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                openAppSettings();
+              },
+              child: Text('open_settings'.tr),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _navigateToScanner() {
+    Get.to(() => QrScannerScreen(
+      onTokenScanned: (token) {
+        _tokenController.text = token;
+        _validateToken();
+      },
+    ));
+  }
+
+  Future<void> _loadTokenHistory() async {
+    final historyJson = await _secureStorage.read(key: _tokenHistoryKey);
+    if (historyJson != null) {
+      final List<dynamic> decoded = jsonDecode(historyJson);
+      setState(() {
+        _tokenHistory = decoded.cast<Map<String, dynamic>>();
+      });
+    }
+  }
+
+  Future<void> _saveTokenToHistory(String token, bool isValid) async {
+    final entry = {
+      'token': '...${token.substring(token.length >= 8 ? token.length - 8 : 0)}',
+      'validated_at': DateTime.now().toIso8601String(),
+      'valid': isValid,
+    };
+    _tokenHistory.insert(0, entry);
+    if (_tokenHistory.length > 20) {
+      _tokenHistory = _tokenHistory.sublist(0, 20);
+    }
+    await _secureStorage.write(key: _tokenHistoryKey, value: jsonEncode(_tokenHistory));
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: true,
+      child: SafeArea(
+      child: Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(Images.logoWithName, color: const Color(0xFF008C7B), height: 60),
+                const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+
+                Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 80,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                Text(
+                  'invitation_required'.tr,
+                  style: textBold.copyWith(fontSize: Dimensions.fontSizeTwenty),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge),
+                  child: Text(
+                    'scan_qr_or_enter_token'.tr,
+                    style: textRegular.copyWith(
+                      color: Theme.of(context).hintColor,
+                      fontSize: Dimensions.fontSizeSmall,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      _openQrScanner();
+                    },
+                    icon: Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.onPrimary),
+                    label: Text('scan_qr_code'.tr, style: textBold.copyWith(color: Theme.of(context).colorScheme.onPrimary)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
+                      child: Text('or'.tr, style: textRegular.copyWith(color: Theme.of(context).hintColor)),
+                    ),
+                    Expanded(child: Divider(color: Theme.of(context).hintColor.withValues(alpha: 0.3))),
+                  ],
+                ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                    border: Border.all(
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _tokenController,
+                    maxLength: 64,
+                    decoration: InputDecoration(
+                      hintText: 'enter_invitation_token'.tr,
+                      counterText: '',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+                      prefixIcon: Icon(Icons.vpn_key_outlined, color: Theme.of(context).primaryColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                _isValidating
+                    ? CircularProgressIndicator(color: Theme.of(context).primaryColor)
+                    : ButtonWidget(
+                        buttonText: 'validate_token'.tr,
+                        radius: 50,
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _validateToken();
+                        },
+                      ),
+                const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                TextButton(
+                  onPressed: () => Get.off(() => const SignInScreen()),
+                  child: Text(
+                    'already_have_account'.tr,
+                    style: textMedium.copyWith(
+                      color: Theme.of(context).primaryColor,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+
+                if (_tokenHistory.isNotEmpty) ...[
+                  const SizedBox(height: Dimensions.paddingSizeLarge),
+                  _buildTokenHistory(context),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+    );
+  }
+
+  Widget _buildTokenHistory(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('token_history'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
+            TextButton(
+              onPressed: () async {
+                await _secureStorage.delete(key: _tokenHistoryKey);
+                setState(() => _tokenHistory.clear());
+              },
+              child: Text('clear'.tr, style: textRegular.copyWith(
+                color: Theme.of(context).hintColor,
+                fontSize: Dimensions.fontSizeSmall,
+              )),
+            ),
+          ],
+        ),
+        ...(_tokenHistory.take(5).map((entry) => ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: Builder(
+            builder: (ctx) => Icon(
+              entry['valid'] == true ? Icons.check_circle : Icons.cancel,
+              color: entry['valid'] == true
+                  ? Theme.of(ctx).colorScheme.tertiary
+                  : Theme.of(ctx).colorScheme.error,
+              size: 20,
+            ),
+          ),
+          title: Text(entry['token'] ?? '', style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall)),
+          subtitle: Text(
+            _formatTimestamp(entry['validated_at'] ?? ''),
+            style: textRegular.copyWith(fontSize: 10, color: Theme.of(context).hintColor),
+          ),
+        ))),
+      ],
+    );
+  }
+
+  String _formatTimestamp(String isoString) {
+    if (isoString.isEmpty) return '';
+    final dt = DateTime.tryParse(isoString);
+    if (dt == null) return '';
+    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _validateToken() async {
+    final token = _tokenController.text.trim();
+    if (token.isEmpty) {
+      showCustomSnackBar('token_is_required'.tr);
+      return;
+    }
+    // Token should be at least 6 chars (UUID format)
+    if (token.length < 6) {
+      showCustomSnackBar('invalid_token_length'.tr);
+      return;
+    }
+
+    setState(() => _isValidating = true);
+
+    try {
+      final response = await Get.find<ApiClient>().postData(
+        AppConstants.qrTokenValidate,
+        {'token': token},
+      );
+
+      if (response.statusCode == 200 && response.body['data']?['valid'] == true) {
+        await _saveTokenToHistory(token, true);
+        Get.to(() => SignUpScreen(qrToken: token));
+      } else {
+        await _saveTokenToHistory(token, false);
+        showCustomSnackBar('invalid_or_expired_token'.tr);
+      }
+    } catch (_) {
+      await _saveTokenToHistory(token, false);
+      showCustomSnackBar('token_validation_failed'.tr);
+    } finally {
+      if (mounted) setState(() => _isValidating = false);
+    }
+  }
+}

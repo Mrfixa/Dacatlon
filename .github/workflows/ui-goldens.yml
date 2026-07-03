@@ -1,0 +1,56 @@
+name: UI Goldens
+
+# Renders each app's UI catalog (real shared components + patterns, SF Pro fonts
+# loaded so text is legible) to PNG goldens and uploads them as artifacts, so we
+# get *visual* feedback on the UI without a local emulator. Isolated from the
+# release pipeline (build-apk.yml / vito-ci.yml never run these tests), so
+# iterating here can never break a release build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - '**/test/ui_catalog_golden_test.dart'
+      - '.github/workflows/ui-goldens.yml'
+
+jobs:
+  ui-goldens:
+    name: Generate UI catalog goldens (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: user
+            dir: drivemond-user-app-3.1/HexaRide-User-app-release-3.1
+            artifact: vito-ui-catalog-user
+          - app: driver
+            dir: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
+            artifact: vito-ui-catalog-driver
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate goldens (always regenerated — never fails on pixel diff)
+        run: flutter test --update-goldens test/ui_catalog_golden_test.dart
+
+      - name: Upload UI catalog PNGs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.dir }}/test/goldens/*.png
+          if-no-files-found: warn

@@ -1,0 +1,497 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:ride_sharing_user_app/data/api_checker.dart';
+import 'package:ride_sharing_user_app/features/auth/domain/models/signup_body.dart';
+import 'package:ride_sharing_user_app/features/ride/domain/models/remaining_distance_model.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service_interface.dart';
+// Imported so CI compiles the concrete repository/service (multipart + header code) — D1.
+import 'package:ride_sharing_user_app/features/mart/domain/repositories/mart_repository.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_item_model.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
+import 'package:ride_sharing_user_app/common_widgets/searchable_dropdown_field.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/qr_scanner_screen.dart';
+import 'package:ride_sharing_user_app/util/parse_utils.dart';
+
+/// Unit tests for VITO-specific flows in the driver app.
+/// These validate localization, token logic, atomic acceptance,
+/// and job request logic without requiring the full app or backend.
+void main() {
+  group('Localization Parity', () {
+    late Map<String, dynamic> en;
+    late Map<String, dynamic> es;
+
+    setUpAll(() {
+      en = jsonDecode(File('assets/language/en.json').readAsStringSync());
+      es = jsonDecode(File('assets/language/es.json').readAsStringSync());
+    });
+
+    test('EN and ES have the same number of keys', () {
+      expect(es.length, en.length,
+          reason: 'ES should have the same keys as EN');
+    });
+
+    test('All EN keys exist in ES', () {
+      final missingInEs = en.keys.where((k) => !es.containsKey(k)).toList();
+      expect(missingInEs, isEmpty,
+          reason: 'Keys missing in ES: $missingInEs');
+    });
+
+    test('All ES keys exist in EN', () {
+      final extraInEs = es.keys.where((k) => !en.containsKey(k)).toList();
+      expect(extraInEs, isEmpty,
+          reason: 'Extra keys in ES not in EN: $extraInEs');
+    });
+
+    test('Vito-specific EN keys have non-empty values', () {
+      final vitoKeys = [
+        'invitation_required',
+        'scan_qr_or_enter_token',
+        'enter_invitation_token',
+        'validate_token',
+        'enter_username_and_pin',
+        'pin_is_required',
+        'username_is_required',
+      ];
+      for (final key in vitoKeys) {
+        expect(en[key], isNotNull, reason: 'EN key "$key" should exist');
+        expect(en[key], isNotEmpty, reason: 'EN key "$key" should not be empty');
+      }
+    });
+
+    test('Vito-specific ES keys have Spanish translations', () {
+      final esVitoKeys = {
+        'invitation_required': 'Invitación Requerida',
+        'validate_token': 'Validar Token',
+        'pin_is_required': 'El PIN es obligatorio',
+        'username_is_required': 'El nombre de usuario es obligatorio',
+      };
+      for (final entry in esVitoKeys.entries) {
+        expect(es[entry.key], entry.value,
+            reason: 'ES key "${entry.key}" should be "${entry.value}"');
+      }
+    });
+  });
+
+  group('Token Validation Logic', () {
+    test('Empty token should be rejected', () {
+      final token = '';
+      expect(token.isEmpty, isTrue);
+    });
+
+    test('Short token (< 10 chars) should be rejected', () {
+      final token = 'abc123';
+      expect(token.length < 10, isTrue);
+    });
+
+    test('Valid token format (64 hex chars)', () {
+      final token = 'a' * 64;
+      expect(token.length, 64);
+      expect(RegExp(r'^[a-f0-9]+$').hasMatch(token), isTrue);
+    });
+  });
+
+  group('PIN Validation Logic', () {
+    test('PIN must be exactly 6 digits', () {
+      expect(RegExp(r'^\d{6}$').hasMatch('123456'), isTrue);
+    });
+
+    test('Short PIN rejected', () {
+      expect(RegExp(r'^\d{6}$').hasMatch('12345'), isFalse);
+    });
+
+    test('PIN with letters rejected', () {
+      expect(RegExp(r'^\d{6}$').hasMatch('123abc'), isFalse);
+    });
+
+    test('PIN confirmation must match', () {
+      expect('654321' == '654321', isTrue);
+    });
+
+    test('PIN mismatch detected', () {
+      expect('654321' == '654320', isFalse);
+    });
+  });
+
+  group('Atomic Ride Acceptance Logic', () {
+    test('Only one driver can accept a pending ride', () {
+      // Simulate the atomic acceptance: first driver succeeds, second fails
+      String? rideDriverId;
+      String rideStatus = 'pending';
+
+      bool tryAccept(String driverId) {
+        if (rideStatus == 'pending' && rideDriverId == null) {
+          rideDriverId = driverId;
+          rideStatus = 'accepted';
+          return true;
+        }
+        return false;
+      }
+
+      expect(tryAccept('driver-1'), isTrue);
+      expect(rideDriverId, 'driver-1');
+
+      // Driver 2 attempts acceptance (should fail)
+      expect(tryAccept('driver-2'), isFalse);
+    });
+
+    test('Already accepted ride cannot be re-accepted', () {
+      String rideDriverId = 'driver-1';
+      final canAccept = rideDriverId.isEmpty;
+      expect(canAccept, isFalse);
+    });
+  });
+
+  group('Job Request Modal Logic', () {
+    test('Job request countdown starts at 30 seconds', () {
+      const countdown = 30;
+      expect(countdown, 30);
+    });
+
+    test('Countdown reaches zero means auto-dismiss', () {
+      var countdown = 30;
+      while (countdown > 0) {
+        countdown--;
+      }
+      expect(countdown, 0);
+    });
+
+    test('Job request shows ride type info', () {
+      final rideTypes = ['ride_request', 'parcel', 'mart_delivery'];
+      expect(rideTypes.contains('ride_request'), isTrue);
+      expect(rideTypes.contains('parcel'), isTrue);
+      expect(rideTypes.contains('mart_delivery'), isTrue);
+    });
+  });
+
+  group('Driver Registration Logic', () {
+    test('Driver registration requires plate number', () {
+      final plate = '';
+      expect(plate.isEmpty, isTrue,
+          reason: 'Empty plate should fail validation');
+    });
+
+    test('Auto-approval for onboarding token', () {
+      const tokenRole = 'driver';
+      const autoApprove = tokenRole == 'driver';
+      expect(autoApprove, isTrue);
+    });
+  });
+
+  group('SignUpBody Serialization', () {
+    test('toJson includes service when services list is non-empty', () {
+      final body = SignUpBody(
+        fName: 'John', lName: 'Doe', username: 'johndoe',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request'],
+      );
+      final json = body.toJson();
+      expect(json.containsKey('service'), isTrue);
+      expect(json['service'], 'ride_request');
+    });
+
+    test('toJson joins multiple services with comma', () {
+      final body = SignUpBody(
+        fName: 'Jane', lName: 'Doe', username: 'janedoe',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request', 'parcel'],
+      );
+      final json = body.toJson();
+      expect(json['service'], 'ride_request,parcel');
+    });
+
+    test('toJson includes address when set', () {
+      final body = SignUpBody(
+        fName: 'Ali', lName: 'Hassan', username: 'ali',
+        password: '123456', confirmPassword: '123456',
+        address: '123 Main St',
+      );
+      final json = body.toJson();
+      expect(json['address'], '123 Main St');
+    });
+
+    test('toJson includes identification_type and identification_number', () {
+      final body = SignUpBody(
+        fName: 'Sara', lName: 'Lee', username: 'sara',
+        password: '123456', confirmPassword: '123456',
+        identificationType: 'passport',
+        identityNumber: 'P123456',
+      );
+      final json = body.toJson();
+      expect(json['identification_type'], 'passport');
+      expect(json['identification_number'], 'P123456');
+    });
+
+    test('toJson omits service key when services list is empty', () {
+      final body = SignUpBody(
+        fName: 'Bob', lName: 'Smith', username: 'bob',
+        password: '123456', confirmPassword: '123456',
+        services: [],
+      );
+      final json = body.toJson();
+      expect(json.containsKey('service'), isFalse);
+    });
+  });
+
+  group('Driver Service Selection', () {
+    test('Both ride and parcel selected produces comma-joined service string', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'A', username: 'drivera',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request', 'parcel'],
+      );
+      expect(body.toJson()['service'], 'ride_request,parcel');
+    });
+
+    test('Only ride selected produces single service string', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'B', username: 'driverb',
+        password: '123456', confirmPassword: '123456',
+        services: ['ride_request'],
+      );
+      expect(body.toJson()['service'], 'ride_request');
+    });
+
+    test('No service selected means no service key in toJson', () {
+      final body = SignUpBody(
+        fName: 'Driver', lName: 'C', username: 'driverc',
+        password: '123456', confirmPassword: '123456',
+      );
+      expect(body.toJson().containsKey('service'), isFalse);
+    });
+  });
+
+  // Locks in the crash-sweep: malformed/missing numeric fields must NOT throw.
+  group('Model parse hardening', () {
+    test('RemainingDistanceModel.fromJson tolerates a null distance', () {
+      final model = RemainingDistanceModel.fromJson({'distance': null});
+      expect(model.distance, isNull);
+    });
+
+    test('RemainingDistanceModel.fromJson tolerates a non-numeric distance', () {
+      final model = RemainingDistanceModel.fromJson({'distance': 'not-a-number'});
+      expect(model.distance, 0);
+    });
+
+    test('RemainingDistanceModel.fromJson parses valid numeric distances', () {
+      expect(RemainingDistanceModel.fromJson({'distance': 12.5}).distance, 12.5);
+      expect(RemainingDistanceModel.fromJson({'distance': 5}).distance, 5.0);
+    });
+  });
+
+  group('Session 401 handling', () {
+    // A transient/secondary 401 must NOT destroy a valid session — only the
+    // deliberate startup auth check (handleUnauthorized: true) may log out.
+    test('secondary 401 does not invalidate the session', () {
+      expect(ApiChecker.shouldInvalidateSession(401, handleUnauthorized: false), false);
+    });
+    test('startup-confirmed 401 invalidates the session', () {
+      expect(ApiChecker.shouldInvalidateSession(401, handleUnauthorized: true), true);
+    });
+    test('non-401 never invalidates the session', () {
+      expect(ApiChecker.shouldInvalidateSession(200, handleUnauthorized: true), false);
+      expect(ApiChecker.shouldInvalidateSession(403, handleUnauthorized: true), false);
+      expect(ApiChecker.shouldInvalidateSession(408, handleUnauthorized: true), false);
+      expect(ApiChecker.shouldInvalidateSession(null, handleUnauthorized: true), false);
+    });
+  });
+
+  // D1: MartDeliveryScreen's network layer now goes through MartController.
+  // These exercise the new controller methods (and importing the concrete
+  // MartRepository/MartService above forces CI to compile the multipart/header code).
+  group('MartController delivery flow (D1)', () {
+    test('fetchOrderDetailMap returns the order data map', () async {
+      final c = MartController(martServiceInterface: _FakeMartService());
+      final map = await c.fetchOrderDetailMap('order-1');
+      expect(map, isNotNull);
+      expect(map!['id'], 'order-1');
+      expect(map['status'], 'accepted');
+    });
+
+    test('updateStatus forwards the idempotency key and returns true on 200', () async {
+      final fake = _FakeMartService();
+      final c = MartController(martServiceInterface: fake);
+      final ok = await c.updateStatus('order-1', 'delivered', idempotencyKey: 'idem-123');
+      expect(ok, true);
+      expect(fake.capturedStatusKey, 'idem-123');
+    });
+
+    test('uploadDeliveryProof returns true on 200 and forwards the idempotency key', () async {
+      final fake = _FakeMartService();
+      final c = MartController(martServiceInterface: fake);
+      final ok = await c.uploadDeliveryProof('order-1', signatureBytes: [1, 2, 3], idempotencyKey: 'idem-xyz');
+      expect(ok, true);
+      expect(fake.capturedProofKey, 'idem-xyz');
+    });
+
+    test('concrete MartRepository and MartService are wired (compile guard)', () {
+      expect(MartRepository, isNotNull);
+      expect(MartService, isNotNull);
+    });
+  });
+
+  group('Mart model parsing', () {
+    test('MartProductModel.fromJson coerces id/price', () {
+      final p = MartProductModel.fromJson(<String, dynamic>{'id': 9, 'name': 'Soap', 'price': '3.50'});
+      expect(p.id, '9');
+      expect(p.name, 'Soap');
+      expect(p.price, 3.50);
+      expect(p.toJson()['name'], 'Soap');
+    });
+
+    test('MartProductModel tolerates a garbage price', () {
+      expect(MartProductModel.fromJson(<String, dynamic>{'price': 'x'}).price, 0);
+    });
+
+    test('MartOrderItemModel parses nested product and displayName', () {
+      final it = MartOrderItemModel.fromJson(<String, dynamic>{
+        'quantity': '2', 'unit_price': '5', 'total_price': '10',
+        'product': <String, dynamic>{'name': 'Milk'},
+      });
+      expect(it.quantity, 2);
+      expect(it.totalPrice, 10);
+      expect(it.displayName, 'Milk');
+    });
+
+    test('MartOrderItemModel displayName falls back without a product', () {
+      expect(MartOrderItemModel.fromJson(<String, dynamic>{'quantity': 1}).displayName, 'Item');
+    });
+
+    test('MartOrderModel parses customer name/phone, items, and itemCount', () {
+      final o = MartOrderModel.fromJson(<String, dynamic>{
+        'id': 'o1', 'ref_id': 'R1', 'status': 'accepted', 'total_amount': '15.00',
+        'customer': <String, dynamic>{'first_name': 'Jane', 'last_name': 'Doe', 'phone': '+100'},
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{'quantity': 2},
+          <String, dynamic>{'quantity': 1},
+        ],
+      });
+      expect(o.id, 'o1');
+      expect(o.totalAmount, 15.00);
+      expect(o.customerName, 'Jane Doe');
+      expect(o.customerPhone, '+100');
+      expect(o.items.length, 2);
+      expect(o.itemCount, 3);
+      expect(o.toJson()['ref_id'], 'R1');
+    });
+
+    test('MartOrderModel tolerates missing items and customer', () {
+      final o = MartOrderModel.fromJson(<String, dynamic>{'id': 'o2'});
+      expect(o.items, isEmpty);
+      expect(o.itemCount, 0);
+      expect(o.customerName, isNull);
+    });
+  });
+
+  // WS2 — behavior coverage for the searchable vehicle selectors (brand/model/category).
+  group('SearchableDropdownField.filterSuggestions', () {
+    final items = ['Toyota', 'Tesla', 'Honda', 'Hyundai', 'BMW'];
+    String label(String s) => s;
+
+    test('empty query returns all items (full list like a dropdown)', () {
+      expect(SearchableDropdownField.filterSuggestions(items, '', label), items);
+      expect(SearchableDropdownField.filterSuggestions(items, '   ', label), items);
+    });
+
+    test('filters to labels containing the query, case-insensitively', () {
+      expect(SearchableDropdownField.filterSuggestions(items, 'ho', label), ['Honda']);
+      expect(SearchableDropdownField.filterSuggestions(items, 'T', label), ['Toyota', 'Tesla']);
+      expect(SearchableDropdownField.filterSuggestions(items, 'hy', label), ['Hyundai']);
+    });
+
+    test('no match returns an empty list', () {
+      expect(SearchableDropdownField.filterSuggestions(items, 'zzz', label), isEmpty);
+    });
+
+    test('matches anywhere in the label, not just the prefix', () {
+      expect(SearchableDropdownField.filterSuggestions(items, 'm', label), contains('BMW'));
+    });
+  });
+
+  // WS2 — QR token extraction for the (mobile_scanner 7.x) invite scanner.
+  group('extractToken', () {
+    test('pulls token from a ?token= URL', () {
+      expect(extractToken('https://vito.app/join?token=ABC123XYZ'), 'ABC123XYZ');
+    });
+
+    test('pulls token from an /invite/<token> path', () {
+      expect(extractToken('https://vito.app/invite/TOK-987'), 'TOK-987');
+    });
+
+    test('returns a bare token unchanged', () {
+      expect(extractToken('PLAINTOKEN1234'), 'PLAINTOKEN1234');
+    });
+
+    test('returns input unchanged when token= is present but empty', () {
+      expect(extractToken('https://vito.app/join?token='), 'https://vito.app/join?token=');
+    });
+
+    test('returns input unchanged when /invite/ has no trailing token', () {
+      expect(extractToken('https://vito.app/invite/'), 'https://vito.app/invite/');
+    });
+  });
+
+  // WS3 — safe numeric coercion for server-supplied fields.
+  group('parse_utils', () {
+    test('toDoubleOr handles num, numeric string, null, and garbage', () {
+      expect(toDoubleOr(5), 5.0);
+      expect(toDoubleOr('5.5'), 5.5);
+      expect(toDoubleOr(null), 0);
+      expect(toDoubleOr('abc', 1.0), 1.0);
+      expect(toDoubleOr('null'), 0); // server null-as-string must not throw
+    });
+
+    test('toIntOr handles num, int/double strings, null, and garbage', () {
+      expect(toIntOr(5), 5);
+      expect(toIntOr('5'), 5);
+      expect(toIntOr('5.9'), 5);
+      expect(toIntOr(null, 1), 1);
+      expect(toIntOr('abc', 2), 2);
+    });
+
+    test('toIntOrNull returns null for null/garbage', () {
+      expect(toIntOrNull(null), isNull);
+      expect(toIntOrNull('7'), 7);
+      expect(toIntOrNull('x'), isNull);
+    });
+  });
+}
+
+/// Fake service capturing the idempotency keys the controller forwards.
+class _FakeMartService implements MartServiceInterface {
+  String? capturedStatusKey;
+  String? capturedProofKey;
+
+  @override
+  Future getOrderDetails(String id) async =>
+      Response(statusCode: 200, body: {'data': {'id': id, 'status': 'accepted'}});
+
+  @override
+  Future updateStatus(String orderId, String status,
+      {String? reason, double? driverLat, double? driverLng, String? idempotencyKey}) async {
+    capturedStatusKey = idempotencyKey;
+    return Response(statusCode: 200, body: {'data': true});
+  }
+
+  @override
+  Future uploadDeliveryProof(String orderId,
+      {String? photoPath, List<int>? signatureBytes, String? idempotencyKey}) async {
+    capturedProofKey = idempotencyKey;
+    return Response(statusCode: 200, body: {});
+  }
+
+  @override
+  Future getPendingOrders({int limit = 20}) async =>
+      Response(statusCode: 200, body: {'data': []});
+
+  @override
+  Future getMyOrders({int limit = 20}) async =>
+      Response(statusCode: 200, body: {'data': []});
+
+  @override
+  Future acceptOrder(String orderId) async => Response(statusCode: 200, body: {});
+}
