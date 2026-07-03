@@ -2,20 +2,16 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
-     *
-     * @return void
+     * Test the health endpoint is accessible.
      */
-    public function test_example()
+    public function test_health_endpoint(): void
     {
-        $response = $this->get('/');
-
+        $response = $this->getJson('/api/health');
         $response->assertStatus(200);
     }
 }

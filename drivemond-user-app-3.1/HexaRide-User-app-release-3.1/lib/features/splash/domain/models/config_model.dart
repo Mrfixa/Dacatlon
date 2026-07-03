@@ -50,6 +50,7 @@ class ConfigModel {
   String? martBusinessName;
   String? martPlayStoreUrl;
   String? martAppStoreUrl;
+  double? martDeliveryFee;
   bool? referralEarningStatus;
   double? androidAppMinimumVersion;
   double? iosAppMinimumVersion;
@@ -135,6 +136,7 @@ class ConfigModel {
         this.martBusinessName,
         this.martPlayStoreUrl,
         this.martAppStoreUrl,
+        this.martDeliveryFee,
         this.referralEarningStatus,
         this.androidAppMinimumVersion,
         this.androidAppUrl,
@@ -254,6 +256,9 @@ class ConfigModel {
     martBusinessName = json['mart_business_name'];
     martPlayStoreUrl = json['mart_app_url_android'];
     martAppStoreUrl = json['mart_app_url_ios'];
+    martDeliveryFee = json['mart_delivery_fee'] != null 
+        ? double.tryParse(json['mart_delivery_fee'].toString()) 
+        : null;
     referralEarningStatus = json['referral_earning_status'];
     androidAppMinimumVersion = json['app_minimum_version_for_android'].toDouble();
     androidAppUrl = json['app_url_for_android'];

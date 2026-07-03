@@ -49,9 +49,9 @@ class VitoFlowTest extends TestCase
         Schema::dropIfExists('mart_favorites');
         Schema::dropIfExists('mart_products');
         Schema::dropIfExists('vito_otps');
+        Schema::dropIfExists('vehicle_categories');
         Schema::dropIfExists('vehicle_models');
         Schema::dropIfExists('vehicle_brands');
-        Schema::dropIfExists('vehicle_categories');
         Schema::dropIfExists('qr_tokens');
         Schema::dropIfExists('user_accounts');
         Schema::dropIfExists('time_tracks');
@@ -232,6 +232,19 @@ class VitoFlowTest extends TestCase
                 $table->timestamp('returned')->nullable();
                 $table->text('note')->nullable();
                 $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('vehicle_categories')) {
+            Schema::create('vehicle_categories', function ($table) {
+                $table->uuid('id')->primary();
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->string('image')->nullable();
+                $table->string('type')->nullable();
+                $table->boolean('is_active')->default(1);
+                $table->timestamps();
+                $table->softDeletes();
             });
         }
 
@@ -1005,15 +1018,7 @@ class VitoFlowTest extends TestCase
     {
         // The driver vehicle-registration dropdowns read from these tables; the
         // brand/model API filters is_active = 1, so the seeder must seed active rows.
-        Schema::create('vehicle_categories', function ($table) {
-            $table->uuid('id')->primary();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->string('image')->nullable();
-            $table->string('type')->nullable();
-            $table->boolean('is_active')->default(1);
-            $table->timestamps();
-        });
+        // Note: vehicle_categories is already created in bootstrapVitoSchema.
         Schema::create('vehicle_brands', function ($table) {
             $table->uuid('id')->primary();
             $table->string('name');

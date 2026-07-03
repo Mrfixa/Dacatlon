@@ -5,6 +5,7 @@ import 'package:ride_sharing_user_app/features/face_verification/controllers/fac
 import 'package:ride_sharing_user_app/features/face_verification/widgets/home_face_verification_warning_widget.dart';
 import 'package:ride_sharing_user_app/features/home/screens/ride_list_screen.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/home_referral_view_widget.dart';
+import 'package:ride_sharing_user_app/features/home/widgets/online_offline_toggle_widget.dart';
 import 'package:ride_sharing_user_app/features/home/widgets/refund_alert_bottomsheet.dart';
 import 'package:ride_sharing_user_app/features/notification/widgets/notification_shimmer_widget.dart';
 import 'package:ride_sharing_user_app/features/out_of_zone/controllers/out_of_zone_controller.dart';
@@ -171,11 +172,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverPersistentHeader(pinned: true, delegate: SliverDelegate(
                   height: GetPlatform.isIOS ? 150 : 120,
                   child: Column(children: [
-                    AppBarWidget(
-                      title: 'dashboard'.tr, showBackButton: false,
-                      onTap: (){
-                        Get.find<ProfileController>().toggleDrawer();
-                      },
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: AppBarWidget(
+                          title: 'dashboard'.tr, showBackButton: false,
+                          onTap: (){
+                            Get.find<ProfileController>().toggleDrawer();
+                          },
+                        )),
+                        const Padding(
+                          padding: EdgeInsets.only(right: Dimensions.paddingSizeDefault, top: Dimensions.paddingSizeSmall),
+                          child: OnlineOfflineToggleWidget(),
+                        ),
+                      ],
                     ),
                   ])
                   )),

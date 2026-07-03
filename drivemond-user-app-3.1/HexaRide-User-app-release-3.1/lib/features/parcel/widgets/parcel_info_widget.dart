@@ -221,6 +221,24 @@ class _ParcelInfoWidgetState extends State<ParcelInfoWidget> {
              maxLength: 100,
            );
          }),
+
+         const SizedBox(height: Dimensions.paddingSizeDefault),
+         TextFieldTitle(title: 'parcel_weight_kg'.tr, textOpacity: 0.8),
+
+         GetBuilder<ParcelController>(builder: (pc) {
+           return CustomTextField(
+             controller: pc.parcelWeightController,
+             borderRadius: Dimensions.radiusSmall,
+             hintText: 'enter_parcel_weight'.tr,
+             contentPadding: EdgeInsets.all(Dimensions.paddingSizeSmall),
+             keyboardNumber: true,
+             onTap: () => pc.focusOnBottomSheet(widget.expandableKey),
+             suffixIcon: Padding(
+               padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
+               child: Text('kg'.tr, style: textRegular.copyWith(color: Theme.of(context).hintColor)),
+             ),
+           );
+         }),
        ],
         const SizedBox(height: Dimensions.paddingSizeDefault),
 

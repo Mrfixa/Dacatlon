@@ -648,12 +648,22 @@ class TripRequestController extends Controller
             }
             $trip->tripStatus()->update(['arrived' => now()]);
 
+            // Load vehicle category relation for notification
+            $trip->loadMissing('vehicleCategory');
+            $vehicleCategoryName = $trip->vehicleCategory?->name;
+
             try {
                 $push = getNotification('trip_arrived');
                 if ($push) {
                     sendDeviceNotification(fcm_token: $trip->customer->fcm_token,
                         title: translate(key: $push['title'], locale: $trip->customer->current_language_key),
-                        description: textVariableDataFormat(value: $push['description'], tripId: $trip->ref_id, sentTime: pushSentTime($trip->updated_at), locale: $trip->customer->current_language_key),
+                        description: textVariableDataFormat(
+                            value: $push['description'],
+                            tripId: $trip->ref_id,
+                            sentTime: pushSentTime($trip->updated_at),
+                            vehicleCategory: $vehicleCategoryName,
+                            locale: $trip->customer->current_language_key
+                        ),
                         status: $push['status'],
                         ride_request_id: $request['trip_request_id'],
                         type: $trip->type,
