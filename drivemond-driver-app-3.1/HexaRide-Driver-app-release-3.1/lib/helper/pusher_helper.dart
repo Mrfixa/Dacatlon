@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
@@ -44,7 +45,8 @@ class PusherHelper{
     );
 
      await pusherClient?.connect();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PusherHelper: websocket connect failed: $e');
       Get.find<SplashController>().setPusherStatus('Disconnected');
       return;
     }
@@ -84,7 +86,9 @@ class PusherHelper{
             if((Get.find<RideController>().ongoingTrip ?? []).isEmpty){
               try {
                 AudioPlayer().play(AssetSource('notification.wav'));
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('PusherHelper: notification sound failed: $e');
+              }
               Get.find<RideController>().getPendingRideRequestList(1);
               Get.find<RideController>().setRideId(jsonDecode(event.data!)['trip_id']);
               Get.find<RideController>().getRideDetailBeforeAccept(jsonDecode(event.data!)['trip_id']).then((value){
@@ -291,7 +295,9 @@ class PusherHelper{
 
 
   void pusherDisconnectPusher(){
-    // D5: unsubscribe all active channels before disconnecting
+    // D5: unsubscribe all active channels before disconnecting. Empty catches are
+    // deliberate: the `late` channels throw LateInitializationError when a session
+    // ends before they were ever subscribed — expected, not worth a breadcrumb.
     try { driverTripSubscribe.unsubscribe(); } catch (_) {}
     try { customerInitialTripCancelChannel.unsubscribe(); } catch (_) {}
     try { anotherDriverAcceptedTripChannel.unsubscribe(); } catch (_) {}

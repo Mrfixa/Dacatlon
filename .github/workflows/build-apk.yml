@@ -69,6 +69,7 @@ jobs:
           set -o pipefail
           flutter build apk --release \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=BASE_URL=${{ vars.BASE_URL || 'https://dacatlon.store' }} \
             --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
             --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} \
             --dart-define=ANDROID_MANIFEST_MAPBOX_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} \
@@ -153,6 +154,7 @@ jobs:
           set -o pipefail
           flutter build apk --release \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
+            --dart-define=BASE_URL=${{ vars.BASE_URL || 'https://dacatlon.store' }} \
             --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
             --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} \
             --dart-define=ANDROID_MANIFEST_MAPBOX_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} \
