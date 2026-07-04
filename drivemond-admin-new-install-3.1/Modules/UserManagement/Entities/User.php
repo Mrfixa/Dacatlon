@@ -237,7 +237,7 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'received_by');
     }
 
-    public function driverDetails()
+    public function driverDetails(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(DriverDetail::class, 'user_id');
     }

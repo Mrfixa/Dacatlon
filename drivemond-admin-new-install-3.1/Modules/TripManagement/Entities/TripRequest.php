@@ -146,7 +146,7 @@ class TripRequest extends Model
         return $this->belongsTo(VehicleCategory::class);
     }
 
-    public function customer()
+    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'customer_id')->withTrashed();
     }

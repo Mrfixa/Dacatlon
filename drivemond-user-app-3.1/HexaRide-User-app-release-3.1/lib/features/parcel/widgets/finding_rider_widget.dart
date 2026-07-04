@@ -31,7 +31,6 @@ class _FindingRiderWidgetState extends State<FindingRiderWidget> {
 
   @override
   void initState() {
-    //Call Here ---->>>>mapController.getPolyline(); ///TODO
 
     Get.find<RideController>().countingTimeStates();
     super.initState();

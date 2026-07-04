@@ -76,12 +76,12 @@ class MartOrder extends Model
         return $this->belongsTo(User::class, 'customer_id');
     }
 
-    public function driver()
+    public function driver(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'driver_id');
     }
 
-    public function items()
+    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(MartOrderItem::class, 'order_id');
     }

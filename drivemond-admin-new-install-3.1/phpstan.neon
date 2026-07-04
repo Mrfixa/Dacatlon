@@ -1,0 +1,25 @@
+# Static-analysis scope for the Vito surface. Level 1 on the Vito API
+# controllers, their shared concerns, and the mart entities. The mart admin
+# Web controllers stay excluded (Toastr:: facade false positives at any level).
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 1
+    paths:
+        - Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php
+        - Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php
+        - Modules/TripManagement/Http/Controllers/Api/Customer/VitoMartController.php
+        - Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php
+        - Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php
+        - Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php
+        - Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php
+        - Modules/TripManagement/Http/Controllers/Concerns
+        - Modules/TripManagement/Entities/MartProduct.php
+        - Modules/TripManagement/Entities/MartCategory.php
+        - Modules/TripManagement/Entities/MartOrder.php
+        - Modules/TripManagement/Entities/MartOrderItem.php
+        - Modules/TripManagement/Entities/MartPromoCode.php
+        - Modules/TripManagement/Entities/MartReview.php
+        - Modules/TripManagement/Entities/MartFavorite.php
+        - Modules/Gateways/Http/Controllers/Api/VitoStripeController.php

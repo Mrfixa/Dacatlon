@@ -167,7 +167,8 @@ class VitoStripeController extends Controller
 
     public function webhook(Request $request): JsonResponse
     {
-        $stripeWebhookSecret = env('STRIPE_WEBHOOK_SECRET');
+        // Via config (not env()) so it survives `php artisan config:cache`.
+        $stripeWebhookSecret = config('services.stripe.webhook_secret');
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
 
@@ -305,7 +306,7 @@ class VitoStripeController extends Controller
                 ? $data->metadata->user_id
                 : ($data['metadata']['user_id'] ?? null);
             try {
-                DB::transaction(function () use ($paymentIntentId, $userId) {
+                DB::transaction(function () use ($paymentIntentId) {
                     $stripeEvent = StripeEvent::where('payment_intent_id', $paymentIntentId)
                         ->lockForUpdate()
                         ->first();

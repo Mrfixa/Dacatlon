@@ -826,6 +826,70 @@ class VitoFlowTest extends TestCase
         $this->assertEquals(404, $driverOtp->getStatusCode());
     }
 
+    public function test_otp_login_existing_user_returns_token(): void
+    {
+        // A returning customer with a complete profile logs straight in via OTP.
+        $this->createUser('customer', [
+            'username'   => 'otpreturning',
+            'phone'      => '+15557771000',
+            'first_name' => 'Returning',
+            'last_name'  => 'Customer',
+            'pin_hash'   => Hash::make('123456'),
+        ]);
+
+        $send = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15557771000']);
+        $send->assertOk();
+        $otp = $send->json('otp');
+        $this->assertNotEmpty($otp, 'testing env must expose the OTP');
+
+        $verify = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15557771000',
+            'otp'            => $otp,
+        ]);
+        $verify->assertOk();
+        $this->assertArrayHasKey('token', $verify->json('data'));
+
+        // A brand-new phone gets 406 (profile incomplete), not a token.
+        $sendNew = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+15557771001']);
+        $verifyNew = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => '+15557771001',
+            'otp'            => $sendNew->json('otp'),
+        ]);
+        $this->assertEquals(406, $verifyNew->getStatusCode());
+    }
+
+    public function test_otp_resend_cooldown_and_attempt_lockout(): void
+    {
+        // The route group throttle (5/min) is not under test here — the
+        // app-level cooldown and attempt-lockout rules are.
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+
+        $phone = '+15557772000';
+
+        // 30-second resend cooldown.
+        $first = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => $phone]);
+        $first->assertOk();
+        $second = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => $phone]);
+        $this->assertEquals(429, $second->getStatusCode());
+
+        // 5 wrong attempts consume the OTP; the 6th is rejected with 422
+        // even when the code is correct.
+        $otp = $first->json('otp');
+        $wrong = $otp === '000000' ? '000001' : '000000';
+        for ($i = 0; $i < 5; $i++) {
+            $attempt = $this->postJson('/api/customer/auth/otp-verification', [
+                'phone_or_email' => $phone,
+                'otp'            => $wrong,
+            ]);
+            $this->assertEquals(400, $attempt->getStatusCode());
+        }
+        $locked = $this->postJson('/api/customer/auth/otp-verification', [
+            'phone_or_email' => $phone,
+            'otp'            => $otp,
+        ]);
+        $this->assertEquals(422, $locked->getStatusCode());
+    }
+
     // ========================================================================
     // 4. PIN Login & Lockout
     // ========================================================================
@@ -4076,6 +4140,7 @@ class VitoFlowTest extends TestCase
         putenv("STRIPE_WEBHOOK_SECRET={$secret}");
         $_ENV['STRIPE_WEBHOOK_SECRET'] = $secret;
         $_SERVER['STRIPE_WEBHOOK_SECRET'] = $secret;
+        config(['services.stripe.webhook_secret' => $secret]);
         $payload = json_encode($event);
         $t = time();
         $sig = hash_hmac('sha256', "{$t}.{$payload}", $secret);
@@ -4142,6 +4207,7 @@ class VitoFlowTest extends TestCase
     {
         putenv('STRIPE_WEBHOOK_SECRET');
         unset($_ENV['STRIPE_WEBHOOK_SECRET'], $_SERVER['STRIPE_WEBHOOK_SECRET']);
+        config(['services.stripe.webhook_secret' => null]);
         $resp = $this->call('POST', '/api/stripe/webhook', [], [], [], [
             'HTTP_STRIPE_SIGNATURE' => 't=1,v1=deadbeef',
             'CONTENT_TYPE' => 'application/json',
@@ -4154,6 +4220,7 @@ class VitoFlowTest extends TestCase
         putenv('STRIPE_WEBHOOK_SECRET=whsec_test_123');
         $_ENV['STRIPE_WEBHOOK_SECRET'] = 'whsec_test_123';
         $_SERVER['STRIPE_WEBHOOK_SECRET'] = 'whsec_test_123';
+        config(['services.stripe.webhook_secret' => 'whsec_test_123']);
         $resp = $this->call('POST', '/api/stripe/webhook', [], [], [], [
             'HTTP_STRIPE_SIGNATURE' => 't=1,v1=badsignature',
             'CONTENT_TYPE' => 'application/json',

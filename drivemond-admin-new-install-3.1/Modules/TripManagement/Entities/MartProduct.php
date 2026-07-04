@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property string|null $discount_price
+ * @property string $price
+ */
 class MartProduct extends Model
 {
     use HasUuids, SoftDeletes;

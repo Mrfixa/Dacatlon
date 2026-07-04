@@ -67,22 +67,18 @@ php artisan test --filter=VitoFlowTest
 # Run the mart unit tests (order totals, promo codes, product/stock rules)
 php artisan test tests/Unit
 
-# Run static analysis (only on Vito controllers)
-./vendor/bin/phpstan analyse --level=0 \
-  Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php \
-  Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php \
-  Modules/TripManagement/Http/Controllers/Api/Customer/VitoMartController.php \
-  Modules/TripManagement/Http/Controllers/Api/Driver/VitoTripController.php \
-  Modules/TripManagement/Http/Controllers/Api/Driver/VitoParcelController.php \
-  Modules/TripManagement/Http/Controllers/Api/Driver/VitoMartDriverController.php \
-  Modules/TripManagement/Http/Controllers/Api/Admin/VitoMartAdminApiController.php \
-  Modules/Gateways/Http/Controllers/Api/VitoStripeController.php
+# Run static analysis (level 1 + larastan; scope lives in phpstan.neon:
+# Vito API controllers, shared concerns, mart entities)
+./vendor/bin/phpstan analyse --no-progress
 ```
 
-> PHPStan only covers the **API** controllers above. The mart admin **Web** controllers
+> PHPStan covers the Vito **API** surface via `phpstan.neon`. The mart admin **Web** controllers
 > (`Http/Controllers/Web/Mart*AdminController.php`) are intentionally excluded — they use the
-> `Toastr::` facade, which PHPStan level 0 flags as "static call to instance method" false positives.
+> `Toastr::` facade, which PHPStan flags as "static call to instance method" false positives.
 > Verify Blade/admin changes with `php artisan view:cache` (compiles every view) instead.
+> New Eloquent relation methods need real return types (`: HasMany` etc.) or larastan's
+> relation-existence rule flags every `with('...')` call site. Never read `env()` outside
+> `config/` — it returns null under `php artisan config:cache` (use a config key).
 
 ### Module Architecture
 
@@ -136,6 +132,11 @@ Legacy routes (phone/password, social-login, Firebase-OTP) also remain active �
 | Admin | `admin@admin.com` (web panel) | `12345678` |
 | Customer | username `customer` (user app) | PIN `123456` |
 | Driver | username `driver` (driver app) | PIN `123456` (pre-approved) |
+
+> Production seeding refuses these defaults: demo customer/driver are skipped unless
+> `SEED_DEMO_USERS=true`, and the super-admin requires `ADMIN_SEED_EMAIL` + `ADMIN_SEED_PASSWORD`
+> (≥ 12 chars) in `.env` when `APP_ENV=production`. Passport tokens expire (30d access / 60d
+> refresh, `PASSPORT_TOKEN_DAYS`/`PASSPORT_REFRESH_TOKEN_DAYS`).
 
 ### Test File
 
@@ -206,8 +207,14 @@ flutter test test/vito_flows_test.dart
 # Build (API keys required at build time)
 flutter build apk --debug \
   --dart-define=MAPS_API_KEY=<key> \
-  --dart-define=STRIPE_PUBLISHABLE_KEY=<key>
+  --dart-define=STRIPE_PUBLISHABLE_KEY=<key> \
+  --dart-define=BASE_URL=<https://your-api-host>
 ```
+
+Optional dart-defines: `BASE_URL` (backend host — CI injects the repo variable `BASE_URL`,
+falling back to the committed default) and `FIREBASE_API_KEY` / `FIREBASE_APP_ID` /
+`FIREBASE_MESSAGING_SENDER_ID` / `FIREBASE_PROJECT_ID` to point a build at a different
+Firebase project without code changes.
 
 ### Architecture
 

@@ -14,7 +14,7 @@ class MartFavorite extends Model
         'product_id',
     ];
 
-    public function product()
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(MartProduct::class, 'product_id');
     }

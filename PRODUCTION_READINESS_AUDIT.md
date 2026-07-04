@@ -33,14 +33,22 @@ Work shipped on `claude/production-readiness-audit-zxj9fx` this cycle:
 
 | Finding | Status |
 |---------|--------|
-| C1 Swish key | **Partially addressed** — untracked from git + `.gitignore`d; **rotation + history purge still required (user action)** |
-| H1 seeded demo creds | **Fixed** — `DefaultUsersSeeder` demo customer/driver gated to non-prod (`SEED_DEMO_USERS` opt-in). Admin default (separate `AdminUserSeeder`) still needs a manual password change |
-| H2 weak `.env` secrets | **Fixed** — REVERB/PUSHER secrets blanked with generate-random guidance |
+| C1 Swish key | **Partially addressed** — untracked from git (incl. the test certs, 2026-07-04) + `.gitignore`d; **rotation + history purge still required (user action, see DEPLOY.md security checklist)** |
+| H1 seeded demo creds | **Fixed** — demo customer/driver gated to non-prod (`SEED_DEMO_USERS` opt-in); `AdminUserSeeder` now refuses the default admin in production and requires `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD` (≥12 chars) |
+| H2 weak `.env` secrets | **Fixed** — REVERB/PUSHER secrets **and ids/keys** blanked with generate-random guidance |
 | H3 open CORS | **Fixed** — `allowed_origins` via `CORS_ALLOWED_ORIGINS` (deny by default); methods narrowed |
 | H4 driver hardcoded `baseUrl` | **Fixed** — now `String.fromEnvironment('BASE_URL', …)` |
-| M1/M6 queue & cache docs | **Fixed** — `.env.example` documents redis + worker requirement |
-| M2 user `baseUrl` default | **Deferred** — kept host fallback; emptying it needs `BASE_URL` wired into build workflows |
+| H5 Firebase config hardcoded | **Fixed** — `FIREBASE_*` dart-defines (both apps, current project as default); committed SW snapshot blanked (admin panel regenerates it from Notification Settings) |
+| M1/M6 queue & cache docs | **Fixed** — `.env.example` documents redis + worker requirement; Supervisor + systemd units committed under `deploy/` |
+| M2 user `baseUrl` default | **Fixed** — `BASE_URL` dart-define injected in every Flutter build step of every workflow (repo variable, falls back to current host) |
+| M4 narrow static analysis/tests | **Improved** — PHPStan level 1 + larastan via committed `phpstan.neon` (found the P5 webhook-secret config-cache bug); legacy OTP auth path now tested (P10) |
+| M7 unpinned `open_file_plus` fork | **Fixed** — pinned to the lockfile's immutable commit SHA |
 | L3 Sentry sample rate | **Fixed** — `SENTRY_SAMPLE_RATE` documented in `.env.example` |
+
+Additionally (2026-07-04): Passport token expiry set (30d/60d); both apps' **compile errors** and
+**broken/diverged language JSON** shipped by the P0.2 commit repaired (see `AUDIT_TRACKER.md`
+P-series); mart screens migrated onto `MartController` (W4/M3 closed); mart sort/shelves +
+map-based delivery address picker + trip search shipped (G4/G5 closed).
 
 New feature gaps closed (Track 2): chat send rate-limit; **self-service forgot-PIN** (backend + both
 apps); **driver arrived-at-pickup** sub-signal (backend + driver button + customer banner).
