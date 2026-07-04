@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
-import 'package:ride_sharing_user_app/data/api_client.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
@@ -41,21 +41,13 @@ class _MartPaymentScreenState extends State<MartPaymentScreen> {
     });
 
     try {
-      final response = await Get.find<ApiClient>().postData(
-        AppConstants.martOrderPaymentIntent,
-        {'order_id': widget.orderId},
-      );
+      // Payment-intent creation goes through the mart service layer; only the
+      // Stripe SDK interaction (a view concern) stays in this widget.
+      final clientSecret =
+          await Get.find<MartController>().createOrderPaymentIntent(widget.orderId);
 
-      if (response.statusCode != 200 || response.body['data'] == null) {
-        setState(() {
-          _initError = 'payment_failed'.tr;
-          _isInitializing = false;
-        });
-        return;
-      }
-
-      final clientSecret = response.body['data']['client_secret'] as String?;
-      if (clientSecret == null || clientSecret.isEmpty) {
+      if (!mounted) return;
+      if (clientSecret == null) {
         setState(() {
           _initError = 'payment_failed'.tr;
           _isInitializing = false;

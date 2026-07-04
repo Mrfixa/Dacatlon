@@ -5,9 +5,10 @@ abstract class MartServiceInterface {
   Future<dynamic> getProductDetails(String id);
   Future<dynamic> getOrders({int limit});
   Future<dynamic> getOrderDetails(String id);
-  Future<dynamic> cancelOrder(String id);
+  Future<dynamic> cancelOrder(String id, {String? reason});
   Future<dynamic> reviewOrder(String id, int rating, String? comment);
   Future<dynamic> createOrder(Map<String, dynamic> orderData, {String? idempotencyKey});
+  Future<dynamic> createOrderPaymentIntent(String orderId);
   Future<dynamic> applyPromoCode(String code, double orderTotal);
   Future<dynamic> toggleFavorite(String productId);
   Future<dynamic> getFavorites();

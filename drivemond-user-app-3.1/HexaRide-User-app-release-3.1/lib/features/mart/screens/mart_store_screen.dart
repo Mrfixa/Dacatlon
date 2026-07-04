@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:ride_sharing_user_app/data/api_client.dart';
-import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
@@ -35,8 +34,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isOffline = false;
   Timer? _searchDebounce;
-  String _selectedCategory = 'all';
-  Future<void> Function() _loadProducts = () async {};
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   MartController get _martController => Get.find<MartController>();
 
@@ -49,11 +47,25 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     }
     _martController.getProducts();
     _martController.getShelves();
+    // Drive the offline banner (and disabled add-to-cart) from real
+    // connectivity; refetch the catalog when the connection comes back.
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final offline = results.contains(ConnectivityResult.none);
+      if (offline != _isOffline && mounted) {
+        setState(() => _isOffline = offline);
+        if (!offline) {
+          _loadProducts();
+        }
+      }
+    });
   }
+
+  Future<void> _loadProducts() => _martController.getProducts();
 
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _connectivitySub?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -221,7 +233,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
-              final isSelected = category == _selectedCategory;
+              final isSelected = category == controller.selectedCategory;
               return Padding(
                 padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
                 child: FilterChip(
@@ -229,7 +241,6 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
                   selected: isSelected,
                   onSelected: (selected) {
                     HapticFeedback.selectionClick();
-                    setState(() => _selectedCategory = category);
                     controller.setCategory(category);
                   },
                   selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
@@ -248,12 +259,13 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     return GetBuilder<MartController>(
       builder: (controller) {
         final query = _searchController.text.trim().toLowerCase();
-        
+        final selectedCategory = controller.selectedCategory;
+
         // Convert products from model to map for filtering
         var filtered = controller.products.map((p) => p.toJson()).toList();
-        
-        if (_selectedCategory != 'all') {
-          filtered = filtered.where((p) => p['category'] == _selectedCategory).toList();
+
+        if (selectedCategory != 'all') {
+          filtered = filtered.where((p) => p['category'] == selectedCategory).toList();
         }
 
         if (query.isNotEmpty) {
@@ -263,10 +275,10 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
         }
 
         // Shelves only make sense on the unfiltered default view.
-        final showShelves = _selectedCategory == 'all' && query.isEmpty && controller.selectedSort == 'default' &&
+        final showShelves = selectedCategory == 'all' && query.isEmpty && controller.selectedSort == 'default' &&
             (controller.featuredProducts.isNotEmpty || controller.popularProducts.isNotEmpty);
 
-        final stateKey = '${_selectedCategory}_${query}_${controller.selectedSort}';
+        final stateKey = '${selectedCategory}_${query}_${controller.selectedSort}';
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
@@ -653,9 +665,6 @@ class _MartCartScreenState extends State<MartCartScreen> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _promoController = TextEditingController();
   bool _isOrdering = false;
-  bool _isApplyingPromo = false;
-  double _discount = 0.0;
-  String? _appliedPromoCode;
   double _tipAmount = 0.0;
   double? _deliveryLat;
   double? _deliveryLng;
@@ -668,18 +677,22 @@ class _MartCartScreenState extends State<MartCartScreen> {
 
   MartController get _martController => Get.find<MartController>();
 
+  // Cart contents, promo state and mutations live on the controller so
+  // SharedPreferences persistence and other screens stay in sync.
+  List<Map<String, dynamic>> get _cartItems => _martController.cartItems;
+
   final List<double> _tipOptions = [0, 2, 5, 10];
 
   double get _subtotal {
     double total = 0;
-    for (final item in widget.cartItems) {
+    for (final item in _cartItems) {
       final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
       total += price * (item['quantity'] as int? ?? 1);
     }
     return total;
   }
 
-  double get _totalAmount => _subtotal - _discount + _tipAmount + _martController.deliveryFee;
+  double get _totalAmount => _subtotal - _martController.promoDiscount + _tipAmount + _martController.deliveryFee;
 
   @override
   void dispose() {
@@ -693,27 +706,29 @@ class _MartCartScreenState extends State<MartCartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBarWidget(title: 'cart'.tr),
-      body: widget.cartItems.isEmpty
-          ? _buildEmptyCart(context)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-                    children: [
-                      // B22: Dismissible cart items
-                      ...List.generate(widget.cartItems.length,
-                          (index) => _buildCartItem(context, index)),
-                      const SizedBox(height: Dimensions.paddingSizeDefault),
-                      _buildPromoSection(context),
-                      const SizedBox(height: Dimensions.paddingSizeDefault),
-                      _buildTipSection(context),
-                    ],
+      body: GetBuilder<MartController>(
+        builder: (controller) => controller.cartItems.isEmpty
+            ? _buildEmptyCart(context)
+            : Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+                      children: [
+                        // B22: Dismissible cart items
+                        ...List.generate(controller.cartItems.length,
+                            (index) => _buildCartItem(context, index)),
+                        const SizedBox(height: Dimensions.paddingSizeDefault),
+                        _buildPromoSection(context),
+                        const SizedBox(height: Dimensions.paddingSizeDefault),
+                        _buildTipSection(context),
+                      ],
+                    ),
                   ),
-                ),
-                _buildOrderSummary(context),
-              ],
-            ),
+                  _buildOrderSummary(context),
+                ],
+              ),
+      ),
     );
   }
 
@@ -751,7 +766,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
 
   // B22: Dismissible + product image in cart
   Widget _buildCartItem(BuildContext context, int index) {
-    final item = widget.cartItems[index];
+    final item = _cartItems[index];
     final imageUrl = item['image'] as String?;
 
     return Dismissible(
@@ -779,13 +794,9 @@ class _MartCartScreenState extends State<MartCartScreen> {
             false;
       },
       onDismissed: (_) {
-        setState(() {
-          final id = item['id'];
-          widget.cartItems.removeWhere((e) => e['id'] == id);
-          _appliedPromoCode = null;
-          _discount = 0.0;
-          _promoController.clear();
-        });
+        // Controller removal also clears any applied promo and persists.
+        _martController.removeFromCart(item['id']?.toString() ?? '');
+        _promoController.clear();
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
@@ -820,16 +831,12 @@ class _MartCartScreenState extends State<MartCartScreen> {
             children: [
               IconButton(
                 onPressed: () {
-                  setState(() {
-                    if ((item['quantity'] ?? 1) > 1) {
-                      item['quantity'] = (item['quantity'] ?? 1) - 1;
-                    } else {
-                      widget.cartItems.removeAt(index);
-                    }
-                    _appliedPromoCode = null;
-                    _discount = 0.0;
-                    _promoController.clear();
-                  });
+                  final current = item['quantity'] as int? ?? 1;
+                  // Quantity 0 removes the line; controller clears the promo
+                  // and persists the cart in both cases.
+                  _martController.updateCartItemQuantity(
+                      item['id']?.toString() ?? '', current - 1);
+                  _promoController.clear();
                 },
                 icon: const Icon(Icons.remove_circle_outline),
               ),
@@ -838,12 +845,9 @@ class _MartCartScreenState extends State<MartCartScreen> {
                 onPressed: () {
                   final current = item['quantity'] as int? ?? 1;
                   if (current < 100) {
-                    setState(() {
-                      item['quantity'] = current + 1;
-                      _appliedPromoCode = null;
-                      _discount = 0.0;
-                      _promoController.clear();
-                    });
+                    _martController.updateCartItemQuantity(
+                        item['id']?.toString() ?? '', current + 1);
+                    _promoController.clear();
                   }
                 },
                 icon: const Icon(Icons.add_circle_outline),
@@ -864,7 +868,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
           children: [
             Text('promo_code'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
             const SizedBox(height: Dimensions.paddingSizeSmall),
-            if (_appliedPromoCode != null) ...[
+            if (_martController.appliedPromoCode != null) ...[
               Container(
                 padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
                 decoration: BoxDecoration(
@@ -877,7 +881,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${'promo_applied'.tr}: $_appliedPromoCode (-\$${_discount.toStringAsFixed(2)})',
+                        '${'promo_applied'.tr}: ${_martController.appliedPromoCode} (-\$${_martController.promoDiscount.toStringAsFixed(2)})',
                         style: textMedium.copyWith(
                             color: Theme.of(context).colorScheme.tertiary,
                             fontSize: Dimensions.fontSizeSmall),
@@ -885,11 +889,8 @@ class _MartCartScreenState extends State<MartCartScreen> {
                     ),
                     IconButton(
                       onPressed: () {
-                        setState(() {
-                          _appliedPromoCode = null;
-                          _discount = 0.0;
-                          _promoController.clear();
-                        });
+                        _martController.clearPromo();
+                        _promoController.clear();
                       },
                       icon: const Icon(Icons.close, size: 18),
                     ),
@@ -919,14 +920,14 @@ class _MartCartScreenState extends State<MartCartScreen> {
                   SizedBox(
                     height: 40,
                     child: ElevatedButton(
-                      onPressed: _isApplyingPromo ? null : _applyPromoCode,
+                      onPressed: _martController.isApplyingPromo ? null : _applyPromoCode,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
                         ),
                       ),
-                      child: _isApplyingPromo
+                      child: _martController.isApplyingPromo
                           ? SizedBox(
                               width: 16,
                               height: 16,
@@ -1093,7 +1094,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
 
           // Price breakdown
           _buildPriceLine('subtotal'.tr, _subtotal),
-          if (_discount > 0) _buildPriceLine('discount'.tr, -_discount, isDiscount: true),
+          if (_martController.promoDiscount > 0) _buildPriceLine('discount'.tr, -_martController.promoDiscount, isDiscount: true),
           _buildPriceLine('delivery_fee'.tr, _martController.deliveryFee),
           if (_tipAmount > 0) _buildPriceLine('tip'.tr, _tipAmount),
           const Divider(),
@@ -1201,38 +1202,11 @@ class _MartCartScreenState extends State<MartCartScreen> {
   Future<void> _applyPromoCode() async {
     final code = _promoController.text.trim();
     if (code.isEmpty) return;
-
-    setState(() => _isApplyingPromo = true);
-
-    try {
-      final response = await Get.find<ApiClient>().postData(
-        AppConstants.martApplyPromo,
-        {'code': code, 'subtotal': _subtotal},
-      );
-
-      if (!mounted) return;
-      if (response.statusCode == 200 && response.body['data'] != null) {
-        final rawDiscount = response.body['data']?['discount'];
-        if (rawDiscount is! num || (rawDiscount as num) < 0) {
-          Get.snackbar('error'.tr, 'invalid_promo_code'.tr);
-          return;
-        }
-        setState(() {
-          _discount = rawDiscount.toDouble();
-          _appliedPromoCode = code;
-          _promoController.clear();
-        });
-      } else {
-        // Surface the backend reason (expired, min-spend, invalid) when present.
-        Get.snackbar('error'.tr, _extractErrorMessage(response.body) == 'order_failed'.tr
-            ? 'invalid_promo_code'.tr
-            : _extractErrorMessage(response.body));
-      }
-    } catch (e) {
-      debugPrint('Mart error: $e');
-      Get.snackbar('error'.tr, 'promo_validation_failed'.tr);
-    } finally {
-      if (mounted) setState(() => _isApplyingPromo = false);
+    // Validation, state and user feedback live on the controller (single
+    // promo source of truth shared with the rest of the mart flow).
+    await _martController.applyPromo(code, _subtotal);
+    if (mounted && _martController.appliedPromoCode != null) {
+      _promoController.clear();
     }
   }
 
@@ -1315,7 +1289,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
   }
 
   Future<void> _placeOrder() async {
-    if (widget.cartItems.isEmpty) {
+    if (_cartItems.isEmpty) {
       Get.snackbar('error'.tr, 'cart_is_empty'.tr);
       return;
     }
@@ -1342,7 +1316,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
       _checkoutError = null;
     });
 
-    final items = widget.cartItems
+    final items = _cartItems
         .map((item) => {
               'product_id': item['id'],
               'quantity': item['quantity'] ?? 1,
@@ -1358,7 +1332,7 @@ class _MartCartScreenState extends State<MartCartScreen> {
       deliveryLat: _deliveryLat,
       deliveryLng: _deliveryLng,
       tipAmount: _tipAmount > 0 ? _tipAmount : null,
-      promoCode: _appliedPromoCode,
+      promoCode: _martController.appliedPromoCode,
     );
 
     if (!mounted) return;

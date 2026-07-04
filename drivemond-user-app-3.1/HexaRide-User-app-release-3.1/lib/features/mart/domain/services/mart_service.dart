@@ -24,7 +24,8 @@ class MartService implements MartServiceInterface {
   Future getOrderDetails(String id) async => await martRepositoryInterface.getOrderDetails(id);
 
   @override
-  Future cancelOrder(String id) async => await martRepositoryInterface.cancelOrder(id);
+  Future cancelOrder(String id, {String? reason}) async =>
+      await martRepositoryInterface.cancelOrder(id, reason: reason);
 
   @override
   Future reviewOrder(String id, int rating, String? comment) async =>
@@ -33,6 +34,10 @@ class MartService implements MartServiceInterface {
   @override
   Future createOrder(Map<String, dynamic> orderData, {String? idempotencyKey}) async =>
       await martRepositoryInterface.createOrder(orderData, idempotencyKey: idempotencyKey);
+
+  @override
+  Future createOrderPaymentIntent(String orderId) async =>
+      await martRepositoryInterface.createOrderPaymentIntent(orderId);
 
   @override
   Future applyPromoCode(String code, double orderTotal) async =>

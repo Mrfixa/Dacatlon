@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:ride_sharing_user_app/data/api_client.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/mart_order_status.dart';
 import 'package:ride_sharing_user_app/features/message/controllers/message_controller.dart';
@@ -158,11 +158,10 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
 
   Future<void> _fetchOrderStatus() async {
     try {
-      final response = await Get.find<ApiClient>().getData(
-        '${AppConstants.martOrderDetails}${widget.orderId}',
-      );
-      if (response.statusCode == 200 && response.body['data'] != null) {
-        final data = response.body['data'];
+      // Data access goes through the mart service layer; the poll/Pusher
+      // lifecycle and per-order view state stay in this widget.
+      final data = await Get.find<MartController>().fetchOrderDetailMap(widget.orderId);
+      if (data != null) {
         setState(() {
           _currentStatus = data['status'] ?? 'pending';
           _orderData = Map<String, dynamic>.from(data);
@@ -868,15 +867,11 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
               }
               Get.back();
               try {
-                final cancelResponse = await Get.find<ApiClient>().putData(
-                  '${AppConstants.martCancelOrder}${widget.orderId}/cancel',
-                  {'reason': reason},
-                );
-                if (cancelResponse.statusCode == 200) {
+                final cancelled = await Get.find<MartController>()
+                    .cancelOrder(widget.orderId, reason: reason);
+                if (cancelled) {
                   Get.back();
                   Get.snackbar('success'.tr, 'order_cancelled'.tr);
-                } else if (cancelResponse.statusCode == 404) {
-                  Get.snackbar('error'.tr, 'order_not_found'.tr);
                 } else {
                   Get.snackbar('error'.tr, 'cancel_failed'.tr);
                 }
@@ -962,11 +957,9 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
                           // Mart orders are reviewed through the dedicated mart
                           // endpoint (the generic /review/store only accepts trips).
                           try {
-                            final response = await Get.find<ApiClient>().postData(
-                              '${AppConstants.martReviewOrder}${widget.orderId}/review',
-                              {'rating': selectedRating, 'comment': commentController.text.trim()},
-                            );
-                            if (response.statusCode == 200) {
+                            final ok = await Get.find<MartController>().reviewOrder(
+                                widget.orderId, selectedRating, commentController.text.trim());
+                            if (ok) {
                               showCustomSnackBar('thanks_for_your_feedback'.tr, isError: false);
                             } else {
                               showCustomSnackBar('something_went_wrong'.tr);

@@ -119,6 +119,7 @@ class MartController extends GetxController implements GetxService {
       });
     }
 
+    clearPromo(notify: false);
     _saveCartToStorage();
     update();
     return true;
@@ -163,6 +164,7 @@ class MartController extends GetxController implements GetxService {
       final item = Map<String, dynamic>.from(_cartItems[index]);
       item['quantity'] = quantity;
       _cartItems[index] = item;
+      clearPromo(notify: false);
       _saveCartToStorage();
       update();
     }
@@ -170,12 +172,14 @@ class MartController extends GetxController implements GetxService {
 
   void removeFromCart(String productId) {
     _cartItems.removeWhere((item) => item['id'] == productId);
+    clearPromo(notify: false);
     _saveCartToStorage();
     update();
   }
 
   void clearCart() {
     _cartItems = [];
+    clearPromo(notify: false);
     _saveCartToStorage();
     update();
   }
@@ -335,10 +339,21 @@ class MartController extends GetxController implements GetxService {
     return null;
   }
 
-  Future<bool> cancelOrder(String id) async {
+  /// Raw order-details payload for the tracking screen, which needs fields
+  /// (driver, driver_lat/lng, estimated_arrival) not on MartOrderModel.
+  /// Throws on transport errors so the caller can drive its offline state.
+  Future<Map<String, dynamic>?> fetchOrderDetailMap(String id) async {
+    final response = await martServiceInterface.getOrderDetails(id);
+    if (response.statusCode == 200 && response.body is Map && response.body['data'] is Map) {
+      return Map<String, dynamic>.from(response.body['data']);
+    }
+    return null;
+  }
+
+  Future<bool> cancelOrder(String id, {String? reason}) async {
     isActionLoading = true;
     update();
-    final response = await martServiceInterface.cancelOrder(id);
+    final response = await martServiceInterface.cancelOrder(id, reason: reason);
     isActionLoading = false;
     update();
     if (response.statusCode == 200) {
@@ -430,23 +445,26 @@ class MartController extends GetxController implements GetxService {
   double promoDiscount = 0.0;
   bool isApplyingPromo = false;
 
-  Future<void> applyPromo(String code, double orderTotal) async {
+  Future<void> applyPromo(String code, double subtotal) async {
     if (code.trim().isEmpty) return;
     isApplyingPromo = true;
     update();
-    final response = await martServiceInterface.applyPromoCode(code.trim(), orderTotal);
+    final response = await martServiceInterface.applyPromoCode(code.trim(), subtotal);
     isApplyingPromo = false;
-    if (response.statusCode == 200) {
-      final data = response.body;
+    // Success payload: {data: {code, discount, discount_type, discount_value}}.
+    dynamic discountRaw;
+    if (response.statusCode == 200 && response.body is Map) {
+      final data = response.body['data'];
+      if (data is Map) discountRaw = data['discount'];
+    }
+    if (discountRaw is num && discountRaw >= 0) {
       appliedPromoCode = code.trim();
-      promoDiscount = double.tryParse(data?['discount']?.toString() ?? '0') ?? 0.0;
+      promoDiscount = discountRaw.toDouble();
       showCustomSnackBar('promo_applied'.tr, isError: false);
     } else {
       appliedPromoCode = null;
       promoDiscount = 0.0;
-      final body = response.body;
-      String? msg;
-      try { msg = body['message'] as String?; } catch (_) {}
+      final msg = _promoErrorMessage(response.body);
       if (msg != null && msg.contains('expired')) {
         showCustomSnackBar('promo_expired'.tr);
       } else if (msg != null && msg.contains('limit')) {
@@ -458,5 +476,46 @@ class MartController extends GetxController implements GetxService {
       }
     }
     update();
+  }
+
+  /// Creates a Stripe PaymentIntent for a card-paid order and returns the
+  /// client secret (null on failure). Stripe SDK interaction stays in the UI.
+  Future<String?> createOrderPaymentIntent(String orderId) async {
+    final response = await martServiceInterface.createOrderPaymentIntent(orderId);
+    if (response.statusCode == 200 && response.body is Map) {
+      final data = response.body['data'];
+      if (data is Map) {
+        final secret = data['client_secret']?.toString();
+        if (secret != null && secret.isNotEmpty) return secret;
+      }
+    }
+    return null;
+  }
+
+  /// Clears any applied promo (e.g. when the cart contents change, so a
+  /// discount is never carried over to a different subtotal).
+  void clearPromo({bool notify = true}) {
+    if (appliedPromoCode == null && promoDiscount == 0.0) return;
+    appliedPromoCode = null;
+    promoDiscount = 0.0;
+    if (notify) update();
+  }
+
+  /// Pulls a human-readable message out of the backend error shapes
+  /// ({errors: [{message}]} or {message}).
+  String? _promoErrorMessage(dynamic body) {
+    try {
+      if (body is Map) {
+        final errors = body['errors'];
+        if (errors is List && errors.isNotEmpty && errors.first is Map) {
+          final msg = errors.first['message'];
+          if (msg != null) return msg.toString();
+        }
+        if (body['message'] is String && (body['message'] as String).isNotEmpty) {
+          return body['message'] as String;
+        }
+      }
+    } catch (_) {/* fall through */}
+    return null;
   }
 }

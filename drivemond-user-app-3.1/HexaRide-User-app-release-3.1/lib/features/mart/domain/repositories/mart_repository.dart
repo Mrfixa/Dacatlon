@@ -51,8 +51,10 @@ class MartRepository implements MartRepositoryInterface {
   }
 
   @override
-  Future<Response> cancelOrder(String id) async {
-    return await apiClient.putData('${AppConstants.martCancelOrder}$id/cancel', {});
+  Future<Response> cancelOrder(String id, {String? reason}) async {
+    return await apiClient.putData('${AppConstants.martCancelOrder}$id/cancel', {
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
   }
 
   @override
@@ -69,10 +71,17 @@ class MartRepository implements MartRepositoryInterface {
   }
 
   @override
-  Future<Response> applyPromoCode(String code, double orderTotal) async {
+  Future<Response> createOrderPaymentIntent(String orderId) async {
+    return await apiClient.postData(AppConstants.martOrderPaymentIntent, {'order_id': orderId});
+  }
+
+  @override
+  Future<Response> applyPromoCode(String code, double subtotal) async {
+    // Backend contract (VitoMartController::applyPromo): 'code' + 'subtotal'
+    // for an in-cart preview; the order's real total is recomputed server-side.
     return await apiClient.postData(AppConstants.martApplyPromo, {
       'code': code,
-      'order_total': orderTotal,
+      'subtotal': subtotal,
     });
   }
 
