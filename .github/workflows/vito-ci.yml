@@ -5,6 +5,9 @@ on:
     branches: [master, vlad]
   pull_request:
     branches: [master, vlad]
+  # Allow running the full CI suite on any branch (e.g. feature branches
+  # that need compile verification before a PR exists).
+  workflow_dispatch:
 
 env:
   FLUTTER_VERSION: "3.44.0"
