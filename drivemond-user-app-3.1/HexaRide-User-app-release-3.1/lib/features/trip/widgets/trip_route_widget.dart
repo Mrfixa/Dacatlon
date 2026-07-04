@@ -55,7 +55,7 @@ class TripRouteWidget extends StatelessWidget {
         ),
 
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text("Home", style: textRegular.copyWith(),overflow: TextOverflow.ellipsis),
+          Text("home".tr, style: textRegular.copyWith(),overflow: TextOverflow.ellipsis),
 
           Text(pickupAddress, style: textRegular.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),overflow: TextOverflow.ellipsis),
           const SizedBox(height: Dimensions.paddingSizeExtraLarge),
