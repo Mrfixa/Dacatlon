@@ -137,6 +137,29 @@ class VitoMartDriverController extends Controller
                 $updateData['driver_lng'] = $request->driver_lng;
             }
 
+            if ($request->status === 'delivered') {
+                // Credit the delivering driver. The earning is the delivery fee +
+                // the customer's tip (both belong to the driver), plus an optional
+                // commission of the order total (mart_driver_commission_percent,
+                // default 0). Stored on the order for payout reconciliation and
+                // added to the driver's wallet atomically with the status change.
+                $commissionPct = max(0.0, (float) get_cache('mart_driver_commission_percent'));
+                $earning = round(
+                    (float) $order->delivery_fee
+                    + (float) $order->tip_amount
+                    + ((float) $order->total_amount * $commissionPct / 100),
+                    2
+                );
+
+                if ($earning > 0) {
+                    $driverAccount = $request->user()->userAccount()->lockForUpdate()->first();
+                    if ($driverAccount) {
+                        $driverAccount->increment('wallet_balance', $earning);
+                    }
+                }
+                $updateData['driver_earning'] = $earning;
+            }
+
             if ($request->status === 'cancelled') {
                 // Items are always available — no stock to restore on cancel.
                 // If a promo code was used, decrement its global used_count.
@@ -207,7 +230,7 @@ class VitoMartDriverController extends Controller
         $messages = [
             'picked_up' => ['title' => 'Mart Order Picked Up', 'description' => "Your Mart order #{$order->ref_id} has been picked up and is on the way.", 'action' => 'mart_order_picked_up'],
             'delivered' => ['title' => 'Mart Order Delivered', 'description' => "Your Mart order #{$order->ref_id} has been delivered. Enjoy!", 'action' => 'mart_order_delivered'],
-            'cancelled' => ['title' => 'Mart Order Cancelled', 'description' => "Your Mart order #{$order->ref_id} was cancelled by the driver. We are finding another driver.", 'action' => 'mart_order_cancelled'],
+            'cancelled' => ['title' => 'Mart Order Cancelled', 'description' => "Your Mart order #{$order->ref_id} was cancelled by the driver." . ($order->payment_status === 'refunded' || $order->payment_status === 'refund_pending' ? ' Your refund is being processed.' : ''), 'action' => 'mart_order_cancelled'],
         ];
 
         $this->notifyCustomer(

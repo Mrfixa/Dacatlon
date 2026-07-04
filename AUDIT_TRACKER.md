@@ -79,6 +79,15 @@ with a stable ID, a severity, the area, the finding, a status, and the fix commi
 | P11 | Low | User app / trips | Trip history free-text search (ref id + addresses) over loaded pages, alongside the status tabs. | fixed | `96dfa18` |
 | P12 | — | W4/M3 closure | Mart screens now source data/mutations from `MartController` (store catalog dedupe + live connectivity offline banner; cart/promo/checkout data; payment-intent + cancel(+reason) + review through the 4 layers; driver delivery screen was already migrated). Remaining `setState` is per-screen view state (loading flags, tip selector, proof capture) — deliberate; poll/Pusher lifecycles untouched per the no-device constraint. | fixed | `4b3da93` |
 
+## Gap-audit wave 2 (Q-series, 2026-07-04)
+
+| ID | Severity | Area | Finding / change | Status | Fix |
+|----|----------|------|------------------|--------|-----|
+| Q1 | **High (money)** | Backend / mart driver pay | Mart deliveries credited the driver **nothing** — no earning column, no wallet credit on `delivered`, no payload field (rides credit drivers; mart didn't). Drivers delivered for free and admin had no payout record; the customer's tip also went nowhere. Fixed: added `driver_earning` to `mart_orders`; the `delivered` branch of `VitoMartDriverController::updateStatus` now credits the driver's wallet atomically with `delivery_fee + tip_amount + mart_driver_commission_percent%` of total (commission default 0) and stores it on the order. Driver app parses `driver_earning`/`delivery_fee` and the delivery screen shows a "You earn" line. Test `test_mart_delivered_credits_driver_earning`. | fixed | `<this>` |
+| Q2 | Med | User app / privacy | Mart cart persisted under a global key and survived logout → the next user on a shared device inherited (and could check out with) the previous user's cart. Fixed: logout now calls `MartController.clearCart()`. | fixed | `<this>` |
+| Q3 | Low | Backend / mart copy | Driver-cancel push claimed "We are finding another driver" though the order is terminally cancelled with no re-dispatch. Copy now reflects terminal cancellation + refund status. | fixed | `<this>` |
+| Q4 | Low | Both apps / orphan P0.2 UI | `EarningsSummaryWidget`, `TripPreferencesScreen`, `NotificationSettingsScreen`, `AppRatingDialog` exist but are never mounted, and the two settings screens have no persistence. **Accepted for now** (harmless dead code; wiring non-persistent toggles would ship fake features, and real backend persistence is out of scope for this release). Per-order driver earning is surfaced directly on the delivery screen instead of via the unmounted earnings widget. | accepted | — |
+
 ## Accepted (reviewed, intentionally not changed)
 
 | ID | Severity | Area | Finding & rationale | Status |

@@ -7,6 +7,8 @@ class MartOrderModel {
   final double totalAmount;
   final double tipAmount;
   final double discountAmount;
+  final double deliveryFee;
+  final double driverEarning;
   final String? paymentStatus;
   final String? paymentMethod;
   final String? deliveryAddress;
@@ -24,6 +26,8 @@ class MartOrderModel {
     this.totalAmount = 0,
     this.tipAmount = 0,
     this.discountAmount = 0,
+    this.deliveryFee = 0,
+    this.driverEarning = 0,
     this.paymentStatus,
     this.paymentMethod,
     this.deliveryAddress,
@@ -44,6 +48,8 @@ class MartOrderModel {
       totalAmount: double.tryParse(json['total_amount']?.toString() ?? '') ?? 0,
       tipAmount: double.tryParse(json['tip_amount']?.toString() ?? '') ?? 0,
       discountAmount: double.tryParse(json['discount_amount']?.toString() ?? '') ?? 0,
+      deliveryFee: double.tryParse(json['delivery_fee']?.toString() ?? '') ?? 0,
+      driverEarning: double.tryParse(json['driver_earning']?.toString() ?? '') ?? 0,
       paymentStatus: json['payment_status']?.toString(),
       paymentMethod: json['payment_method']?.toString(),
       deliveryAddress: json['delivery_address']?.toString(),
@@ -73,6 +79,8 @@ class MartOrderModel {
       'total_amount': totalAmount,
       'tip_amount': tipAmount,
       'discount_amount': discountAmount,
+      'delivery_fee': deliveryFee,
+      'driver_earning': driverEarning,
       'payment_status': paymentStatus,
       'payment_method': paymentMethod,
       'delivery_address': deliveryAddress,

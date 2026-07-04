@@ -248,15 +248,36 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
               ),
             ),
             if (_orderData['total_amount'] != null)
-              Text(
-                PriceConverter.convertPrice(
-                  context,
-                  double.tryParse(_orderData['total_amount']?.toString() ?? '0') ?? 0,
-                ),
-                style: textBold.copyWith(
-                  fontSize: Dimensions.fontSizeLarge,
-                  color: Theme.of(context).primaryColor,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    PriceConverter.convertPrice(
+                      context,
+                      double.tryParse(_orderData['total_amount']?.toString() ?? '0') ?? 0,
+                    ),
+                    style: textBold.copyWith(
+                      fontSize: Dimensions.fontSizeLarge,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  // What the driver earns for this delivery (fee + tip + commission).
+                  Builder(builder: (context) {
+                    final earning = double.tryParse(_orderData['driver_earning']?.toString() ?? '0') ?? 0;
+                    final fee = double.tryParse(_orderData['delivery_fee']?.toString() ?? '0') ?? 0;
+                    final tip = double.tryParse(_orderData['tip_amount']?.toString() ?? '0') ?? 0;
+                    // Before delivery, driver_earning is 0 on the server — preview fee+tip.
+                    final youEarn = earning > 0 ? earning : (fee + tip);
+                    if (youEarn <= 0) return const SizedBox.shrink();
+                    return Text(
+                      '${'you_earn'.tr}: ${PriceConverter.convertPrice(context, youEarn)}',
+                      style: textMedium.copyWith(
+                        fontSize: Dimensions.fontSizeSmall,
+                        color: Colors.green,
+                      ),
+                    );
+                  }),
+                ],
               ),
           ],
         ),

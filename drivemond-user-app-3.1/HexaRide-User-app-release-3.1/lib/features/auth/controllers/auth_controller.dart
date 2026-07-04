@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/data/api_checker.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/models/sign_up_body.dart';
@@ -118,6 +119,9 @@ class AuthController extends GetxController implements GetxService {
       Get.find<RideController>().clearRideDetails();
       Get.find<ParcelController>().clearParcelModel();
       Get.find<SafetyAlertController>().cancelDriverNeedSafetyStream();
+      // Clear the persisted mart cart so the next user on this device never
+      // inherits (or checks out with) the previous user's cart.
+      try { Get.find<MartController>().clearCart(); } catch (_) {}
     }else{
       ApiChecker.checkApi(response);
     }

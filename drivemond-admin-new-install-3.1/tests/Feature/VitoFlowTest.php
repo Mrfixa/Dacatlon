@@ -396,6 +396,7 @@ class VitoFlowTest extends TestCase
                 $table->decimal('discount_amount', 10, 2)->default(0);
                 $table->decimal('delivery_fee', 10, 2)->default(0);
                 $table->decimal('tax_amount', 10, 2)->default(0);
+                $table->decimal('driver_earning', 10, 2)->default(0);
                 $table->string('promo_code')->nullable();
                 $table->string('payment_status')->default('unpaid');
                 $table->string('payment_method')->nullable();
@@ -1603,6 +1604,64 @@ class VitoFlowTest extends TestCase
         $this->assertEquals('25.00', $order->total_amount);
 
         \Illuminate\Support\Facades\Cache::forget('mart_delivery_fee');
+    }
+
+    // Delivering a mart order credits the driver: delivery fee + tip (+ optional
+    // commission of the total) is added to the driver's wallet and stored on the order.
+    public function test_mart_delivered_credits_driver_earning(): void
+    {
+        $customer = $this->createUser('customer');
+        $driver = $this->createUser('driver');
+        $this->createUserAccount($driver);
+
+        $order = MartOrder::create([
+            'ref_id' => 'VM-EARN01',
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'status' => 'picked_up',
+            'total_amount' => 28.00,
+            'tip_amount' => 3.00,
+            'delivery_fee' => 5.00,
+            'payment_status' => 'paid',
+            'payment_method' => 'wallet',
+            'delivery_address' => '1 Test St',
+            'delivery_photo' => 'proof/photo.jpg', // proof present → delivery allowed
+        ]);
+
+        Passport::actingAs($driver, ['AccessToDriver']);
+        $this->putJson('/api/driver/mart/update-status', [
+            'order_id' => $order->id,
+            'status' => 'delivered',
+        ])->assertOk();
+
+        // No commission configured → driver keeps delivery fee (5) + tip (3) = 8.
+        $this->assertEquals('delivered', $order->fresh()->status);
+        $this->assertEquals('8.00', $order->fresh()->driver_earning);
+        $this->assertEquals(8.00, (float) DB::table('user_accounts')->where('user_id', $driver->id)->value('wallet_balance'));
+
+        // With a commission percentage, the driver also earns a cut of the total.
+        \Illuminate\Support\Facades\Cache::put('mart_driver_commission_percent', 10);
+        $order2 = MartOrder::create([
+            'ref_id' => 'VM-EARN02',
+            'customer_id' => $customer->id,
+            'driver_id' => $driver->id,
+            'status' => 'picked_up',
+            'total_amount' => 100.00,
+            'tip_amount' => 0,
+            'delivery_fee' => 5.00,
+            'payment_status' => 'paid',
+            'payment_method' => 'wallet',
+            'delivery_address' => '2 Test St',
+            'signature_image' => 'proof/sig.png',
+        ]);
+        $this->putJson('/api/driver/mart/update-status', [
+            'order_id' => $order2->id,
+            'status' => 'delivered',
+        ])->assertOk();
+        // fee 5 + tip 0 + 10% of 100 = 15
+        $this->assertEquals('15.00', $order2->fresh()->driver_earning);
+        $this->assertEquals(23.00, (float) DB::table('user_accounts')->where('user_id', $driver->id)->value('wallet_balance'));
+        \Illuminate\Support\Facades\Cache::forget('mart_driver_commission_percent');
     }
 
     // M7: order details surfaces a delivery ETA only while out for delivery.
