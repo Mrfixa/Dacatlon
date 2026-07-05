@@ -93,3 +93,9 @@ Wire this to your load-balancer or k8s liveness probe.
 - `GET /api/admin/metrics` (requires `AccessToSuperAdmin`) — active rides, wallet volume, mart SLA.
 - Laravel logs: `storage/logs/laravel.log` or stderr (JSON) when `LOG_CHANNEL=json_stderr`.
 - Every request carries `X-Request-Id` in the response header for log correlation.
+- Backend errors → Sentry once `SENTRY_LARAVEL_DSN` is set (`config/sentry.php`;
+  `SENTRY_SAMPLE_RATE` tunable).
+- **App crashes → Firebase Crashlytics** (already wired in both apps' `main.dart`:
+  framework, platform-dispatcher, and zone errors). Active on Android with the committed
+  Firebase config; on iOS it activates with the same `GoogleService-Info.plist` + APNs
+  setup push notifications already require. No extra secret needed.

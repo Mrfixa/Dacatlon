@@ -109,6 +109,8 @@ real remaining defects.
 | R11 | Low | Deploy | Reverb existed only as a DEPLOY.md heredoc — an operator installing the committed units got no websocket process (chat/tracking dead). Committed `deploy/supervisor/vito-reverb.conf` + `deploy/systemd/vito-reverb.service`; PRODUCTION_DEPLOYMENT.md now covers worker/Reverb/scheduler. | fixed | `<this>` |
 | R12 | Low | Docs | `CODEBASE_MAP.md` still claimed `ar.json` "missing/required" (Arabic was removed by product decision); stale B15 out-of-stock comment in `mart_store_screen`. Both cleaned. | fixed | `<this>` |
 | R13 | — | Audit hygiene | Prior-audit claim "GET /api/health & /api/admin/metrics don't exist" re-checked and **dismissed** — both live in `TripManagement/Routes/vito_api.php:67,71` (`VitoSystemController`). | accepted | — |
+| R14 | Low (perf) | Backend / trips | `trip_requests` shipped with zero indexes (bare `foreignUuid`, no `constrained()`): added guarded `(current_status, zone_id)` + `customer_id` + `driver_id` indexes. Release builds now ship `--obfuscate --split-debug-info` (APK + IPA) with symbols kept as 90-day CI artifacts. | fixed | `22a46ee` |
+| R15 | — | Product decisions (owner-confirmed 2026-07-05) | Gojek-template items intentionally absent: **stock reservation** (G6 "always available" stands), **Bloc/Riverpod** (GetX mandated by CLAUDE.md), **certificate pinning** (cert-rotation brick risk vs. Let's Encrypt host), **fastlane** (Actions already builds/signs/releases). **Sentry-in-apps dropped on verification**: both apps already route framework/dispatcher/zone errors to Firebase **Crashlytics** (`main.dart`) — adding sentry_flutter would double-report; backend Sentry remains (set `SENTRY_LARAVEL_DSN`). | accepted | — |
 
 ## Accepted (reviewed, intentionally not changed)
 
