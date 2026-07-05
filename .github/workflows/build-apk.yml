@@ -272,7 +272,10 @@ jobs:
     needs: [build-driver-apk, build-user-apk, build-admin-zip]
     # Only cut a release from a version tag or the default branch — a feature-branch
     # push must never overwrite the published release for the current pubspec version.
-    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    # Releases are cut deliberately: push a version tag (v*) or run the workflow
+    # manually with a version input. A plain push to main only builds + tests the
+    # APKs (artifacts), it never publishes/overwrites a GitHub Release.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
