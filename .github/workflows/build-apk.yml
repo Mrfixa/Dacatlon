@@ -8,9 +8,6 @@ on:
       - 'master'
       - 'main'
       - 'vlad'
-      - 'claude/analyze-mart-qr-code-FySPn'
-      - 'claude/init-yn5zw0'
-      - 'claude/claude-md-docs-ksrmcf'
   workflow_dispatch:
     inputs:
       version:
@@ -247,91 +244,15 @@ jobs:
       - name: PHP syntax check
         run: find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors" || true
 
-  build-driver-ios:
-    name: Build Driver iOS
-    runs-on: macos-14
-    defaults:
-      run:
-        working-directory: drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.0'
-          channel: stable
-
-      - name: Install dependencies
-        run: |
-          flutter pub get
-          # Ensure iOS pods are ready
-          cd ios && pod install --repo-update 2>/dev/null || pod install 2>/dev/null || true
-          cd ..
-
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos || true
-
-      - name: Build iOS (simulator)
-        run: |
-          flutter build ios --simulator --no-codesign 2>&1 | tee build.log
-        continue-on-error: true
-
-      - name: Upload iOS build log
-        if: failure()
-        run: cat build.log || true
-
-      - name: Upload Driver iOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vito-driver-ios
-          path: build/ios/iphonesimulator/
-          if-no-files-found: warn
-
-  build-user-ios:
-    name: Build User iOS
-    runs-on: macos-14
-    defaults:
-      run:
-        working-directory: drivemond-user-app-3.1/HexaRide-User-app-release-3.1
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.0'
-          channel: stable
-
-      - name: Install dependencies
-        run: |
-          flutter pub get
-          # Ensure iOS pods are ready
-          cd ios && pod install --repo-update 2>/dev/null || pod install 2>/dev/null || true
-          cd ..
-
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos || true
-
-      - name: Build iOS (simulator)
-        run: |
-          flutter build ios --simulator --no-codesign 2>&1 | tee build.log
-        continue-on-error: true
-
-      - name: Upload iOS build log
-        if: failure()
-        run: cat build.log || true
-
-      - name: Upload User iOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vito-user-ios
-          path: build/ios/iphonesimulator/
-          if-no-files-found: warn
+  # iOS builds live in build-ios.yml (which disables Swift Package Manager —
+  # required on the macOS runners) and signed distribution in release-ios.yml.
 
   create-release:
     name: Create GitHub Release
     needs: [build-driver-apk, build-user-apk, build-admin-zip]
+    # Only cut a release from a version tag or the default branch — a feature-branch
+    # push must never overwrite the published release for the current pubspec version.
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -352,24 +273,10 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG"
 
-      - name: Download Driver Debug APK
-        uses: actions/download-artifact@v4
-        with:
-          name: vito-driver-debug-apk
-          path: release-assets/
-        continue-on-error: true
-
       - name: Download Driver Release APK
         uses: actions/download-artifact@v4
         with:
           name: vito-driver-release-apk
-          path: release-assets/
-        continue-on-error: true
-
-      - name: Download User Debug APK
-        uses: actions/download-artifact@v4
-        with:
-          name: vito-user-debug-apk
           path: release-assets/
         continue-on-error: true
 
@@ -384,20 +291,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: vito-admin-zip
-          path: release-assets/
-        continue-on-error: true
-
-      - name: Download Driver iOS
-        uses: actions/download-artifact@v4
-        with:
-          name: vito-driver-ios
-          path: release-assets/
-        continue-on-error: true
-
-      - name: Download User iOS
-        uses: actions/download-artifact@v4
-        with:
-          name: vito-user-ios
           path: release-assets/
         continue-on-error: true
 

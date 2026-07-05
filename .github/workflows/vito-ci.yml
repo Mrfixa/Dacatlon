@@ -2,9 +2,9 @@ name: VITO CI
 
 on:
   push:
-    branches: [master, vlad]
+    branches: [main, master, vlad]
   pull_request:
-    branches: [master, vlad]
+    branches: [main, master, vlad]
   # Allow running the full CI suite on any branch (e.g. feature branches
   # that need compile verification before a PR exists).
   workflow_dispatch:
@@ -148,7 +148,7 @@ jobs:
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
             --dart-define=BASE_URL=${{ vars.BASE_URL || 'https://dacatlon.store' }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
             --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
         continue-on-error: true
 
@@ -214,7 +214,7 @@ jobs:
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
             --dart-define=BASE_URL=${{ vars.BASE_URL || 'https://dacatlon.store' }} \
-            --dart-define=STRIPE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
+            --dart-define=STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }} \
             --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
         continue-on-error: true
 
