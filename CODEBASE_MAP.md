@@ -203,8 +203,9 @@ All four layers must be registered with `Get.lazyPut()` in `lib/helper/di_contai
 ### Localization
 
 `assets/language/en.json` · `assets/language/es.json` (1 118 keys each, verified in parity).  
-`ar.json` is **missing** — required by CLAUDE.md and `vito_flows_test.dart`.  
-All UI strings: `'key'.tr` — add every key to both existing files (and `ar.json` once created).
+Arabic was removed by product decision — EN and ES are the only supported languages.  
+All UI strings: `'key'.tr` — add every key to **both** files. `vito_flows_test.dart` enforces
+EN↔ES parity **and** that every `'key'.tr` referenced in `lib/` exists in `en.json`.
 
 ---
 
@@ -266,7 +267,7 @@ Required secrets: `MAPS_API_KEY`, `STRIPE_PUBLISHABLE_KEY`.
 | Add a new Vito API route | `Modules/TripManagement/Routes/vito_api.php` (or relevant module's `api.php`) |
 | Add a new mart order status | `MartOrder::STATUS_TRANSITIONS` in `TripManagement/Entities/MartOrder.php` |
 | Add a Flutter feature | `lib/features/{name}/` + register all 4 layers in `lib/helper/di_container.dart` |
-| Add a translation key | `assets/language/en.json` + `es.json` (+ `ar.json` once created) |
+| Add a translation key | `assets/language/en.json` + `es.json` (EN/ES only — Arabic removed) |
 | Change Stripe logic | `Modules/Gateways/Http/Controllers/Api/VitoStripeController.php` |
 | Add admin permission gate | `app/Lib/Constant.php` (MODULES) + `app/Providers/AuthServiceProvider.php` |
 | Add sidebar badge count | `app/Providers/GlobalDataServiceProvider.php` |

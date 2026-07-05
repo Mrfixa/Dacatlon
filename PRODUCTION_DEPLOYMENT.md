@@ -44,10 +44,25 @@
 
 5. **Start queue worker** (required for `RideTimeoutJob` auto-cancel):
    ```bash
-   php artisan queue:work redis --queue=default --sleep=3 --tries=3 --timeout=90
+   php artisan queue:work --queue=default --sleep=3 --tries=3 --timeout=90
    ```
-   Without a queue worker the job is dispatched but never consumed — rides will not
-   auto-cancel; everything else continues to function normally.
+   Uses the `.env` `QUEUE_CONNECTION` (must be `redis` in production). Without a queue
+   worker the job is dispatched but never consumed — rides will not auto-cancel;
+   everything else continues to function normally.
+   Ready-made Supervisor/systemd units: `deploy/supervisor/vito-worker.conf`,
+   `deploy/systemd/vito-worker.service`.
+
+6. **Start the Reverb websocket server** (required for ride/mart chat + live tracking):
+   ```bash
+   php artisan reverb:start --host=127.0.0.1 --port=8080 --no-interaction
+   ```
+   Put nginx TLS termination on :6015 in front of it (see DEPLOY.md). Units:
+   `deploy/supervisor/vito-reverb.conf`, `deploy/systemd/vito-reverb.service`.
+
+7. **Run the scheduler** (housekeeping jobs):
+   ```
+   * * * * * cd /var/www/vito && php artisan schedule:run >> /dev/null 2>&1
+   ```
 
 ## Scaffolded Features (need infra to activate)
 
