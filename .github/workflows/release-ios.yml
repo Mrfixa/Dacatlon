@@ -127,6 +127,7 @@ jobs:
         run: |
           flutter pub get
           flutter build ipa --release \
+            --obfuscate --split-debug-info=build/symbols \
             --export-options-plist=ios/ExportOptions.plist \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
             --dart-define=BASE_URL=${{ vars.BASE_URL || 'https://dacatlon.store' }} \
