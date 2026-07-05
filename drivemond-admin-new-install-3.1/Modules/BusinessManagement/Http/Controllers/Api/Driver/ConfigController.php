@@ -72,7 +72,7 @@ class ConfigController extends Controller
             ? $info->firstWhere('key_name', 'choose_verification_when_to_trigger')?->value : null;
 
         $configs = [
-            'is_demo' => env('APP_MODE') != 'live',
+            'is_demo' => config('app.app_mode') != 'live',
             'maintenance_mode' => checkMaintenanceMode(),
             'required_pin_to_start_trip' => (bool)$info->firstWhere('key_name', 'required_pin_to_start_trip')?->value ?? false,
             'add_intermediate_points' => (bool)$info->firstWhere('key_name', 'add_intermediate_points')?->value ?? false,
@@ -91,8 +91,8 @@ class ConfigController extends Controller
             'base_url' => url('/') . '/api/v1/',
             'websocket_url' => $info->firstWhere('key_name', 'websocket_url')?->value ?? null,
             'websocket_port' => (string)$info->firstWhere('key_name', 'websocket_port')?->value ?? 6001,
-            'websocket_key' => env('PUSHER_APP_KEY'),
-            'websocket_scheme' => env('PUSHER_SCHEME'),
+            'websocket_key' => config('broadcasting.connections.pusher.key'),
+            'websocket_scheme' => config('broadcasting.connections.pusher.options.scheme'),
             'review_status' => (bool)$info->firstWhere('key_name', DRIVER_REVIEW)?->value ?? null,
             'level_status' => (bool)$info->firstWhere('key_name', DRIVER_LEVEL)?->value ?? null,
             'image_base_url' => [

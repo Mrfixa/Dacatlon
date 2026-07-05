@@ -1,0 +1,27 @@
+# systemd alternative to deploy/supervisor/vito-reverb.conf.
+# Required in production: ride/mart chat and live tracking broadcast over Reverb
+# (BROADCAST_DRIVER=reverb); without this process every private-channel
+# subscription fails and the apps fall back to polling only.
+#
+# Topology (matches DEPLOY.md): Reverb listens on 127.0.0.1:8080; nginx
+# terminates TLS on :6015 and proxies to it.
+#
+# Install:
+#   sudo cp deploy/systemd/vito-reverb.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now vito-reverb
+#
+# Adjust the paths/user below to your deployment.
+
+[Unit]
+Description=Vito Reverb websocket server
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=3
+ExecStart=/usr/bin/php /var/www/vito/artisan reverb:start --host=127.0.0.1 --port=8080 --no-interaction
+
+[Install]
+WantedBy=multi-user.target

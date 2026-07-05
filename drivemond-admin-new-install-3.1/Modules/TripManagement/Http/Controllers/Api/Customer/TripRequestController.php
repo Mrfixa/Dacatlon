@@ -236,7 +236,14 @@ class TripRequestController extends Controller
                 }
             } else {
                 // Re-trip (trip_request_id set): keep existing fare from DB record.
-                $existingTrip = $this->tripRequestService->findOneBy(criteria: ['id' => $request['trip_request_id']]);
+                // Scoped to the caller so one customer can't inherit another's fare figure.
+                $existingTrip = $this->tripRequestService->findOneBy(criteria: [
+                    'id' => $request['trip_request_id'],
+                    'customer_id' => auth('api')->id(),
+                ]);
+                if (!$existingTrip) {
+                    return response()->json(responseFormatter(TRIP_REQUEST_404), 403);
+                }
                 $estimatedFare = $existingTrip->estimated_fare;
             }
             $actualFare = $estimatedFare;

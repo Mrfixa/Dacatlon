@@ -17,7 +17,7 @@ User=www-data
 Group=www-data
 Restart=always
 RestartSec=3
-ExecStart=/usr/bin/php /var/www/vito/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+ExecStart=/usr/bin/php /var/www/vito/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 TimeoutStopSec=3600
 
 [Install]

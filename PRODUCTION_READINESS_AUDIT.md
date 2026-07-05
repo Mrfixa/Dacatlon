@@ -53,6 +53,13 @@ map-based delivery address picker + trip search shipped (G4/G5 closed).
 New feature gaps closed (Track 2): chat send rate-limit; **self-service forgot-PIN** (backend + both
 apps); **driver arrived-at-pickup** sub-signal (backend + driver button + customer banner).
 
+**2026-07-05 god-mode re-audit (R-series, see AUDIT_TRACKER.md):** fresh sweep at v3.3.0 confirmed
+all fundamentals above still hold and fixed the last defects: duplicate `stripe_events` migration
+(fresh-deploy breaker), `env()`-under-`config:cache` in both Config APIs (websocket key null /
+demo-mode flip in prod), queue-connection mismatch (ride auto-cancel dead), CI never gating `main`
++ permanently-red release workflow, 24+29 missing i18n keys (now regression-tested), two app crash
+paths (setState-after-dispose, unsafe JSON casts), committed Reverb service units.
+
 **Verified already-implemented (prior-audit items now confirmed stale — no work needed):** per-user
 promo limit (`VitoMartController:261`); chat throttling (group `throttle:60,1`); ride fare recompute
 & ownership checks; **mart tip cap** (30%, `VitoMartController:245`); **auto-refund on paid-order

@@ -55,7 +55,9 @@ return [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
                 'host' => env('PUSHER_HOST') ?: '127.0.0.1',
                 'port' => env('PUSHER_PORT', 6001),
-                'scheme' => env('PUSHER_SCHEME', 'http'),
+                // Mirrored to the mobile apps as websocket_scheme (ConfigController);
+                // they fall back to plain ws:// on anything but 'https'.
+                'scheme' => env('PUSHER_SCHEME', 'https'),
                 'encrypted' => true,
                 'useTLS' => true,
                 'curl_options' => [

@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // Duplicate of database/migrations/2024_01_01_000004_vito_create_stripe_events_table.php,
+        // which carries the correct (UUID user_id, nullable amount) schema and always runs first.
+        // Guarded so a fresh `migrate --force` doesn't abort on "table already exists".
+        if (Schema::hasTable('stripe_events')) {
+            return;
+        }
+
         Schema::create('stripe_events', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('stripe_event_id')->unique();
