@@ -286,10 +286,12 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
   }
 
   Widget _buildCustomerInfo(BuildContext context) {
-    final customer = _orderData['customer'] as Map<String, dynamic>?;
-    final phone = customer?['phone'] as String? ?? '';
-    final customerId = (_orderData['customer_id'] as String?) ??
-        (customer?['id'] as String?) ?? '';
+    final customer = _orderData['customer'] is Map
+        ? Map<String, dynamic>.from(_orderData['customer'])
+        : null;
+    final phone = customer?['phone']?.toString() ?? '';
+    final customerId = _orderData['customer_id']?.toString() ??
+        customer?['id']?.toString() ?? '';
     final customerName = '${customer?['first_name'] ?? ''} ${customer?['last_name'] ?? ''}'.trim().isNotEmpty
         ? '${customer?['first_name'] ?? ''} ${customer?['last_name'] ?? ''}'.trim()
         : customer?['name'] ?? 'customer'.tr;
@@ -351,13 +353,13 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _orderData['delivery_address'] ?? 'loading_address'.tr,
+                    _orderData['delivery_address']?.toString() ?? 'loading_address'.tr,
                     style: textRegular.copyWith(fontSize: Dimensions.fontSizeDefault),
                   ),
                 ),
               ],
             ),
-            if (_orderData['notes'] != null && (_orderData['notes'] as String).isNotEmpty) ...[
+            if ((_orderData['notes']?.toString() ?? '').isNotEmpty) ...[
               const SizedBox(height: Dimensions.paddingSizeSmall),
               Row(
                 children: [
@@ -365,7 +367,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _orderData['notes'],
+                      _orderData['notes'].toString(),
                       style: textRegular.copyWith(
                         fontSize: Dimensions.fontSizeSmall,
                         color: Theme.of(context).hintColor,
@@ -394,9 +396,12 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
             Text('order_items'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
             const SizedBox(height: Dimensions.paddingSizeSmall),
             ...items.map((item) {
-              final product = item['product'] as Map<String, dynamic>? ?? item;
+              final product = item['product'] is Map
+                  ? Map<String, dynamic>.from(item['product'])
+                  : item;
               final name = product['name'] ?? item['name'] ?? '';
-              final price = item['unit_price'] ?? item['price'] ?? '0.00';
+              final price =
+                  double.tryParse((item['unit_price'] ?? item['price'])?.toString() ?? '') ?? 0;
               final qty = item['quantity'] ?? 1;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -410,7 +415,7 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                       ),
                     ),
                     Text(
-                      '\$$price',
+                      PriceConverter.convertPrice(context, price),
                       style: textMedium.copyWith(fontSize: Dimensions.fontSizeDefault),
                     ),
                   ],
