@@ -40,6 +40,27 @@ void main() {
           reason: 'Extra keys in ES not in EN: $extraInEs');
     });
 
+    test('Every translation key referenced in lib/ exists in EN', () {
+      // EN↔ES parity alone has a blind spot: a key missing from BOTH files
+      // passes parity but renders as raw snake_case at runtime. Scan every
+      // 'key'.tr literal in lib/ and require it to exist in en.json.
+      final keyPattern = RegExp("'([a-z0-9_]+)'\\s*\\.\\s*tr\\b");
+      final referenced = <String, String>{};
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        for (final m in keyPattern.allMatches(entity.readAsStringSync())) {
+          referenced.putIfAbsent(m.group(1)!, () => entity.path);
+        }
+      }
+      expect(referenced, isNotEmpty,
+          reason: 'Sanity: the scan should find translation usages');
+      final missing = referenced.keys.where((k) => !en.containsKey(k)).toList()
+        ..sort();
+      expect(missing, isEmpty,
+          reason: 'Keys used in code but absent from en.json (first use shown): '
+              '${missing.map((k) => '$k <- ${referenced[k]}').join(', ')}');
+    });
+
     test('Vito-specific EN keys have non-empty values', () {
       final vitoKeys = [
         'invitation_required',

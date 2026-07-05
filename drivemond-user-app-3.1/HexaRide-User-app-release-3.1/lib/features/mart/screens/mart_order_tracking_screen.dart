@@ -161,6 +161,7 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
       // Data access goes through the mart service layer; the poll/Pusher
       // lifecycle and per-order view state stay in this widget.
       final data = await Get.find<MartController>().fetchOrderDetailMap(widget.orderId);
+      if (!mounted) return;
       if (data != null) {
         setState(() {
           _currentStatus = data['status'] ?? 'pending';

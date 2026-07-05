@@ -458,7 +458,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
   }
 }
 
-// B14: Stateful product card with AnimatedScale + B13: CachedNetworkImage + B15: out-of-stock + B21: offline disable
+// Stateful product card: AnimatedScale tap feedback, CachedNetworkImage, offline disable.
 class _ProductCard extends StatefulWidget {
   final Map<String, dynamic> product;
   final bool isOffline;
