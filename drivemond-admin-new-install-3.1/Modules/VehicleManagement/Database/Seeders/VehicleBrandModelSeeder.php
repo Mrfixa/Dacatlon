@@ -8,12 +8,17 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Seeds a comprehensive, ready-to-use catalogue of vehicle categories, brands and
- * models so the driver vehicle-registration dropdowns are populated out of the box.
+ * Seeds a comprehensive, US-market catalogue of vehicle categories, brands and models so the
+ * driver vehicle-registration dropdowns are populated out of the box with every make sold in
+ * the United States (current line-ups + common discontinued makes/models still on the road).
  *
- * Idempotent: existing rows are left in place (only re-activated); never mutates a
- * primary key, so brand_id foreign links stay intact. The driver brand/model API
- * filters is_active = 1, so everything here is seeded active.
+ * Granularity is make + model (no model-year): the registration form captures brand, model,
+ * category, licence plate, licence expiry and VIN — there is no year field — so make + model
+ * is exactly what the searchable Brand → Model dropdowns need.
+ *
+ * Idempotent: existing rows are left in place (only re-activated); never mutates a primary key,
+ * so brand_id foreign links stay intact. The driver brand/model API filters is_active = 1, so
+ * everything here is seeded active. Safe to re-run to pick up newly-added makes/models.
  *
  * Run: php artisan db:seed --class="Modules\VehicleManagement\Database\Seeders\VehicleBrandModelSeeder"
  */
@@ -26,8 +31,10 @@ class VehicleBrandModelSeeder extends Seeder
         // ---- Vehicle categories (type must be car|motor_bike) ----
         if (Schema::hasTable('vehicle_categories')) {
             $categories = [
-                ['Sedan', 'car'], ['SUV', 'car'], ['Hatchback', 'car'], ['Luxury', 'car'],
-                ['Van', 'car'], ['Pickup', 'car'], ['Electric', 'car'], ['Motorbike', 'motor_bike'],
+                ['Sedan', 'car'], ['SUV', 'car'], ['Hatchback', 'car'], ['Coupe', 'car'],
+                ['Convertible', 'car'], ['Wagon', 'car'], ['Minivan', 'car'], ['Pickup', 'car'],
+                ['Luxury', 'car'], ['Electric', 'car'], ['Hybrid', 'car'], ['Van', 'car'],
+                ['Crossover', 'car'], ['Motorbike', 'motor_bike'],
             ];
             foreach ($categories as [$name, $type]) {
                 $this->ensureRow('vehicle_categories', ['name' => $name], [
@@ -94,51 +101,69 @@ class VehicleBrandModelSeeder extends Seeder
         }
     }
 
+    /**
+     * Every make sold in the US market (current + recent), plus common discontinued makes whose
+     * vehicles are still widely driven, each with its US model line-up (make + model).
+     */
     private function brands(): array
     {
         return [
-            'Toyota' => ['Corolla', 'Camry', 'RAV4', 'Hilux', 'Yaris', 'Land Cruiser', 'Prius', 'Fortuner'],
-            'Honda' => ['Civic', 'Accord', 'CR-V', 'City', 'Fit', 'HR-V', 'Pilot'],
-            'Ford' => ['Focus', 'Fiesta', 'Ranger', 'Explorer', 'Escape', 'Mustang', 'F-150'],
-            'Hyundai' => ['Elantra', 'Accent', 'Tucson', 'Santa Fe', 'Sonata', 'i10', 'Creta'],
-            'Kia' => ['Rio', 'Cerato', 'Sportage', 'Sorento', 'Picanto', 'Seltos'],
-            'Nissan' => ['Sentra', 'Altima', 'X-Trail', 'Versa', 'Kicks', 'Patrol', 'Navara'],
-            'Volkswagen' => ['Golf', 'Jetta', 'Passat', 'Tiguan', 'Polo', 'Vento'],
-            'BMW' => ['3 Series', '5 Series', 'X3', 'X5', '7 Series', 'X1'],
-            'Mercedes-Benz' => ['C-Class', 'E-Class', 'GLC', 'GLE', 'A-Class', 'S-Class'],
-            'Chevrolet' => ['Spark', 'Aveo', 'Cruze', 'Tahoe', 'Onix', 'Tracker'],
-            'Suzuki' => ['Swift', 'Alto', 'Vitara', 'Baleno', 'Ertiga', 'Jimny'],
-            'Mitsubishi' => ['Lancer', 'Outlander', 'Montero', 'L200', 'Mirage', 'ASX'],
-            'Renault' => ['Logan', 'Sandero', 'Duster', 'Clio', 'Kwid', 'Captur'],
-            'Peugeot' => ['208', '301', '3008', '2008', '308', '508'],
-            'Mazda' => ['Mazda2', 'Mazda3', 'CX-5', 'CX-3', 'Mazda6', 'CX-9'],
-            'Volvo' => ['XC40', 'XC60', 'XC90', 'S60', 'S90'],
-            'Audi' => ['A3', 'A4', 'Q3', 'Q5', 'A6', 'Q7'],
-            'Jeep' => ['Wrangler', 'Compass', 'Cherokee', 'Renegade', 'Grand Cherokee'],
-            'Fiat' => ['Uno', 'Palio', 'Cronos', 'Argo', 'Mobi', 'Toro'],
-            'Tesla' => ['Model 3', 'Model Y', 'Model S', 'Model X'],
-            'Lexus' => ['ES', 'RX', 'NX', 'IS', 'UX'],
-            'Subaru' => ['Impreza', 'Forester', 'Outback', 'XV', 'Legacy'],
-            'Dodge' => ['Charger', 'Challenger', 'Durango', 'Journey'],
-            'Jaguar' => ['XE', 'XF', 'F-Pace', 'E-Pace'],
-            'Land Rover' => ['Defender', 'Discovery', 'Range Rover', 'Evoque'],
-            'Porsche' => ['Macan', 'Cayenne', '911', 'Panamera'],
-            'Mini' => ['Cooper', 'Countryman', 'Clubman'],
-            'Isuzu' => ['D-Max', 'MU-X'],
-            'Geely' => ['Coolray', 'Emgrand', 'Azkarra'],
-            'BYD' => ['Han', 'Tang', 'Song', 'Dolphin'],
-            'Chery' => ['Tiggo', 'Arrizo', 'QQ'],
-            'Great Wall' => ['Wingle', 'Poer', 'Haval H6'],
-            'Citroen' => ['C3', 'C4', 'C-Elysee', 'Berlingo'],
-            'Seat' => ['Ibiza', 'Leon', 'Arona', 'Ateca'],
-            'Skoda' => ['Octavia', 'Fabia', 'Kodiaq', 'Rapid'],
-            'Acura' => ['ILX', 'TLX', 'RDX', 'MDX'],
-            'Infiniti' => ['Q50', 'QX50', 'QX60'],
-            'Cadillac' => ['XT4', 'XT5', 'Escalade'],
-            'GMC' => ['Sierra', 'Yukon', 'Acadia'],
-            'Ram' => ['1500', '2500'],
-            'Yamaha' => ['YZF-R3', 'MT-15', 'FZ', 'Fazer', 'NMAX'],
-            'Bajaj' => ['Pulsar', 'Boxer', 'Avenger', 'Dominar'],
+            // ---- Mainstream (current) ----
+            'Acura' => ['ILX', 'TLX', 'RLX', 'TL', 'TSX', 'RSX', 'Integra', 'RDX', 'MDX', 'ZDX', 'NSX'],
+            'Alfa Romeo' => ['Giulia', 'Stelvio', 'Tonale', '4C', 'Giulietta'],
+            'Aston Martin' => ['Vantage', 'DB11', 'DB12', 'DBS', 'DBX', 'Rapide', 'Vanquish'],
+            'Audi' => ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q4 e-tron', 'Q5', 'Q7', 'Q8', 'e-tron', 'e-tron GT', 'TT', 'R8', 'S3', 'S4', 'S5', 'RS5', 'RS7', 'SQ5'],
+            'Bentley' => ['Continental GT', 'Flying Spur', 'Bentayga', 'Mulsanne'],
+            'BMW' => ['2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'Z4', 'i3', 'i4', 'i5', 'i7', 'iX', 'M2', 'M3', 'M4', 'M5', 'X3 M', 'X5 M'],
+            'Buick' => ['Enclave', 'Encore', 'Encore GX', 'Envision', 'Envista', 'LaCrosse', 'Regal', 'Verano', 'Lucerne', 'Cascada'],
+            'Cadillac' => ['CT4', 'CT5', 'CT6', 'ATS', 'CTS', 'XTS', 'XT4', 'XT5', 'XT6', 'SRX', 'Escalade', 'Escalade ESV', 'Lyriq', 'ELR'],
+            'Chevrolet' => ['Spark', 'Sonic', 'Cruze', 'Malibu', 'Impala', 'Camaro', 'Corvette', 'Cobalt', 'HHR', 'Trax', 'Trailblazer', 'Equinox', 'Blazer', 'Traverse', 'Tahoe', 'Suburban', 'Captiva', 'Colorado', 'Silverado 1500', 'Silverado 2500HD', 'Silverado 3500HD', 'Bolt EV', 'Bolt EUV', 'Volt', 'Express'],
+            'Chrysler' => ['300', 'Pacifica', 'Voyager', 'Town & Country', '200', 'Sebring', 'PT Cruiser'],
+            'Dodge' => ['Charger', 'Challenger', 'Durango', 'Journey', 'Grand Caravan', 'Dart', 'Avenger', 'Caliber', 'Hornet', 'Nitro'],
+            'Fiat' => ['500', '500e', '500X', '500L', '124 Spider'],
+            'Ford' => ['Fiesta', 'Focus', 'Fusion', 'Taurus', 'Mustang', 'Mustang Mach-E', 'EcoSport', 'Escape', 'Bronco', 'Bronco Sport', 'Edge', 'Explorer', 'Expedition', 'Flex', 'C-Max', 'Ranger', 'Maverick', 'F-150', 'F-150 Lightning', 'F-250', 'F-350', 'Transit', 'Transit Connect'],
+            'Genesis' => ['G70', 'G80', 'G90', 'GV60', 'GV70', 'GV80'],
+            'GMC' => ['Terrain', 'Acadia', 'Yukon', 'Yukon XL', 'Canyon', 'Sierra 1500', 'Sierra 2500HD', 'Sierra 3500HD', 'Savana', 'Hummer EV'],
+            'Honda' => ['Fit', 'Civic', 'Insight', 'Accord', 'HR-V', 'CR-V', 'Passport', 'Pilot', 'Ridgeline', 'Odyssey', 'CR-Z', 'Clarity', 'Prologue', 'Element'],
+            'Hyundai' => ['Accent', 'Elantra', 'Sonata', 'Veloster', 'Ioniq', 'Ioniq 5', 'Ioniq 6', 'Venue', 'Kona', 'Tucson', 'Santa Fe', 'Palisade', 'Santa Cruz', 'Nexo', 'Azera', 'Veracruz', 'Genesis Coupe'],
+            'Infiniti' => ['Q50', 'Q60', 'Q70', 'QX30', 'QX50', 'QX55', 'QX60', 'QX80', 'G37', 'FX35', 'EX35', 'M37'],
+            'Jaguar' => ['XE', 'XF', 'XJ', 'F-Type', 'E-Pace', 'F-Pace', 'I-Pace'],
+            'Jeep' => ['Renegade', 'Compass', 'Cherokee', 'Grand Cherokee', 'Grand Cherokee L', 'Wrangler', 'Gladiator', 'Wagoneer', 'Grand Wagoneer', 'Patriot', 'Liberty', 'Commander'],
+            'Kia' => ['Rio', 'Forte', 'K5', 'Stinger', 'Optima', 'Cadenza', 'Soul', 'Seltos', 'Sportage', 'Sorento', 'Telluride', 'Carnival', 'Sedona', 'Niro', 'EV6', 'EV9'],
+            'Lamborghini' => ['Huracan', 'Aventador', 'Urus', 'Revuelto', 'Gallardo'],
+            'Land Rover' => ['Defender', 'Discovery', 'Discovery Sport', 'Range Rover', 'Range Rover Sport', 'Range Rover Velar', 'Range Rover Evoque', 'LR2', 'LR4'],
+            'Lexus' => ['IS', 'ES', 'GS', 'LS', 'RC', 'LC', 'CT', 'UX', 'NX', 'RX', 'GX', 'LX', 'RZ', 'HS'],
+            'Lincoln' => ['Corsair', 'Nautilus', 'Aviator', 'Navigator', 'MKZ', 'MKC', 'MKX', 'MKS', 'MKT', 'Continental', 'Town Car'],
+            'Lucid' => ['Air', 'Gravity'],
+            'Maserati' => ['Ghibli', 'Quattroporte', 'Levante', 'Grecale', 'GranTurismo', 'MC20'],
+            'Mazda' => ['Mazda2', 'Mazda3', 'Mazda6', 'MX-5 Miata', 'CX-3', 'CX-30', 'CX-5', 'CX-9', 'CX-50', 'CX-90', 'MX-30', 'CX-7', 'Tribute'],
+            'McLaren' => ['570S', '720S', '765LT', 'GT', 'Artura'],
+            'Mercedes-Benz' => ['A-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'G-Class', 'EQB', 'EQE', 'EQS', 'SL', 'SLC', 'AMG GT', 'Sprinter', 'Metris', 'GLK'],
+            'MINI' => ['Cooper', 'Cooper Clubman', 'Cooper Countryman', 'Hardtop', 'Convertible', 'Paceman'],
+            'Mitsubishi' => ['Mirage', 'Mirage G4', 'Eclipse Cross', 'Outlander', 'Outlander Sport', 'Outlander PHEV', 'Lancer', 'Galant', 'Endeavor', 'Montero'],
+            'Nissan' => ['Versa', 'Sentra', 'Altima', 'Maxima', 'Leaf', 'Ariya', 'Kicks', 'Rogue', 'Rogue Sport', 'Murano', 'Pathfinder', 'Armada', 'Frontier', 'Titan', 'GT-R', 'Z', '370Z', 'Juke', 'Cube', 'Quest', 'Xterra'],
+            'Polestar' => ['Polestar 2', 'Polestar 3', 'Polestar 4'],
+            'Porsche' => ['911', '718 Cayman', '718 Boxster', 'Panamera', 'Macan', 'Cayenne', 'Taycan'],
+            'Ram' => ['1500', '2500', '3500', 'ProMaster', 'ProMaster City', 'Dakota'],
+            'Rivian' => ['R1T', 'R1S'],
+            'Rolls-Royce' => ['Phantom', 'Ghost', 'Wraith', 'Dawn', 'Cullinan', 'Spectre'],
+            'Subaru' => ['Impreza', 'Legacy', 'WRX', 'BRZ', 'Crosstrek', 'Forester', 'Outback', 'Ascent', 'Solterra', 'Baja', 'Tribeca'],
+            'Tesla' => ['Model 3', 'Model Y', 'Model S', 'Model X', 'Cybertruck', 'Roadster'],
+            'Toyota' => ['Corolla', 'Corolla Cross', 'Camry', 'Prius', 'Prius Prime', 'Mirai', 'Avalon', 'Crown', 'Yaris', 'GR86', 'GR Supra', 'C-HR', 'RAV4', 'Venza', 'Highlander', '4Runner', 'Sequoia', 'Land Cruiser', 'Tacoma', 'Tundra', 'Sienna', 'bZ4X', 'Matrix', 'FJ Cruiser'],
+            'Volkswagen' => ['Jetta', 'Passat', 'Arteon', 'Golf', 'GTI', 'Golf R', 'Beetle', 'Taos', 'Tiguan', 'Atlas', 'Atlas Cross Sport', 'ID.4', 'Touareg', 'CC', 'Eos', 'Routan'],
+            'Volvo' => ['S60', 'S90', 'V60', 'V90', 'XC40', 'XC60', 'XC90', 'C40', 'EX30', 'EX90', 'S40', 'C30'],
+
+            // ---- Discontinued in the US but still widely driven ----
+            'Pontiac' => ['G5', 'G6', 'G8', 'Grand Prix', 'Grand Am', 'Bonneville', 'Firebird', 'GTO', 'Vibe', 'Solstice', 'Torrent', 'Aztek'],
+            'Saturn' => ['Ion', 'Aura', 'Sky', 'Vue', 'Outlook', 'Astra', 'Relay'],
+            'Scion' => ['xA', 'xB', 'xD', 'tC', 'iA', 'iM', 'iQ', 'FR-S'],
+            'Hummer' => ['H1', 'H2', 'H3'],
+            'Mercury' => ['Grand Marquis', 'Milan', 'Sable', 'Mariner', 'Mountaineer', 'Montego'],
+            'Oldsmobile' => ['Alero', 'Aurora', 'Intrigue', 'Bravada', 'Silhouette'],
+            'Saab' => ['9-3', '9-5', '9-7X', '9-2X'],
+            'Smart' => ['Fortwo'],
+            'Suzuki' => ['SX4', 'Kizashi', 'Grand Vitara', 'Forenza', 'Aerio', 'Reno', 'Equator', 'XL7'],
+            'Isuzu' => ['Ascender', 'i-Series', 'Rodeo', 'Trooper', 'VehiCROSS'],
         ];
     }
 }
