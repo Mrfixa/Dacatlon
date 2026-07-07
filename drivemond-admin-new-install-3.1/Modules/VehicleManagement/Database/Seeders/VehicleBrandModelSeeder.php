@@ -34,7 +34,7 @@ class VehicleBrandModelSeeder extends Seeder
                 ['Sedan', 'car'], ['SUV', 'car'], ['Hatchback', 'car'], ['Coupe', 'car'],
                 ['Convertible', 'car'], ['Wagon', 'car'], ['Minivan', 'car'], ['Pickup', 'car'],
                 ['Luxury', 'car'], ['Electric', 'car'], ['Hybrid', 'car'], ['Van', 'car'],
-                ['Crossover', 'car'], ['Motorbike', 'motor_bike'],
+                ['Crossover', 'car'], ['Motorbike', 'motor_bike'], ['Other', 'car'],
             ];
             foreach ($categories as [$name, $type]) {
                 $this->ensureRow('vehicle_categories', ['name' => $name], [
@@ -47,6 +47,12 @@ class VehicleBrandModelSeeder extends Seeder
 
         // ---- Brands -> models ----
         foreach ($this->brands() as $brandName => $models) {
+            // Guarantee an "Other" model on every make so a driver whose exact model/trim/year
+            // isn't catalogued is never blocked — they pick <Make> -> Other and still submit
+            // plate + VIN, which uniquely identify the vehicle. Keeps the flow unblockable.
+            $models[] = 'Other';
+            $models = array_values(array_unique($models));
+
             $brandId = DB::table('vehicle_brands')->where('name', $brandName)->value('id');
             if (!$brandId) {
                 $brandId = (string) Str::uuid();
@@ -164,6 +170,9 @@ class VehicleBrandModelSeeder extends Seeder
             'Smart' => ['Fortwo'],
             'Suzuki' => ['SX4', 'Kizashi', 'Grand Vitara', 'Forenza', 'Aerio', 'Reno', 'Equator', 'XL7'],
             'Isuzu' => ['Ascender', 'i-Series', 'Rodeo', 'Trooper', 'VehiCROSS'],
+
+            // ---- Catch-all for any make not listed (kit cars, grey imports, brand-new marques) ----
+            'Other' => [],
         ];
     }
 }
