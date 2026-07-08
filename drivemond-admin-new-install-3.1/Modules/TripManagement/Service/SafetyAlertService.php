@@ -44,12 +44,12 @@ class SafetyAlertService extends BaseService implements Interfaces\SafetyAlertSe
     public function create(array $data): ?Model
     {
         $tripRequestCurrentStatus = $this->tripRequestService->findOneBy(criteria: ['id' => $data['trip_request_id']])->current_status;
-        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $data['lat'] . ',' . $data['lng'] . '&key=' . $mapKey);
+        $geocode = app(\Modules\BusinessManagement\Service\MapProviderService::class)
+            ->reverseGeocode($data['lat'], $data['lng']);
         $attributes = [];
         $attributes['trip_request_id'] = $data['trip_request_id'];
         $attributes['sent_by'] = auth('api')->user()?->id;
-        $attributes['alert_location'] = json_decode($response->body())->results[0]->formatted_address ?? 'N/A';
+        $attributes['alert_location'] = $geocode['results'][0]['formatted_address'] ?? 'N/A';
         $attributes['trip_status_when_make_alert'] = $tripRequestCurrentStatus;
         if (array_key_exists('reason', $data)) {
             $attributes['reason'] = json_decode($data['reason']);
@@ -64,10 +64,10 @@ class SafetyAlertService extends BaseService implements Interfaces\SafetyAlertSe
     public function updatedBy(array $criteria = [], array $whereInCriteria = [], array $data = [], bool $withTrashed = false): ?Model
     {
         $trip = $this->tripRequestService->findOneBy(criteria: ['id' => $criteria['trip_request_id']], relations: ['driver.lastLocations']);
-        $mapKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $trip?->driver?->lastLocations?->latitude . ',' . $trip?->driver?->lastLocations?->longitude . '&key=' . $mapKey);
+        $geocode = app(\Modules\BusinessManagement\Service\MapProviderService::class)
+            ->reverseGeocode($trip?->driver?->lastLocations?->latitude ?? 0, $trip?->driver?->lastLocations?->longitude ?? 0);
         $attributes = [];
-        $attributes['resolved_location'] = json_decode($response->body())->results[0]->formatted_address ?? 'N/A';
+        $attributes['resolved_location'] = $geocode['results'][0]['formatted_address'] ?? 'N/A';
         $attributes['status'] = 'solved';
         $attributes['resolved_by'] = $data['resolved_by'];
 

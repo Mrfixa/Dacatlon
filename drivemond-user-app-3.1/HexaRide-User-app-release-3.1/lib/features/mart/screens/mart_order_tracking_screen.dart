@@ -20,6 +20,7 @@ import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MartOrderTrackingScreen extends StatefulWidget {
@@ -503,12 +504,10 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             height: 180,
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: LatLng(_driverLat!, _driverLng!),
-                zoom: 14,
-              ),
-              markers: {
+            child: VitoMap(
+              initialTarget: LatLng(_driverLat!, _driverLng!),
+              initialZoom: 14,
+              googleMarkers: {
                 Marker(
                   markerId: const MarkerId('driver'),
                   position: LatLng(_driverLat!, _driverLng!),

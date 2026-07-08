@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/map/controllers/map_controller.dart';
 import 'package:ride_sharing_user_app/features/wallet/widget/custom_title.dart';
 import 'package:ride_sharing_user_app/theme/theme_controller.dart';
@@ -61,19 +62,23 @@ class HomeMapViewState extends State<HomeMapView> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Dimensions.paddingSizeSmall),
-                child: GoogleMap(
-                  style: Get.isDarkMode ?
+                child: VitoMap(
+                  googleStyleJson: Get.isDarkMode ?
                   Get.find<ThemeController>().darkMap :
                   Get.find<ThemeController>().lightMap,
-                  markers: mapController.nearestDeliveryManMarkers!.toSet(),
-                  initialCameraPosition: CameraPosition(target: LatLng(
+                  googleMarkers: mapController.nearestDeliveryManMarkers!.toSet(),
+                  initialTarget: LatLng(
                     Get.find<LocationController>().getUserAddress()?.latitude ?? 23.8103,
                     Get.find<LocationController>().getUserAddress()?.longitude ?? 90.4125,
-                  ), zoom: 13),
-                   minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
-                  onMapCreated: (gController) {
-                    _mapController = gController;
-                    mapController.setMapController(gController);
+                  ),
+                  initialZoom: 13,
+                  minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
+                  onMapCreated: (vitoController) {
+                    final gController = vitoController.googleController;
+                    if (gController != null) {
+                      _mapController = gController;
+                      mapController.setMapController(gController);
+                    }
                   },
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,

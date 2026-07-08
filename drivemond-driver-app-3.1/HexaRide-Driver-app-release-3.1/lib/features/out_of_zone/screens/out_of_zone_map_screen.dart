@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/map/controllers/map_controller.dart';
 import 'package:ride_sharing_user_app/features/map/widgets/custom_icon_card_widget.dart';
@@ -133,15 +134,13 @@ class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
         appBar: AppBarWidget(title: 'your_location'.tr,showBackButton: true,regularAppbar: true),
         body: GetBuilder<RiderMapController>(builder: (riderMapController){
           return Stack(children: [
-            GoogleMap(
-              style: Get.isDarkMode ? Get.find<ThemeController>().darkMap :
+            VitoMap(
+              googleStyleJson: Get.isDarkMode ? Get.find<ThemeController>().darkMap :
               Get.find<ThemeController>().lightMap,
-              initialCameraPosition:  CameraPosition(
-                target: Get.find<LocationController>().initialPosition,
-                zoom: 16,
-              ),
-              onMapCreated: (GoogleMapController controller) async {
-                _mapController = controller;
+              initialTarget: Get.find<LocationController>().initialPosition,
+              initialZoom: 16,
+              onMapCreated: (VitoMapController vitoController) async {
+                _mapController = vitoController.googleController;
                 await _loadData();
 
                 _setMapBounds();
@@ -151,8 +150,8 @@ class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
               minMaxZoomPreference: const MinMaxZoomPreference(0, AppConstants.mapZoom),
               zoomControlsEnabled: false,
               compassEnabled: false,
-              polygons: _polygons,
-              markers: _markers,
+              googlePolygons: _polygons,
+              googleMarkers: _markers,
               polylines: _polyLine,
               trafficEnabled: riderMapController.isTrafficEnable,
               indoorViewEnabled: true,

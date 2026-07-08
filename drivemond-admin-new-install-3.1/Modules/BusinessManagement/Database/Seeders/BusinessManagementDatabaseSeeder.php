@@ -117,6 +117,8 @@ class BusinessManagementDatabaseSeeder extends Seeder
                 'map_api_key_server'  => '',
                 'map_api_key_android' => '',
                 'map_api_key_ios'     => '',
+                'map_provider'        => 'google',
+                'mapbox_access_token' => '',
             ]],
 
             // ── App Versions ──────────────────────────────────────────────────

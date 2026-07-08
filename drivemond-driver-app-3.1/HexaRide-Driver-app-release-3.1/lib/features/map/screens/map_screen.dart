@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:ride_sharing_user_app/common_widgets/expandable_bottom_sheet.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/profile/screens/profile_screen.dart';
 import 'package:ride_sharing_user_app/features/ride/domain/models/trip_details_model.dart';
 import 'package:ride_sharing_user_app/features/safety_setup/controllers/safety_alert_controller.dart';
@@ -180,35 +181,31 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                         bottom: riderMapController.sheetHeight -
                             (Get.find<RiderMapController>().currentRideState == RideState.initial ? 80 : 20),
                       ),
-                      child: GoogleMap(
-                        style: Get.isDarkMode ? Get.find<ThemeController>().darkMap :
+                      child: VitoMap(
+                        googleStyleJson: Get.isDarkMode ? Get.find<ThemeController>().darkMap :
                         Get.find<ThemeController>().lightMap,
-                        initialCameraPosition:  CameraPosition(
-                          target:  (rideController.tripDetail != null &&
+                        initialTarget: (rideController.tripDetail != null &&
                               rideController.tripDetail!.pickupCoordinates != null) ?
                           LatLng(
                             rideController.tripDetail!.pickupCoordinates!.coordinates![1],
                             rideController.tripDetail!.pickupCoordinates!.coordinates![0],
                           ) : Get.find<LocationController>().initialPosition,
-                          zoom: 16,
-                        ),
-                        onMapCreated: (GoogleMapController controller) async {
-                          riderMapController.mapController = controller;
+                        initialZoom: 16,
+                        onMapCreated: (VitoMapController vitoController) async {
+                          final controller = vitoController.googleController;
+                          if (controller != null) {
+                            riderMapController.mapController = controller;
+                            _mapController = controller;
+                          }
                           if(riderMapController.currentRideState.name != 'initial'){
                             if(riderMapController.currentRideState.name == 'accepted' || riderMapController.currentRideState.name == AppConstants.ongoing){
                               Get.find<RideController>().remainingDistance(Get.find<RideController>().tripDetail!.id!,mapBound: true);
                             }else{
                               riderMapController.getPickupToDestinationPolyline();}
                           }
-                          _mapController = controller;
-                        },
-                        onCameraMove: (CameraPosition cameraPosition) {
-                        },
-                        onCameraIdle: () {
-
                         },
                         minMaxZoomPreference: const MinMaxZoomPreference(0, AppConstants.mapZoom),
-                        markers: Set<Marker>.of(riderMapController.markers),
+                        googleMarkers: Set<Marker>.of(riderMapController.markers),
                         polylines: riderMapController.polylines,
                         zoomControlsEnabled: false,
                         compassEnabled: false,

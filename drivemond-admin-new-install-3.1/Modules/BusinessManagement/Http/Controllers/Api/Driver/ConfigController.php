@@ -263,25 +263,11 @@ class ConfigController extends Controller
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
 
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-
-        $url = 'https://places.googleapis.com/v1/places:autocomplete';
-        $data = [
-            'input' => $request->input('search_text'),
-            // Optionally, you can add more parameters here
-            // 'components' => 'country:IN', // Example: Restrict results to a specific country
-        ];
-
-        // API Headers
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Goog-Api-Key' => $mapApiKey,
-            'X-Goog-FieldMask' => '*'
-        ];
-
-        // Send POST request
-        $response = Http::withHeaders($headers)->post($url, $data);
-        return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
+        // Provider-aware (google/mapbox per admin 3rd-party setting); mapbox responses
+        // are transformed to the Google shape the apps already parse.
+        $result = app(\Modules\BusinessManagement\Service\MapProviderService::class)
+            ->autocomplete($request->input('search_text'));
+        return response()->json(responseFormatter(DEFAULT_200, $result), 200);
     }
 
     public function distanceApi(Request $request): JsonResponse
@@ -298,10 +284,9 @@ class ConfigController extends Controller
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
 
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $response = Http::get(MAP_API_BASE_URI . '/distancematrix/json?origins=' . $request['origin_lat'] . ',' . $request['origin_lng'] . '&destinations=' . $request['destination_lat'] . ',' . $request['destination_lng'] . '&travelmode=' . $request['mode'] . '&key=' . $mapApiKey);
-
-        return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
+        $result = app(\Modules\BusinessManagement\Service\MapProviderService::class)
+            ->distanceMatrix($request['origin_lat'], $request['origin_lng'], $request['destination_lat'], $request['destination_lng'], (string) $request['mode']);
+        return response()->json(responseFormatter(DEFAULT_200, $result), 200);
     }
 
     public function geocodeApi(Request $request): JsonResponse
@@ -314,9 +299,9 @@ class ConfigController extends Controller
         if ($validator->fails()) {
             return response()->json(responseFormatter(DEFAULT_400, null, null, null, errorProcessor($validator)), 400);
         }
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? null;
-        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $request->lat . ',' . $request->lng . '&key=' . $mapApiKey);
-        return response()->json(responseFormatter(DEFAULT_200, $response->json()), 200);
+        $result = app(\Modules\BusinessManagement\Service\MapProviderService::class)
+            ->reverseGeocode($request->lat, $request->lng);
+        return response()->json(responseFormatter(DEFAULT_200, $result), 200);
     }
 
     public function getRoutes(Request $request)

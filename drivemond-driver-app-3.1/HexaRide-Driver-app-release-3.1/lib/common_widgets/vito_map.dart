@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
@@ -136,13 +137,33 @@ class VitoMap extends StatefulWidget {
   final gmap.LatLng initialTarget;
   final double initialZoom;
   final Set<VitoMarker> markers;
+
+  /// Compatibility passthrough for legacy screens whose controllers build raw
+  /// google_maps_flutter [gmap.Marker] sets. Rendered verbatim on the Google
+  /// branch; on Mapbox the positions are rendered with the default pin (a
+  /// BitmapDescriptor's bytes cannot be read back). New code should prefer
+  /// [markers] with [VitoMarker.iconBytes].
+  final Set<gmap.Marker> googleMarkers;
   final Set<gmap.Polyline> polylines;
+
+  /// Google-only passthrough (zone boundaries etc.); not rendered on Mapbox.
+  final Set<gmap.Polygon> googlePolygons;
   final bool myLocationEnabled;
+
+  /// Defaults to [myLocationEnabled] when null (previous behaviour).
+  final bool? myLocationButtonEnabled;
   final bool zoomControlsEnabled;
+  final bool zoomGesturesEnabled;
   final bool compassEnabled;
+  final bool trafficEnabled; // Google-only; Mapbox styles carry their own traffic layers.
+  final bool indoorViewEnabled; // Google-only.
+  final bool mapToolbarEnabled; // Google-only.
+  final gmap.MinMaxZoomPreference minMaxZoomPreference;
   final VitoMapCreatedCallback? onMapCreated;
   final void Function(gmap.LatLng)? onTap;
   final void Function(gmap.CameraPosition)? onCameraMove;
+  final VoidCallback? onCameraMoveStarted;
+  final VoidCallback? onCameraIdle;
   final EdgeInsets padding;
   final String? googleStyleJson;
   final String? mapboxStyleUri;
@@ -152,13 +173,23 @@ class VitoMap extends StatefulWidget {
     required this.initialTarget,
     this.initialZoom = 14,
     this.markers = const {},
+    this.googleMarkers = const {},
     this.polylines = const {},
+    this.googlePolygons = const {},
     this.myLocationEnabled = false,
+    this.myLocationButtonEnabled,
     this.zoomControlsEnabled = false,
+    this.zoomGesturesEnabled = true,
     this.compassEnabled = false,
+    this.trafficEnabled = false,
+    this.indoorViewEnabled = false,
+    this.mapToolbarEnabled = false,
+    this.minMaxZoomPreference = gmap.MinMaxZoomPreference.unbounded,
     this.onMapCreated,
     this.onTap,
     this.onCameraMove,
+    this.onCameraMoveStarted,
+    this.onCameraIdle,
     this.padding = EdgeInsets.zero,
     this.googleStyleJson,
     this.mapboxStyleUri,
@@ -238,15 +269,23 @@ class _VitoMapState extends State<VitoMap> {
       return gmap.GoogleMap(
         style: widget.googleStyleJson,
         initialCameraPosition: gmap.CameraPosition(target: widget.initialTarget, zoom: widget.initialZoom),
-        markers: widget.markers.map((m) => m.toGoogleMarker()).toSet(),
+        markers: {...widget.markers.map((m) => m.toGoogleMarker()), ...widget.googleMarkers},
         polylines: widget.polylines,
+        polygons: widget.googlePolygons,
         myLocationEnabled: widget.myLocationEnabled,
-        myLocationButtonEnabled: widget.myLocationEnabled,
+        myLocationButtonEnabled: widget.myLocationButtonEnabled ?? widget.myLocationEnabled,
         zoomControlsEnabled: widget.zoomControlsEnabled,
+        zoomGesturesEnabled: widget.zoomGesturesEnabled,
         compassEnabled: widget.compassEnabled,
+        trafficEnabled: widget.trafficEnabled,
+        indoorViewEnabled: widget.indoorViewEnabled,
+        mapToolbarEnabled: widget.mapToolbarEnabled,
+        minMaxZoomPreference: widget.minMaxZoomPreference,
         padding: widget.padding,
         onTap: widget.onTap,
         onCameraMove: widget.onCameraMove,
+        onCameraMoveStarted: widget.onCameraMoveStarted,
+        onCameraIdle: widget.onCameraIdle,
         onMapCreated: (c) => widget.onMapCreated?.call(VitoMapController.google(c)),
       );
     }
@@ -270,6 +309,12 @@ class _VitoMapState extends State<VitoMap> {
                   final p = ctx.point;
                   widget.onTap!(gmap.LatLng(p.coordinates.lat.toDouble(), p.coordinates.lng.toDouble()));
                 },
+          onCameraChangeListener: (widget.onCameraMove == null && widget.onCameraMoveStarted == null)
+              ? null
+              : (_) => _emitMapboxCameraMove(),
+          onMapIdleListener: (widget.onCameraIdle == null && widget.onCameraMoveStarted == null)
+              ? null
+              : (_) => _onMapboxIdle(),
         ),
         if (widget.myLocationEnabled)
           Positioned(
@@ -285,10 +330,67 @@ class _VitoMapState extends State<VitoMap> {
     );
   }
 
-  // Mapbox camera change callback removed - onCameraMove not supported in this version
-  void _onMapboxCameraChanged(mbx.MapboxMap mapboxMap) {
-    // Camera move callback not available in mapbox_maps_flutter ^2.9
-    // This is a no-op placeholder for future implementation
+  /// Set while the Mapbox camera is between its first change event and the next
+  /// map-idle event; used to synthesize onCameraMoveStarted/onCameraIdle.
+  bool _mapboxCameraMoving = false;
+
+  /// Bridges Mapbox camera changes into the Google-typed [VitoMap.onCameraMove]
+  /// callback so pick-location screens work identically on both providers.
+  Future<void> _emitMapboxCameraMove() async {
+    final map = _mapboxMap;
+    if (map == null) return;
+    if (!_mapboxCameraMoving) {
+      _mapboxCameraMoving = true;
+      widget.onCameraMoveStarted?.call();
+    }
+    final callback = widget.onCameraMove;
+    if (callback == null) return;
+    final state = await map.getCameraState();
+    if (!mounted) return;
+    callback(gmap.CameraPosition(
+      target: gmap.LatLng(state.center.coordinates.lat.toDouble(), state.center.coordinates.lng.toDouble()),
+      zoom: state.zoom,
+      bearing: state.bearing,
+      tilt: state.pitch,
+    ));
+  }
+
+  void _onMapboxIdle() {
+    if (!_mapboxCameraMoving) return;
+    _mapboxCameraMoving = false;
+    widget.onCameraIdle?.call();
+  }
+
+  /// Fallback pin drawn once for markers created without [VitoMarker.iconBytes]
+  /// (Google renders BitmapDescriptor.defaultMarker; Mapbox has no built-in pin,
+  /// so without this those markers would silently not render).
+  static Uint8List? _defaultPinCache;
+
+  static Future<Uint8List> _defaultMarkerBytes() async {
+    final cached = _defaultPinCache;
+    if (cached != null) return cached;
+    const double size = 96;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final paintFill = Paint()..color = const Color(0xFFEA4335);
+    final paintStroke = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
+    // Teardrop pin: circle head + triangle tail, matching the classic map pin.
+    canvas.drawCircle(const Offset(size / 2, size / 2.6), size / 3.2, paintFill);
+    final tail = Path()
+      ..moveTo(size / 2 - size / 5, size / 2.1)
+      ..lineTo(size / 2, size - 6)
+      ..lineTo(size / 2 + size / 5, size / 2.1)
+      ..close();
+    canvas.drawPath(tail, paintFill);
+    canvas.drawCircle(const Offset(size / 2, size / 2.6), size / 3.2, paintStroke);
+    canvas.drawCircle(const Offset(size / 2, size / 2.6), size / 9, Paint()..color = Colors.white);
+    final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+    _defaultPinCache = bytes;
+    return bytes;
   }
 
   Future<void> _onMapboxCreated(mbx.MapboxMap map) async {
@@ -309,10 +411,19 @@ class _VitoMapState extends State<VitoMap> {
     await lm.deleteAll();
 
     for (final m in widget.markers) {
-      if (m.iconBytes == null) continue;
       await pm.create(mbx.PointAnnotationOptions(
         geometry: mbx.Point(coordinates: mbx.Position(m.position.longitude, m.position.latitude)),
-        image: m.iconBytes,
+        image: m.iconBytes ?? await _defaultMarkerBytes(),
+        iconRotate: m.rotation,
+      ));
+    }
+
+    // Legacy google_maps_flutter markers: bytes are unreadable from a
+    // BitmapDescriptor, so render their positions with the default pin.
+    for (final m in widget.googleMarkers) {
+      await pm.create(mbx.PointAnnotationOptions(
+        geometry: mbx.Point(coordinates: mbx.Position(m.position.longitude, m.position.latitude)),
+        image: await _defaultMarkerBytes(),
         iconRotate: m.rotation,
       ));
     }
@@ -333,7 +444,9 @@ class _VitoMapState extends State<VitoMap> {
   void didUpdateWidget(covariant VitoMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_useMapbox && _mapboxMap != null &&
-        (oldWidget.markers != widget.markers || oldWidget.polylines != widget.polylines)) {
+        (oldWidget.markers != widget.markers ||
+            oldWidget.googleMarkers != widget.googleMarkers ||
+            oldWidget.polylines != widget.polylines)) {
       _syncMapboxAnnotations();
     }
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/image_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/loader_widget.dart';
@@ -62,17 +63,15 @@ class _LiveLocationScreenState extends State<LiveLocationScreen> {
           Stack(children: [
             SizedBox(
               height: Get.height * 0.6,
-              child: GoogleMap(
-                style: Get.isDarkMode
+              child: VitoMap(
+                googleStyleJson: Get.isDarkMode
                     ? Get.find<ThemeController>().darkMap
                     : Get.find<ThemeController>().lightMap,
-                initialCameraPosition: CameraPosition(
-                  target: locationTrackingController.currentPosition,
-                  zoom: 16,
-                ),
+                initialTarget: locationTrackingController.currentPosition,
+                initialZoom: 16,
                 polylines: locationTrackingController.polylines,
-                onMapCreated: (controller) => _mapController = controller,
-                markers: locationTrackingController.markers,
+                onMapCreated: (vitoController) => _mapController = vitoController.googleController,
+                googleMarkers: locationTrackingController.markers,
                 zoomControlsEnabled: false,
                 compassEnabled: false,
                 mapToolbarEnabled: false,

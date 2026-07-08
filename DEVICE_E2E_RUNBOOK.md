@@ -146,3 +146,19 @@ tests + referenced-key parity + debug APK. iOS: both apps compile (`build-ios.ym
 
 ## 5. Known non-runnable-in-CI (this runbook covers): camera QR scan, real push delivery,
 on-screen UX/animation/60fps, live multi-party Reverb sync, Stripe 3DS UI.
+
+
+## Addendum: Map provider switch (Google <-> Mapbox)
+
+1. Admin panel -> Business Management -> 3rd Party -> Google Map: set **Map Provider = Mapbox**,
+   paste a Mapbox token (pk.*), save. (Validation requires the token when Mapbox is selected.)
+2. `GET /api/customer/config` and `/api/driver/config` must now return
+   `"map_provider": "mapbox"` and the token.
+3. Re-open any map screen in either app (provider latches per screen mount): tiles must render
+   from Mapbox; pick-location crosshair flow (camera move/idle) must update the address; markers
+   must show (legacy screens show the default pin on Mapbox); route polylines must draw.
+4. Search an address (set destination): suggestions now come from Mapbox Search Box transformed
+   to the Google shape; selecting one must still resolve coordinates.
+5. Switch back to Google and repeat step 3 - behaviour must match pre-switch exactly.
+6. Safety alert + admin trip views still resolve street addresses (reverse geocode goes through
+   the same provider-aware service).

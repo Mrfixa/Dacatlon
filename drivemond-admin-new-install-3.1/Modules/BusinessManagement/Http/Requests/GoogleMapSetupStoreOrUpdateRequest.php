@@ -18,7 +18,9 @@ class GoogleMapSetupStoreOrUpdateRequest extends FormRequest
             'map_api_key' => 'required',
             'map_api_key_server' => 'required',
             'map_provider' => 'nullable|in:google,mapbox',
-            'mapbox_access_token' => 'nullable|string|max:255',
+            // Token is mandatory when Mapbox is the active provider — without it the
+            // backend silently falls back to Google, which would ignore the switch.
+            'mapbox_access_token' => 'required_if:map_provider,mapbox|nullable|string|max:255',
         ];
     }
 

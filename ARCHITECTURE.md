@@ -285,8 +285,14 @@ Identical structure in the customer and driver apps.
   referenced in `lib/` exists — an unmatched key fails CI.
 - **Config-driven UI:** `SplashController.config` (from the backend config endpoint) toggles
   features like `selfRegistration`, map provider, delivery fee, business contact.
-- **Maps:** `lib/common_widgets/vito_map.dart` is provider-agnostic — Google Maps by default,
-  Mapbox when `config.mapProvider == 'mapbox'` (loading/error states, camera callbacks, cleanup).
+- **Maps:** `lib/common_widgets/vito_map.dart` is the provider-agnostic facade **used by every
+  map screen** — Google Maps by default, Mapbox when `config.mapProvider == 'mapbox'`. The
+  provider and Mapbox token come from the backend config at runtime (admin-switchable, no app
+  rebuild; applies on next screen mount). Server-side search/geocoding/routing switch with the
+  same setting via `MapProviderService` (Modules/BusinessManagement/Service) — Mapbox responses
+  are transformed to the Google JSON shapes the apps parse, so the apps are provider-blind for
+  data. Native constraint: the Google branch's Android SDK key stays build-time
+  (`MAPS_API_KEY` manifest placeholder); the Mapbox token is runtime.
 
 **Real-time in the app:** subscribe in the controller method, bind the event, filter on
 `trip_id` / `order_id`, insert into the message/tracking list under `GetBuilder`.
@@ -395,7 +401,7 @@ Driven by `BusinessSetting` rows, surfaced to apps via the config endpoints. Not
 |---------|--------|
 | `driver_self_registration` | Shows/hides the driver Sign-Up → QR entry point |
 | `mart_delivery_fee` | Flat mart delivery fee added to server-computed totals |
-| map provider | Google Maps vs Mapbox in `vito_map.dart` |
+| `map_provider` + `mapbox_access_token` | End-to-end Google↔Mapbox switch (Admin → 3rd Party → Map): app map rendering **and** server-side autocomplete/geocode/matrix/routes (`MapProviderService`); falls back to Google if the token is empty |
 | branding (`header_logo`, `favicon`) | Panel/login/tab logos (fallback to static assets) |
 | business contact | "contact support" links, invoices, emails |
 

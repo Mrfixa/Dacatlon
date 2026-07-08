@@ -9,6 +9,7 @@ import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/address/domain/models/address_model.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 
 class LocationScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class LocationScreen extends StatefulWidget {
 class LocationScreenState extends State<LocationScreen> {
   late LatLng _latLng;
   Set<Marker> _markers = {};
-  GoogleMapController? _mapController;
+  VitoMapController? _vitoController;
 
   @override
   void initState() {
@@ -41,16 +42,17 @@ class LocationScreenState extends State<LocationScreen> {
           body: Center(child: GetBuilder<LocationController>(builder: (locationController) {
             return Stack(children: [
 
-              GoogleMap(
+              VitoMap(
                 minMaxZoomPreference: const MinMaxZoomPreference(0, 15),
-                initialCameraPosition: CameraPosition(target: locationController.initialPosition, zoom: 15),
+                initialTarget: locationController.initialPosition,
+                initialZoom: 15,
                 zoomGesturesEnabled: true,
                 myLocationButtonEnabled: false,
                 zoomControlsEnabled: false,
                 indoorViewEnabled: true,
-                markers:_markers,
-                onMapCreated: (controller) {
-                  _mapController = controller;
+                googleMarkers: _markers,
+                onMapCreated: (vitoController) {
+                  _vitoController = vitoController;
                 },
               ),
 
@@ -58,9 +60,7 @@ class LocationScreenState extends State<LocationScreen> {
                 left: Dimensions.paddingSizeLarge, right: Dimensions.paddingSizeLarge, bottom: Dimensions.paddingSizeLarge,
                 child: InkWell(
                   onTap: () {
-                    if(_mapController != null) {
-                      _mapController!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: _latLng, zoom: 17)));
-                    }
+                    _vitoController?.animateCamera(_latLng, zoom: 17);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),

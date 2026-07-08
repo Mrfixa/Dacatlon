@@ -656,122 +656,20 @@ if (!function_exists('getMainDomain')) {
     }
 }
 if (!function_exists('getRoutes')) {
+    /**
+     * Provider-aware route computation (Google Routes API or Mapbox Directions,
+     * per the admin 3rd-party map setting). Delegates to MapProviderService, which
+     * returns the same normalized two-entry (TWO_WHEELER / DRIVE) response shape
+     * for either provider, so all callers keep working unchanged.
+     */
     function getRoutes(array $originCoordinates, array $destinationCoordinates, array $intermediateCoordinates = [], array $drivingMode = ["DRIVE"]): array
     {
-        $mapApiKey = businessConfig(GOOGLE_MAP_API)?->value['map_api_key_server'] ?? '';
-        $url = "https://routes.googleapis.com/directions/v2:computeRoutes";
-
-        $origin = [
-            "location" => [
-                "latLng" => [
-                    "latitude" => $originCoordinates[0],
-                    "longitude" => $originCoordinates[1]
-                ]
-            ]
-        ];
-
-        $destination = [
-            "location" => [
-                "latLng" => [
-                    "latitude" => $destinationCoordinates[0],
-                    "longitude" => $destinationCoordinates[1]
-                ]
-            ]
-        ];
-
-        // Format waypoints
-        $waypoints = [];
-        if (!empty($intermediateCoordinates) && !is_null($intermediateCoordinates[0][0])) {
-            foreach ($intermediateCoordinates as $wp) {
-                $waypoints[] = [
-                    "location" => [
-                        "latLng" => [
-                            "latitude" => $wp[0],
-                            "longitude" => $wp[1]
-                        ]
-                    ]
-                ];
-            }
-        }
-
-        $data = [
-            "origin" => $origin,
-            "destination" => $destination,
-            "intermediates" => $waypoints,
-            "travelMode" => $drivingMode[0], // DRIVE, TWO_WHEELER, etc.
-            "routingPreference" => "TRAFFIC_AWARE", // Enables traffic-based duration
-            "computeAlternativeRoutes" => false,
-            "languageCode" => "en-US",
-            "units" => "METRIC"
-        ];
-
-
-        // API Headers
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Goog-Api-Key' => $mapApiKey,
-            'X-Goog-FieldMask' => '*'
-        ];
-
-        // Send POST request
-        $response = Http::withHeaders($headers)->post($url, $data);
-
-        if (!isset($response['routes'][0])) {
-            // Fallback to car route
-            $data['travelMode'] = 'DRIVE';
-            $response = Http::withHeaders($headers)->post($url, $data);
-        }
-
-        if ($response->successful()) {
-            $result = $response->json();
-            if (!isset($result['routes'][0])) {
-                return ['error' => 'No route found'];
-            }
-
-            $route = $result['routes'][0];
-            $encoded_polyline = $route['polyline']['encodedPolyline'] ?? null;
-            $distance = $route['distanceMeters'] ?? 0;
-            $duration = $route['duration'] ?? '0s';
-            $durationInTraffic = $route['staticDuration'] ?? $duration; // Fallback to normal duration if no traffic data
-
-            // Convert duration to seconds
-            preg_match('/(\d+)s/i', $duration, $matches);
-            $durationSec = isset($matches[1]) ? (int)$matches[1] : 0;
-
-            // Convert traffic duration to seconds
-            preg_match('/(\d+)s/i', $durationInTraffic, $trafficMatches);
-            $durationInTrafficSec = isset($trafficMatches[1]) ? (int)$trafficMatches[1] : 0;
-
-            $convert_to_bike = 1.2; // Adjustment factor for bike mode
-
-            $responses[0] = [
-                'distance' => (double)number_format(($distance / 1000), 2),
-                'distance_text' => number_format(($distance / 1000), 2) . ' km',
-                'duration' => number_format((($durationSec / 60) / $convert_to_bike), 2) . ' min',
-                'duration_sec' => (int)($durationSec / $convert_to_bike),
-                'duration_in_traffic' => number_format((($durationInTrafficSec / 60) / $convert_to_bike), 2) . ' min',
-                'duration_in_traffic_sec' => (int)($durationInTrafficSec / $convert_to_bike),
-                'status' => "OK",
-                'drive_mode' => 'TWO_WHEELER',
-                'encoded_polyline' => $encoded_polyline,
-            ];
-
-            $responses[1] = [
-                'distance' => (double)number_format(($distance / 1000), 2),
-                'distance_text' => number_format(($distance / 1000), 2) . ' km',
-                'duration' => number_format(($durationSec / 60), 2) . ' min',
-                'duration_sec' => $durationSec,
-                'duration_in_traffic' => number_format(($durationInTrafficSec / 60), 2) . ' min',
-                'duration_in_traffic_sec' => $durationInTrafficSec,
-                'status' => "OK",
-                'drive_mode' => 'DRIVE',
-                'encoded_polyline' => $encoded_polyline,
-            ];
-
-            return $responses;
-        } else {
-            return ['error' => 'API request failed', 'status' => $response->status(), 'details' => $response];
-        }
+        return app(\Modules\BusinessManagement\Service\MapProviderService::class)->routes(
+            originCoordinates: $originCoordinates,
+            destinationCoordinates: $destinationCoordinates,
+            intermediateCoordinates: $intermediateCoordinates,
+            drivingMode: $drivingMode,
+        );
     }
 }
 if (!function_exists('onErrorImage')) {

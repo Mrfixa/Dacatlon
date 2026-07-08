@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/common_widgets/body_widget.dart';
 import 'package:ride_sharing_user_app/common_widgets/expandable_bottom_sheet.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
@@ -49,23 +50,23 @@ class ScheduleTripMapView extends StatelessWidget {
                 persistentContentHeight: 200,
                 background:  Padding(
                   padding:  EdgeInsets.only(bottom: 150),
-                  child: GoogleMap(
-                    style: Get.isDarkMode ?
+                  child: VitoMap(
+                    googleStyleJson: Get.isDarkMode ?
                     Get.find<ThemeController>().darkMap : Get.find<ThemeController>().lightMap,
-                    initialCameraPosition:  CameraPosition(
-                      target: Get.find<LocationController>().initialPosition,
-                      zoom: 16,
-                    ),
-                    onMapCreated: (GoogleMapController controller) {
-                      rideMapController.mapController = controller;
+                    initialTarget: Get.find<LocationController>().initialPosition,
+                    initialZoom: 16,
+                    onMapCreated: (VitoMapController vitoController) {
+                      final controller = vitoController.googleController;
+                      if (controller != null) {
+                        rideMapController.mapController = controller;
+                      }
                       rideMapController.getPolyline();
                     },
                     minMaxZoomPreference: const MinMaxZoomPreference(0, AppConstants.mapZoom),
-                    markers: Set<Marker>.of(rideMapController.markers),
+                    googleMarkers: Set<Marker>.of(rideMapController.markers),
                     polylines: Set<Polyline>.of(rideMapController.polylines.values),
                     zoomControlsEnabled: false,
                     compassEnabled: false,
-                    // trafficEnabled: mapController.isTrafficEnable,
                     indoorViewEnabled: true,
                     mapToolbarEnabled: true,
                   ),

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:ride_sharing_user_app/common_widgets/expandable_bottom_sheet.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/map/widget/custom_icon_card.dart';
 import 'package:ride_sharing_user_app/features/map/widget/discount_coupon_bottomsheet.dart';
 import 'package:ride_sharing_user_app/features/safety_setup/controllers/safety_alert_controller.dart';
@@ -103,21 +104,23 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                       return Stack(children: [
                         Padding(
                           padding: EdgeInsets.only(bottom: mapController.sheetHeight - 20),
-                          child: GoogleMap(
-                              style: Get.isDarkMode ?
+                          child: VitoMap(
+                              googleStyleJson: Get.isDarkMode ?
                               Get.find<ThemeController>().darkMap : Get.find<ThemeController>().lightMap,
-                              initialCameraPosition:  CameraPosition(
-                                target: () {
+                              initialTarget: () {
                                   final coords = rideController.tripDetails?.pickupCoordinates?.coordinates;
                                   if (coords != null && coords.length >= 2) {
                                     return LatLng(coords[1], coords[0]);
                                   }
                                   return Get.find<LocationController>().initialPosition;
                                 }(),
-                                zoom: 16,
-                              ),
-                              onMapCreated: (GoogleMapController controller) {
-                                mapController.mapController = controller;
+                              initialZoom: 16,
+                              onMapCreated: (VitoMapController vitoController) {
+                                final controller = vitoController.googleController;
+                                if (controller != null) {
+                                  mapController.mapController = controller;
+                                  _mapController = controller;
+                                }
                                 if(
                                 rideController.currentRideState.name == AppConstants.findingRider ||
                                     rideController.currentRideState.name == AppConstants.riseFare
@@ -138,10 +141,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                                   mapController.setMarkersInitialPosition();
                                   rideController.startLocationRecord();
                                 }
-                                _mapController = controller;
                               },
                               minMaxZoomPreference: const MinMaxZoomPreference(0, AppConstants.mapZoom),
-                              markers: Set<Marker>.of(mapController.markers),
+                              googleMarkers: Set<Marker>.of(mapController.markers),
                               polylines: Set<Polyline>.of(mapController.polylines.values),
                               zoomControlsEnabled: false,
                               compassEnabled: false,

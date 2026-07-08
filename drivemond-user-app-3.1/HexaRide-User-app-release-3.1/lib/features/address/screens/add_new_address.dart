@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ride_sharing_user_app/common_widgets/custom_text_field.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/address/screens/search_and_pick_location_screen.dart';
 import 'package:ride_sharing_user_app/features/location/view/pick_map_screen.dart';
 import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
@@ -90,15 +91,17 @@ class _AddNewAddressState extends State<AddNewAddress> {
                           topLeft: Radius.circular(Dimensions.paddingSizeExtraLarge),
                           topRight: Radius.circular(Dimensions.paddingSizeExtraLarge),
                         ),
-                        child: SizedBox(height: 170, width: Get.width, child: GoogleMap(
-                            initialCameraPosition:  CameraPosition(
-                              target: widget.address != null ?
+                        child: SizedBox(height: 170, width: Get.width, child: VitoMap(
+                            initialTarget: widget.address != null ?
                               LatLng(widget.address?.latitude ?? 0.0, widget.address?.longitude ?? 0.0) :
-                              locationController.initialPosition, zoom: 16,
-                            ),
-                            onMapCreated: (GoogleMapController controller) {
-                              _mapController = controller;
-                              locationController.mapController = controller;
+                              locationController.initialPosition,
+                            initialZoom: 16,
+                            onMapCreated: (VitoMapController vitoController) {
+                              final controller = vitoController.googleController;
+                              if (controller != null) {
+                                _mapController = controller;
+                                locationController.mapController = controller;
+                              }
                             },
                             onCameraIdle: () {
                               if(_cameraPosition != null) {
@@ -113,7 +116,7 @@ class _AddNewAddressState extends State<AddNewAddress> {
                             compassEnabled: false,
                             indoorViewEnabled: true,
                             mapToolbarEnabled: true,
-                            style:
+                            googleStyleJson:
                             Get.isDarkMode ? Get.find<ThemeController>().darkMap : Get.find<ThemeController>().lightMap
                         )),
                       ),

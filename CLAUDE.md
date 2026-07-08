@@ -339,9 +339,19 @@ platform :ios, '12.0'
 ```
 
 ### VitoMap Widget
-The `lib/common_widgets/vito_map.dart` widget provides a provider-agnostic map interface:
+The `lib/common_widgets/vito_map.dart` widget provides a provider-agnostic map interface and is
+used by **every** map screen in both apps (no raw `GoogleMap(` outside the facade — keep it that
+way when adding screens):
 - **Google Maps** (default): Standard `google_maps_flutter` widget
-- **Mapbox**: Uses `mapbox_maps_flutter` when `config.mapProvider == 'mapbox'`
+- **Mapbox**: Uses `mapbox_maps_flutter` when `config.mapProvider == 'mapbox'` (admin-switchable
+  at runtime from 3rd Party settings; token comes from config, `MAPBOX_ACCESS_TOKEN` dart-define
+  is only a fallback). Server-side place autocomplete/details, reverse geocode, distance matrix
+  and routes also switch with the same setting via
+  `Modules/BusinessManagement/Service/MapProviderService`, which transforms Mapbox responses to
+  the Google JSON shapes the apps parse (pure transforms unit-tested in
+  `tests/Unit/MapProviderTransformTest.php`). Legacy screens pass google `Marker` sets via the
+  `googleMarkers` param (rendered as default pins on Mapbox); prefer `markers` (`VitoMarker` with
+  `iconBytes`) in new code.
 
 Features:
 - Loading indicator during map initialization

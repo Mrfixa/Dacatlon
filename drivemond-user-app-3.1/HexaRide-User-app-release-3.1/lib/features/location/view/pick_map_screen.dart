@@ -13,6 +13,7 @@ import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/features/address/domain/models/address_model.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 
 class PickMapScreen extends StatefulWidget {
   final LocationType type;
@@ -47,18 +48,17 @@ class _PickMapScreenState extends State<PickMapScreen> {
       body: SafeArea(child: Center(
         child: GetBuilder<LocationController>(builder: (locationController) {
           return Stack(children: [
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: widget.address != null ?
+            VitoMap(
+              initialTarget: widget.address != null ?
                 LatLng(widget.address?.latitude ?? 0, widget.address?.longitude ?? 0) :
                 widget.onLocationPicked != null ?
                 LatLng(locationController.position.latitude, locationController.position.longitude) :
-                locationController.initialPosition, zoom: 16,
-              ),
+                locationController.initialPosition,
+              initialZoom: 16,
               minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
-              onMapCreated: (GoogleMapController mapController) {
+              onMapCreated: (VitoMapController vitoController) {
                 Future.delayed(const Duration(milliseconds: 1000)).then((value) {
-                  _mapController = mapController;
+                  _mapController = vitoController.googleController;
                     Get.find<LocationController>().updatePosition(
                       _cameraPosition?.target ?? (widget.address != null ?
                       LatLng(widget.address?.latitude ?? 0, widget.address?.longitude ?? 0) :
@@ -85,7 +85,7 @@ class _PickMapScreenState extends State<PickMapScreen> {
                   }
                 }
               },
-              style: Get.isDarkMode ?
+              googleStyleJson: Get.isDarkMode ?
               Get.find<ThemeController>().darkMap :
               Get.find<ThemeController>().lightMap,
             ),
@@ -100,7 +100,7 @@ class _PickMapScreenState extends State<PickMapScreen> {
               top: Dimensions.paddingSizeLarge, left: Dimensions.paddingSizeSmall,
               right: Dimensions.paddingSizeSmall,
               child: InkWell(
-                onTap: () => Get.dialog(LocationSearchDialog(mapController: _mapController!, type: widget.type)),
+                onTap: () => Get.dialog(LocationSearchDialog(mapController: _mapController, type: widget.type)),
                 child: Container(
                   height: 50,
                   padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),

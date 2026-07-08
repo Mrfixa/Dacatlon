@@ -57,7 +57,7 @@
                                         <option value="google" {{ ($setting['map_provider'] ?? 'google') === 'google' ? 'selected' : '' }}>{{translate('Google Maps')}}</option>
                                         <option value="mapbox" {{ ($setting['map_provider'] ?? 'google') === 'mapbox' ? 'selected' : '' }}>{{translate('Mapbox')}}</option>
                                     </select>
-                                    <small class="text-muted">{{translate('Apps render Google Maps by default; switch to Mapbox once the apps are built with the Mapbox SDK')}}</small>
+                                    <small class="text-muted">{{translate('Applies end to end: map rendering in both apps plus server-side search, geocoding and routing. Changes take effect on the next app screen open - no rebuild needed.')}}</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -66,6 +66,7 @@
                                     <input type="text" name="mapbox_access_token"
                                            value="{{$setting['mapbox_access_token']??''}}" class="form-control"
                                            id="mapbox_access_token" placeholder="pk.xxxxxx">
+                                    <small class="text-muted">{{translate('Required when Mapbox is selected. One token powers map tiles, search and routing.')}}</small>
                                 </div>
                             </div>
                         </div>
@@ -73,6 +74,22 @@
                         <div class="d-flex justify-content-end">
                             <button type="{{ env('APP_MODE') != 'demo' ? 'submit' : 'button' }}" class="btn btn-primary call-demo" tabindex="3">{{translate('save')}}</button>
                         </div>
+
+                        <script>
+                            (function () {
+                                var providerSelect = document.getElementById('map_provider');
+                                var tokenInput = document.getElementById('mapbox_access_token');
+                                function syncMapboxTokenRequired() {
+                                    if (providerSelect.value === 'mapbox') {
+                                        tokenInput.setAttribute('required', 'required');
+                                    } else {
+                                        tokenInput.removeAttribute('required');
+                                    }
+                                }
+                                providerSelect.addEventListener('change', syncMapboxTokenRequired);
+                                syncMapboxTokenRequired();
+                            })();
+                        </script>
                     </form>
                 </div>
             </div>
