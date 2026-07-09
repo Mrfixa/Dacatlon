@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
@@ -131,6 +132,21 @@ class VitoMapController {
         pitch: tilt,
       ));
     }
+  }
+
+
+  /// Captures the current map viewport as a PNG (used for the ride summary
+  /// snapshot). Google maps this to takeSnapshot(); Mapbox to snapshot().
+  Future<Uint8List?> takeSnapshot() async {
+    if (_google != null) return _google!.takeSnapshot();
+    if (_mapbox != null) {
+      try {
+        return await _mapbox!.snapshot();
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
   }
 
   Future<void> fitBounds(gmap.LatLngBounds bounds, {double padding = 50}) async {
