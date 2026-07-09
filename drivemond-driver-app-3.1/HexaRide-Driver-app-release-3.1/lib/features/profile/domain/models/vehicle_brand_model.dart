@@ -67,7 +67,7 @@ class Brand {
     name = json['name'];
     description = json['description'];
     image = json['image'];
-    isActive = json['is_active'] ? 1 : 0;
+    isActive = _toActiveFlag(json['is_active']);
     if (json['vehicle_models'] != null) {
       vehicleModels = <VehicleModels>[];
       json['vehicle_models'].forEach((v) {
@@ -126,7 +126,7 @@ class VehicleModels {
     engine = json['engine'];
     description = json['description'];
     image = json['image'];
-    isActive = json['is_active'] ? 1: 0;
+    isActive = _toActiveFlag(json['is_active']);
     createdAt = json['created_at'];
   }
 
@@ -144,4 +144,13 @@ class VehicleModels {
     data['created_at'] = createdAt;
     return data;
   }
+}
+
+/// Tolerant cast for the server's `is_active` flag: accepts bool, int, or
+/// numeric string. One malformed row must not blank the whole brand list.
+int _toActiveFlag(dynamic value) {
+  if (value is bool) return value ? 1 : 0;
+  if (value is num) return value != 0 ? 1 : 0;
+  if (value is String) return (int.tryParse(value) ?? 0) != 0 ? 1 : 0;
+  return 0;
 }

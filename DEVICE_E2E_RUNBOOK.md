@@ -156,7 +156,12 @@ on-screen UX/animation/60fps, live multi-party Reverb sync, Stripe 3DS UI.
    `"map_provider": "mapbox"` and the token.
 3. Re-open any map screen in either app (provider latches per screen mount): tiles must render
    from Mapbox; pick-location crosshair flow (camera move/idle) must update the address; markers
-   must show (legacy screens show the default pin on Mapbox); route polylines must draw.
+   must show (legacy screens show colour-coded default pins on Mapbox: blue=driver, green=pickup,
+   red=destination, teal=my location); route polylines must draw.
+   Wave-14 additions to verify on Mapbox: ride map auto-frames pickup->destination and follows the
+   car; add-address "pick on map" and search-and-pick apply the chosen location without error;
+   my-location/recenter buttons move the camera; driver out-of-zone screen shows the shaded zone
+   and fits it on open; markers don't flicker during live tracking.
 4. Search an address (set destination): suggestions now come from Mapbox Search Box transformed
    to the Google shape; selecting one must still resolve coordinates.
 5. Switch back to Google and repeat step 3 - behaviour must match pre-switch exactly.

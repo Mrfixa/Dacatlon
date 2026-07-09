@@ -11,6 +11,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/splash_controller.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
@@ -46,7 +47,7 @@ class RiderMapController extends GetxController implements GetxService {
   Set<Polyline> polylines = {};
   List<LatLng> polylineCoordinateList = [];
 
-  GoogleMapController? mapController;
+  VitoMapController? mapController;
 
 
 
@@ -123,8 +124,8 @@ class RiderMapController extends GetxController implements GetxService {
     _checkIsRideAccept = !_checkIsRideAccept;
   }
 
-  void setMapController(GoogleMapController mapController) {
-    mapController = mapController;
+  void setMapController(VitoMapController controller) {
+    mapController = controller;
   }
 
 
@@ -289,23 +290,21 @@ class RiderMapController extends GetxController implements GetxService {
 
 
     try {
-      LatLngBounds? bounds;
       if(mapController != null) {
+        LatLngBounds bounds;
         if (from.latitude < to.latitude) {
           bounds = LatLngBounds(southwest: from, northeast: to);
         }else {
           bounds = LatLngBounds(southwest: to, northeast: from);
         }
+        LatLng centerBounds = LatLng(
+          (bounds.northeast.latitude + bounds.southwest.latitude)/2,
+          (bounds.northeast.longitude + bounds.southwest.longitude)/2,
+        );
+        double bearing = Geolocator.bearingBetween(from.latitude, from.longitude, to.latitude, to.longitude);
+        mapController!.moveCamera(centerBounds, zoom: 16, bearing: bearing);
+        setMapPosition(mapController, bounds, centerBounds, bearing, padding: 0.5);
       }
-      LatLng centerBounds = LatLng(
-        (bounds!.northeast.latitude + bounds.southwest.latitude)/2,
-        (bounds.northeast.longitude + bounds.southwest.longitude)/2,
-      );
-      double bearing = Geolocator.bearingBetween(from.latitude, from.longitude, to.latitude, to.longitude);
-      mapController!.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        bearing: bearing, target: centerBounds, zoom: 16,
-      )));
-      setMapPosition(mapController, bounds, centerBounds, bearing, padding: 0.5);
     }catch(e) {
       // debugPrint('jhkygutyv' + e.toString());
     }
@@ -372,34 +371,30 @@ class RiderMapController extends GetxController implements GetxService {
     return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
   }
 
-  Future<void> setMapPosition(GoogleMapController? controller, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.5}) async {
+  Future<void> setMapPosition(VitoMapController? controller, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.5}) async {
 
-    controller?.moveCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: _initialPosition, zoom: AppConstants.mapZoom),
-    ));
+    controller?.moveCamera(_initialPosition, zoom: AppConstants.mapZoom);
     update();
   }
 
 
   void boundMapScreen(LatLng startingPoint , LatLng endingPoint){
     try {
-      LatLngBounds? bounds;
       if(mapController != null) {
+        LatLngBounds bounds;
         if (startingPoint.latitude < endingPoint.latitude) {
           bounds = LatLngBounds(southwest: startingPoint, northeast: endingPoint);
         }else {
           bounds = LatLngBounds(southwest: endingPoint, northeast: startingPoint);
         }
+        LatLng centerBounds = LatLng(
+          (bounds.northeast.latitude + bounds.southwest.latitude)/2,
+          (bounds.northeast.longitude + bounds.southwest.longitude)/2,
+        );
+        double bearing = Geolocator.bearingBetween(startingPoint.latitude, startingPoint.longitude, endingPoint.latitude, endingPoint.longitude);
+        mapController!.moveCamera(centerBounds, zoom: 16, bearing: bearing);
+        setMapPosition(mapController, bounds, centerBounds, bearing, padding: 0.5);
       }
-      LatLng centerBounds = LatLng(
-        (bounds!.northeast.latitude + bounds.southwest.latitude)/2,
-        (bounds.northeast.longitude + bounds.southwest.longitude)/2,
-      );
-      double bearing = Geolocator.bearingBetween(startingPoint.latitude, startingPoint.longitude, endingPoint.latitude, endingPoint.longitude);
-      mapController!.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        bearing: bearing, target: centerBounds, zoom: 16,
-      )));
-      setMapPosition(mapController, bounds, centerBounds, bearing, padding: 0.5);
     }catch(e) {
       // debugPrint('jhkygutyv' + e.toString());
     }

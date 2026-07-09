@@ -1094,3 +1094,15 @@ Wave 5 + Wave 6 reconciliation. Several findings still listed as "open critical/
 **Note for future sessions:** the remaining Medium/Low items in the body (M1–M28, etc.) were *not*
 all re-verified this cycle — several are design decisions (e.g. M1/M2 env-config). Check the actual
 source before "fixing" any item; this doc is historical, not a live open-issues list.
+
+## Wave 14 (2026-07-09) — post-v3.5 UX/flow sweep
+
+New findings on the v3.3–v3.5 surface, all fixed (or verified) — full detail lives in
+`AUDIT_TRACKER.md` Wave 14: **X1** idempotency key rotated on transport failure (duplicate-order
+money bug), **X5** cancel affordance on terminal orders, **X6** untranslated promo errors,
+**X7** trip search covers loaded pages only (hint added), and the Mapbox-mode series **MB1–MB3**
+(null `googleController` crashes/dead camera ops in add-address, search-and-pick, pick-map,
+home map, schedule trip, live tracking; identical red pins; per-rebuild annotation thrash).
+Verified clean: mart cart/promo/order flow, cancel gating, tracking lifecycle, logout hygiene,
+EN/ES parity, Google-provider path.
+

@@ -1183,6 +1183,7 @@
   "featured_products": "Productos destacados",
   "popular_products": "Productos populares",
   "all_products": "Todos los productos",
+  "search_loaded_trips_hint": "Busca en los viajes cargados hasta ahora \u2014 despl\u00e1zate para cargar m\u00e1s",
   "search_trips": "Buscar viajes",
   "select_on_map": "Seleccionar en el mapa",
   "saved_addresses": "Direcciones guardadas",

@@ -112,6 +112,35 @@ real remaining defects.
 | R14 | Low (perf) | Backend / trips | `trip_requests` shipped with zero indexes (bare `foreignUuid`, no `constrained()`): added guarded `(current_status, zone_id)` + `customer_id` + `driver_id` indexes. Release builds now ship `--obfuscate --split-debug-info` (APK + IPA) with symbols kept as 90-day CI artifacts. | fixed | `22a46ee` |
 | R15 | — | Product decisions (owner-confirmed 2026-07-05) | Gojek-template items intentionally absent: **stock reservation** (G6 "always available" stands), **Bloc/Riverpod** (GetX mandated by CLAUDE.md), **certificate pinning** (cert-rotation brick risk vs. Let's Encrypt host), **fastlane** (Actions already builds/signs/releases). **Sentry-in-apps dropped on verification**: both apps already route framework/dispatcher/zone errors to Firebase **Crashlytics** (`main.dart`) — adding sentry_flutter would double-report; backend Sentry remains (set `SENTRY_LARAVEL_DSN`). | accepted | — |
 
+## Wave 14 — end-to-end UX/flow audit of the v3.3-v3.5 surface (X/MB-series)
+
+Full UX + flow audit of both apps covering everything shipped since Wave 13 (VitoMap migration,
+mart controller refactor, vehicle searchable dropdowns, trip search). Fix commit: see the
+"wave 14" commit on this branch.
+
+| ID | Severity | Area | Finding | Status |
+|----|----------|------|---------|--------|
+| X1 | **High (money)** | User app / mart | `createOrder` rotated the idempotency key on **every** failure, incl. transport timeouts where the order may have reached the server -> retry = duplicate order/double charge. Now the key is kept on transport (status 0/1) and 5xx failures and on 2xx-without-order-id (backend replays the cached 2xx, dedup holds); only a definitive 4xx or success rotates. Unit-tested (4 cases). | fixed |
+| X2 | Medium | Driver app / mart | Pending-orders 15s auto-refresh (`getPendingOrders(notify:false)`) replaced the list but never called `update()` -> new orders invisible until pull-to-refresh. `notify` now only suppresses the spinner; the UI always rebuilds after fresh data. Same fix in `getMyOrders`. | fixed |
+| X3 | Medium | Driver app / vehicle form | Brand with null `vehicle_models` threw (force-unwrap); empty list left a required model field with only "no_match_found" -> registration dead end. Null-guarded + the screen now shows a localized hint pointing at the "Other" brand when a brand has no models. | fixed |
+| X4 | Medium | Driver app / vehicle form | Typing an exact brand/model/category name without tapping the suggestion row left the placeholder selected ("Toyota" visible, "select vehicle brand" error). `SearchableDropdownField` now commits an exact (case-insensitive) text match on submit/tap-outside; redundant re-commits guarded so a re-focused brand field can't wipe a chosen model. Unit-tested. | fixed |
+| X5 | Low | User app / mart | Disabled "Cancel order" + "in transit" copy rendered even on delivered/cancelled orders; now hidden on terminal statuses. | fixed |
+| X6 | Low | User app / mart | Unknown backend promo errors surfaced as raw English strings on ES devices; fallback is now the localized generic error. | fixed |
+| X7 | Low | User app / trips | Search filters only loaded pages; a helper text now says so while a query is active (server-side search is a backend feature gap, not retrofitted). | fixed |
+| X8 | Low | Driver app / status | `profileOnlineOffline(bool value)` ignored its argument and blind-toggled off local state; the backend endpoint is itself a toggle, so a stale tap could flip the driver the wrong way. Now a no-op when local state already matches the requested target. | fixed |
+| X9 | Low | Driver app / mart | Same Idempotency-Key header on proof-upload and delivered-status calls: **verified benign** - backend `IdempotencyKey` middleware scopes the cache to key+user+**path**, so different endpoints never collide. | accepted |
+| X10 | Low | Driver app / vehicle models | `json['is_active'] ? 1 : 0` threw on int/null; one malformed row blanked the whole brand list. Tolerant cast (`bool`/`num`/string). Unit-tested. | fixed |
+| MB1 | High (Mapbox mode) | Both apps / maps | Screens/controllers grabbed `vitoController.googleController` (null on Mapbox): crashes in add-address & search-and-pick (`mapController!.moveCamera`), swallowed `bounds!` throw in driver ride map, `getVisibleRegion` on null in out-of-zone; route auto-fit/recenter/driver-follow silently dead across ~12 sites. All camera plumbing now typed `VitoMapController` (unified `animateCamera`/`moveCamera`/`animateToLatLng`/`fitBounds`); `zoomToFit` keeps the legacy Google loop verbatim and uses `fitBounds` on Mapbox. Also fixed a vendor self-assignment bug (`setMapController` never set the field, driver) and dead `_controller` camera-follow (driver map screen). | fixed |
+| MB2 | High (Mapbox mode) | Both apps / maps | Every legacy `googleMarkers` marker rendered as the same generic red pin on Mapbox -> pickup/destination/driver indistinguishable. Default pins are now colour-differentiated by marker id vocabulary (driver/rider/car = blue, from/pickup/home = green, my_location = teal, destination/other = red). | fixed |
+| MB3 | Medium (Mapbox mode) | Both apps / maps | `didUpdateWidget` compared fresh `Set` instances (always !=) -> deleteAll+recreate of all Mapbox annotations on every GetBuilder rebuild (flicker, racing syncs). Now a cheap change-signature dirty-check plus a serialize-latch around annotation syncs. | fixed |
+| MB4 | Medium (Mapbox mode) | Both apps / maps | `googlePolygons` (zone shading) not rendered on Mapbox -> driver out-of-zone screen lost the shaded zone. Polygons are now mirrored as Mapbox polygon annotations (fill + outline, alpha via fillOpacity). | fixed |
+
+**Verified clean this wave (no change needed):** mart cart/promo/order flow (M15/M16 fixes hold:
+promo cleared on every cart mutation, cart preserved on failed order), cancel gating matches
+`STATUS_TRANSITIONS`, tracking-screen disposal (timer/connectivity/Pusher), logout cart clear,
+driver delivery proof offline persistence/restore, EN/ES i18n exact parity in both apps, Google
+(default) provider path regression-free, auth journeys (token gate -> QR -> signup -> OTP) intact.
+
 ## Accepted (reviewed, intentionally not changed)
 
 | ID | Severity | Area | Finding & rationale | Status |

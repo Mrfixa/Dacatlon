@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/location/domain/models/place_details_model.dart';
 import 'package:ride_sharing_user_app/features/location/domain/models/prediction_model.dart';
 import 'package:ride_sharing_user_app/features/location/domain/models/zone_response.dart';
@@ -42,7 +43,7 @@ class LocationController extends GetxController implements GetxService {
   String? _zoneID;
   bool _buttonDisabled = true;
   bool _changeAddress = true;
-  GoogleMapController? mapController;
+  VitoMapController? mapController;
   PredictionModel? _predictionList;
   bool _updateAddAddressData = true;
   LatLng _initialPosition = const LatLng(23.83721, 90.363715);
@@ -158,7 +159,7 @@ class LocationController extends GetxController implements GetxService {
     super.onClose();
   }
 
-  Future<Address?> getCurrentLocation({bool isAnimate = true, GoogleMapController? mapController, LocationType type = LocationType.from}) async {
+  Future<Address?> getCurrentLocation({bool isAnimate = true, VitoMapController? mapController, LocationType type = LocationType.from}) async {
     bool isSuccess = await checkPermission(() {});
     Address? addressModel;
     if(isSuccess) {
@@ -173,7 +174,7 @@ class LocationController extends GetxController implements GetxService {
         _position = newLocalData;
         _initialPosition = LatLng(_position.latitude, _position.longitude);
         if(isAnimate && mapController != null) {
-          mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: _initialPosition, zoom: 15)));
+          mapController.animateCamera(_initialPosition, zoom: 15);
         }
         if(type == LocationType.from){
           _pickPosition = Position(
@@ -202,9 +203,7 @@ class LocationController extends GetxController implements GetxService {
         }
       }
       if (mapController != null) {
-        mapController.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: LatLng(_initialPosition.latitude, _initialPosition.longitude), zoom: 16),
-        ));
+        mapController.animateCamera(LatLng(_initialPosition.latitude, _initialPosition.longitude), zoom: 16);
       }
 
       update();
@@ -214,7 +213,7 @@ class LocationController extends GetxController implements GetxService {
 
 
 
-  Future<LatLng?> getCurrentPosition({GoogleMapController? mapController}) async {
+  Future<LatLng?> getCurrentPosition({VitoMapController? mapController}) async {
     bool isSuccess = await checkPermission(() {});
     LatLng? latLng;
     if(isSuccess) {
@@ -228,9 +227,7 @@ class LocationController extends GetxController implements GetxService {
       }
 
       if (mapController != null && latLng != null) {
-        mapController.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: LatLng(latLng.latitude, latLng.longitude), zoom: 16),
-        ));
+        mapController.animateCamera(LatLng(latLng.latitude, latLng.longitude), zoom: 16);
       }
 
       update();
@@ -470,7 +467,7 @@ class LocationController extends GetxController implements GetxService {
 
 
   bool selecting = false;
-  Future<Address?> setLocation(String placeID, String address, GoogleMapController? mapController, {LocationType type = LocationType.from, bool fromSearch = false}) async {
+  Future<Address?> setLocation(String placeID, String address, VitoMapController? mapController, {LocationType type = LocationType.from, bool fromSearch = false}) async {
     _loading = true;
     resultShow = false;
     selecting = true;
@@ -509,7 +506,7 @@ class LocationController extends GetxController implements GetxService {
 
         _changeAddress = false;
         if(mapController != null) {
-          mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: latLng, zoom: 16)));
+          mapController.animateCamera(latLng, zoom: 16);
         }
         selecting = false;
         _loading = false;

@@ -1130,6 +1130,7 @@
   "search_vehicle_brand": "Search vehicle brand",
   "search_vehicle_model": "Search vehicle model",
   "search_vehicle_category": "Search vehicle category",
+  "no_models_for_this_brand": "No models available for this brand \u2014 please select the \"Other\" brand instead",
   "no_match_found": "No match found",
   "forgot_pin": "Forgot PIN?",
   "forgot_pin_hint": "Enter your username and we'll send a one-time code to the phone number on your account.",

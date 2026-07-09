@@ -23,7 +23,7 @@ class LiveLocationScreen extends StatefulWidget {
 }
 
 class _LiveLocationScreenState extends State<LiveLocationScreen> {
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   Timer? _timer;
   String? trackingId;
   int _consecutiveFailures = 0;
@@ -64,7 +64,7 @@ class _LiveLocationScreenState extends State<LiveLocationScreen> {
     final last = _lastCameraPosition;
     if (last == null || last.latitude != newPos.latitude || last.longitude != newPos.longitude) {
       _lastCameraPosition = newPos;
-      _mapController!.animateCamera(CameraUpdate.newLatLng(newPos));
+      _mapController!.animateToLatLng(newPos);
     }
   }
 
@@ -121,7 +121,7 @@ class _LiveLocationScreenState extends State<LiveLocationScreen> {
               initialTarget: locationTrackingController.currentPosition,
               initialZoom: 16,
               polylines: locationTrackingController.polylines,
-              onMapCreated: (vitoController) => _mapController = vitoController.googleController,
+              onMapCreated: (vitoController) => _mapController = vitoController,
               googleMarkers: locationTrackingController.markers,
               zoomControlsEnabled: false,
               compassEnabled: false,

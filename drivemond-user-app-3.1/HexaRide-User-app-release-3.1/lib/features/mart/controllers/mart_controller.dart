@@ -410,8 +410,9 @@ class MartController extends GetxController implements GetxService {
       final data = response.body['data'];
       final orderId = (data?['id'] ?? data?['order_id'] ?? '').toString();
       if (orderId.isEmpty) {
-        // Rotate the key so a retry is a new request.
-        _orderIdempotencyKey = OfflineQueue.generateIdempotencyKey();
+        // 2xx without an order id: the server most likely DID create the order but
+        // the response shape was unexpected. Keep the key so a retry dedups on the
+        // backend instead of creating a second order.
         return (success: false, orderId: null, serverTotal: 0.0, error: 'invalid_order_response'.tr);
       }
       // FIX 1: extract the backend-computed total so callers never use a client-computed value.
@@ -421,8 +422,16 @@ class MartController extends GetxController implements GetxService {
       return (success: true, orderId: orderId, serverTotal: serverTotal, error: null);
     }
 
-    // Rotate the key on failure so a retry is not treated as a duplicate.
-    _orderIdempotencyKey = OfflineQueue.generateIdempotencyKey();
+    // Rotate the key only on a definitive server-side rejection (4xx): the order
+    // was not created, so the next attempt is a genuinely new request. On transport
+    // failures (statusCode 0/1 — timeout, no connectivity) or 5xx the order may have
+    // reached the server, so the SAME key must be reused: the backend idempotency
+    // middleware then returns the original result instead of creating a duplicate
+    // order and double-charging the customer.
+    final code = response.statusCode ?? 0;
+    if (code >= 400 && code < 500) {
+      _orderIdempotencyKey = OfflineQueue.generateIdempotencyKey();
+    }
 
     // Extract error message
     String? errorMsg;
@@ -472,7 +481,9 @@ class MartController extends GetxController implements GetxService {
       } else if (msg != null && msg.contains('minimum')) {
         showCustomSnackBar('promo_min_spend'.tr);
       } else {
-        showCustomSnackBar(msg ?? 'promo_invalid'.tr);
+        // Unknown backend message: show the localized generic error rather than
+        // the raw (English) server string on a Spanish device.
+        showCustomSnackBar('promo_invalid'.tr);
       }
     }
     update();

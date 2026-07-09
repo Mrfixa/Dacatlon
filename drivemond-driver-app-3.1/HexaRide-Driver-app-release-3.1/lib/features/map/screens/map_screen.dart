@@ -41,7 +41,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
   static const double _defaultBearing = 192.83;
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   GlobalKey<ExpandableBottomSheetState> key = GlobalKey<ExpandableBottomSheetState>();
   @override
   void initState() {
@@ -84,7 +84,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
 
   StreamSubscription? _locationSubscription;
   Marker? marker;
-  GoogleMapController? _controller;
 
   Future<Uint8List> getMarker() async {
     ByteData byteData = await DefaultAssetBundle.of(context).load(Images.carTop);
@@ -116,12 +115,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
       }
 
       _locationSubscription = Geolocator.getPositionStream().listen((newLocalData) {
-        if (_controller != null) {
-          _controller!.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-              bearing: _defaultBearing,
-              target: LatLng(newLocalData.latitude, newLocalData.longitude),
-              tilt: 0,
-              zoom: 16)));
+        if (_mapController != null) {
+          _mapController!.moveCamera(LatLng(newLocalData.latitude, newLocalData.longitude),
+              zoom: 16, bearing: _defaultBearing);
           updateMarkerAndCircle(newLocalData, imageData);
         }
       });
@@ -192,11 +188,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                           ) : Get.find<LocationController>().initialPosition,
                         initialZoom: 16,
                         onMapCreated: (VitoMapController vitoController) async {
-                          final controller = vitoController.googleController;
-                          if (controller != null) {
-                            riderMapController.mapController = controller;
-                            _mapController = controller;
-                          }
+                          riderMapController.mapController = vitoController;
+                          _mapController = vitoController;
                           if(riderMapController.currentRideState.name != 'initial'){
                             if(riderMapController.currentRideState.name == 'accepted' || riderMapController.currentRideState.name == AppConstants.ongoing){
                               Get.find<RideController>().remainingDistance(Get.find<RideController>().tripDetail!.id!,mapBound: true);

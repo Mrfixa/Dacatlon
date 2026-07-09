@@ -56,10 +56,7 @@ class ScheduleTripMapView extends StatelessWidget {
                     initialTarget: Get.find<LocationController>().initialPosition,
                     initialZoom: 16,
                     onMapCreated: (VitoMapController vitoController) {
-                      final controller = vitoController.googleController;
-                      if (controller != null) {
-                        rideMapController.mapController = controller;
-                      }
+                      rideMapController.mapController = vitoController;
                       rideMapController.getPolyline();
                     },
                     minMaxZoomPreference: const MinMaxZoomPreference(0, AppConstants.mapZoom),

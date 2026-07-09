@@ -14,6 +14,7 @@ import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_m
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_item_model.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
 import 'package:ride_sharing_user_app/common_widgets/searchable_dropdown_field.dart';
+import 'package:ride_sharing_user_app/features/profile/domain/models/vehicle_brand_model.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/qr_scanner_screen.dart';
 import 'package:ride_sharing_user_app/util/parse_utils.dart';
 
@@ -430,6 +431,42 @@ void main() {
 
     test('matches anywhere in the label, not just the prefix', () {
       expect(SearchableDropdownField.filterSuggestions(items, 'm', label), contains('BMW'));
+    });
+  });
+
+  // X4 — typing an exact name without tapping the suggestion row must still
+  // commit the selection (otherwise the field shows "Toyota" but validation
+  // fails with "select vehicle brand").
+  group('SearchableDropdownField.findExactMatch', () {
+    final items = ['Toyota', 'Tesla', 'Honda'];
+    String label(String s) => s;
+
+    test('exact name matches case-insensitively and trimmed', () {
+      expect(SearchableDropdownField.findExactMatch(items, 'toyota', label), 'Toyota');
+      expect(SearchableDropdownField.findExactMatch(items, '  HONDA ', label), 'Honda');
+    });
+
+    test('partial or unknown text does not match', () {
+      expect(SearchableDropdownField.findExactMatch(items, 'Toy', label), isNull);
+      expect(SearchableDropdownField.findExactMatch(items, 'Mazda', label), isNull);
+      expect(SearchableDropdownField.findExactMatch(items, '', label), isNull);
+    });
+  });
+
+  // X3 — a brand with null/empty vehicle_models must not crash setBrandIndex
+  // (the model dead-end is handled in the screen with a localized hint).
+  group('Vehicle brand model-list hardening', () {
+    test('Brand.fromJson tolerates int/null is_active and null vehicle_models', () {
+      final b = Brand.fromJson({'id': 'b1', 'name': 'Kaiser', 'is_active': 1});
+      expect(b.isActive, 1);
+      expect(b.vehicleModels, isNull);
+      final b2 = Brand.fromJson({'id': 'b2', 'name': 'Tucker', 'is_active': null});
+      expect(b2.isActive, 0);
+    });
+
+    test('VehicleModels.fromJson tolerates bool and string is_active', () {
+      expect(VehicleModels.fromJson({'id': 'm1', 'name': 'X', 'is_active': true}).isActive, 1);
+      expect(VehicleModels.fromJson({'id': 'm2', 'name': 'Y', 'is_active': '0'}).isActive, 0);
     });
   });
 

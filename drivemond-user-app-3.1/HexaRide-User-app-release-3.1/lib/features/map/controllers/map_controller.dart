@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
@@ -21,7 +22,7 @@ class MapController extends GetxController implements GetxService {
   bool _isLoading = false;
   Map<PolylineId, Polyline> polylines = {};
   Set<Marker> markers = HashSet<Marker>();
-  GoogleMapController? mapController;
+  VitoMapController? mapController;
   List<LatLng> _polylineCoordinateList = [];
   bool isTrafficEnable = false;
 
@@ -43,7 +44,7 @@ class MapController extends GetxController implements GetxService {
     update();
   }
 
-  void setMapController(GoogleMapController controller) {
+  void setMapController(VitoMapController controller) {
     mapController = controller;
   }
 
@@ -64,9 +65,7 @@ class MapController extends GetxController implements GetxService {
       icon: BitmapDescriptor.bytes(icon),
     ));
 
-    mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(CameraPosition(target: position, zoom: 16)),
-    );
+    mapController?.animateCamera(position, zoom: 16);
     update();
   }
 
@@ -230,19 +229,15 @@ class MapController extends GetxController implements GetxService {
 
     if(isBound){
       try {
-        LatLngBounds? bounds;
         if(mapController != null) {
-          bounds = boundWithMaximumLatLngPoint(latLongList);
+          LatLngBounds bounds = boundWithMaximumLatLngPoint(latLongList);
+          LatLng centerBounds = LatLng(
+            (bounds.northeast.latitude + bounds.southwest.latitude)/2,
+            (bounds.northeast.longitude + bounds.southwest.longitude)/2,
+          );
+          double bearing = Geolocator.bearingBetween(from.latitude, from.longitude, to.latitude, to.longitude);
+          await zoomToFit(mapController, bounds, centerBounds, bearing, padding: 0.5);
         }
-        LatLng centerBounds = LatLng(
-          (bounds!.northeast.latitude + bounds.southwest.latitude)/2,
-          (bounds.northeast.longitude + bounds.southwest.longitude)/2,
-        );
-        double bearing = Geolocator.bearingBetween(from.latitude, from.longitude, to.latitude, to.longitude);
-        mapController!.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-          bearing: bearing, target: centerBounds, zoom: 16,
-        )));
-        zoomToFit(mapController, bounds, centerBounds, bearing, padding: 0.5);
       }catch(e) {
         // debugPrint('jhkygutyv' + e.toString());
       }
@@ -302,11 +297,23 @@ class MapController extends GetxController implements GetxService {
     return (await fi.image.toByteData(format:ui. ImageByteFormat.png))!.buffer.asUint8List();
   }
 
-  Future<void> zoomToFit(GoogleMapController? controller, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.5}) async {
+  Future<void> zoomToFit(VitoMapController? vitoController, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.5}) async {
+    final GoogleMapController? controller = vitoController?.googleController;
+    if (controller == null) {
+      // Mapbox branch: no getVisibleRegion equivalent — use the unified
+      // bounds-fitting camera (bearing is dropped; the route stays framed).
+      if (bounds != null) await vitoController?.fitBounds(bounds, padding: 60);
+      return;
+    }
+    // Google branch: legacy behaviour kept verbatim — start at zoom 16 on the
+    // bounds centre, then zoom out until the whole bounds fits.
+    controller.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
+      bearing: bearing, target: centerBounds, zoom: 16,
+    )));
     bool keepZoomingOut = true;
     while(keepZoomingOut) {
 
-      final LatLngBounds screenBounds = await controller!.getVisibleRegion();
+      final LatLngBounds screenBounds = await controller.getVisibleRegion();
       if(fits(bounds!, screenBounds)) {
         keepZoomingOut = false;
         final double zoomLevel = await controller.getZoomLevel() - padding;
@@ -357,12 +364,7 @@ class MapController extends GetxController implements GetxService {
           icon: BitmapDescriptor.bytes(myIcon)));
 
       if(mapController != null){
-        mapController!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-            bearing: 192.8334901395799,
-            target: latLng,
-            tilt: 0,
-            zoom: 16
-        )));
+        mapController!.animateCamera(latLng, zoom: 16, bearing: 192.8334901395799);
       }
     }
     update();
@@ -444,23 +446,20 @@ class MapController extends GetxController implements GetxService {
 
   void boundMapScreen(LatLng startingPoint , LatLng endingPoint){
     try {
-      LatLngBounds? bounds;
       if(mapController != null) {
+        LatLngBounds bounds;
         if (startingPoint.latitude < endingPoint.latitude) {
           bounds = LatLngBounds(southwest: startingPoint, northeast: endingPoint);
         }else {
           bounds = LatLngBounds(southwest: endingPoint, northeast: startingPoint);
         }
+        LatLng centerBounds = LatLng(
+          (bounds.northeast.latitude + bounds.southwest.latitude)/2,
+          (bounds.northeast.longitude + bounds.southwest.longitude)/2,
+        );
+        double bearing = Geolocator.bearingBetween(startingPoint.latitude, startingPoint.longitude, endingPoint.latitude, endingPoint.longitude);
+        zoomToFit(mapController, bounds, centerBounds, bearing, padding: 0.5);
       }
-      LatLng centerBounds = LatLng(
-        (bounds!.northeast.latitude + bounds.southwest.latitude)/2,
-        (bounds.northeast.longitude + bounds.southwest.longitude)/2,
-      );
-      double bearing = Geolocator.bearingBetween(startingPoint.latitude, startingPoint.longitude, endingPoint.latitude, endingPoint.longitude);
-      mapController!.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        bearing: bearing, target: centerBounds, zoom: 16,
-      )));
-      zoomToFit(mapController, bounds, centerBounds, bearing, padding: 0.5);
     }catch(e) {
       // debugPrint('jhkygutyv' + e.toString());
     }

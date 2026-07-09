@@ -195,7 +195,7 @@ class _VehicleAddScreenState extends State<VehicleAddScreen> {
                       if(profileController.modelList.isNotEmpty)
                         TextFieldTitleWidget(title: 'vehicle_model'.tr, isRequired: true),
 
-                      if(profileController.modelList.isNotEmpty)
+                      if(profileController.modelList.any((model) => model.id != 'abc'))
                         SearchableDropdownField<VehicleModels>(
                           controller: modelSearchController,
                           hintText: 'search_vehicle_model'.tr,
@@ -204,6 +204,17 @@ class _VehicleAddScreenState extends State<VehicleAddScreen> {
                           onSelected: (model) {
                             profileController.setModelIndex(model, true);
                           },
+                        )
+                      else if(profileController.selectedBrand != null && profileController.selectedBrand!.id != 'abc')
+                        // Model is required, so a brand with no models would dead-end the
+                        // driver on an empty search field. Point them at the "Other" brand,
+                        // which always carries a selectable model.
+                        Padding(
+                          padding: const EdgeInsets.only(top: Dimensions.paddingSizeExtraSmall),
+                          child: Text(
+                            'no_models_for_this_brand'.tr,
+                            style: textRegular.copyWith(color: Theme.of(context).colorScheme.error),
+                          ),
                         ),
 
                       TextFieldTitleWidget(title: 'vehicle_category'.tr, isRequired: true),

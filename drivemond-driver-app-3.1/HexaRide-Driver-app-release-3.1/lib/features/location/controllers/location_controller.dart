@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/location/domain/services/location_service_interface.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
@@ -19,17 +20,17 @@ class LocationController extends GetxController implements GetxService {
   Position _position = Position(longitude: 0, latitude: 0, timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1);
   String _address = '';
   bool _isLoading = false;
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   bool get isLoading => _isLoading;
   Position get position => _position;
   String get address => _address;
-  GoogleMapController get mapController => _mapController!;
+  VitoMapController get mapController => _mapController!;
   LatLng _initialPosition = const LatLng(23.83721, 90.363715);
   LatLng get initialPosition => _initialPosition;
 
 
   StreamSubscription? _locationSubscription;
-  Future<Position> getCurrentLocation({bool isAnimate = true, GoogleMapController? mapController, bool callZone = true}) async {
+  Future<Position> getCurrentLocation({bool isAnimate = true, VitoMapController? mapController, bool callZone = true}) async {
     bool isSuccess = await checkPermission();
     if(isSuccess) {
       try {
@@ -56,16 +57,12 @@ class LocationController extends GetxController implements GetxService {
         }
         _locationSubscription = Geolocator.getPositionStream().listen((newLocalData) {
           if (mapController != null) {
-            mapController.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-                bearing: 192.8334901395799,
-                target: LatLng(newLocalData.latitude, newLocalData.longitude),
-                tilt: 0,
-                zoom: 16)));
+            mapController.moveCamera(LatLng(newLocalData.latitude, newLocalData.longitude), zoom: 16, bearing: 192.8334901395799);
             Get.find<RiderMapController>().updateMarkerAndCircle(LatLng(newLocalData.latitude, newLocalData.longitude));
           }
         });
         if(isAnimate) {
-          _mapController?.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(target: _initialPosition, zoom: 16)));
+          _mapController?.moveCamera(_initialPosition, zoom: 16);
         }
       }catch(e){
         if (kDebugMode) {

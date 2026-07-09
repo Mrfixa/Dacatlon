@@ -39,7 +39,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   GlobalKey<ExpandableBottomSheetState> key = GlobalKey<ExpandableBottomSheetState>();
 
   @override
@@ -116,11 +116,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                                 }(),
                               initialZoom: 16,
                               onMapCreated: (VitoMapController vitoController) {
-                                final controller = vitoController.googleController;
-                                if (controller != null) {
-                                  mapController.mapController = controller;
-                                  _mapController = controller;
-                                }
+                                mapController.mapController = vitoController;
+                                _mapController = vitoController;
                                 if(
                                 rideController.currentRideState.name == AppConstants.findingRider ||
                                     rideController.currentRideState.name == AppConstants.riseFare
@@ -163,9 +160,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                                   iconColor: Theme.of(context).primaryColor,
                                   onTap: () async {
                                     await locationController.getCurrentLocation(mapController: _mapController);
-                                    await _mapController?.moveCamera(CameraUpdate.newCameraPosition(
-                                      CameraPosition(target: Get.find<LocationController>().initialPosition, zoom: 16),
-                                    ));
+                                    await _mapController?.moveCamera(
+                                      Get.find<LocationController>().initialPosition, zoom: 16,
+                                    );
                                   },
                                 );
                               }),

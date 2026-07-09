@@ -79,6 +79,13 @@ class VitoMapController {
   gmap.GoogleMapController? get googleController => _google;
   mbx.MapboxMap? get mapboxController => _mapbox;
 
+  /// Screens that used to own a raw GoogleMapController call this from their
+  /// State.dispose(). The Mapbox map's lifecycle is owned by the MapWidget, so
+  /// only the Google controller needs explicit disposal.
+  void dispose() {
+    _google?.dispose();
+  }
+
   Future<void> animateCamera(gmap.LatLng target, {double zoom = 16, double bearing = 0, double tilt = 0}) async {
     if (_google != null) {
       await _google!.animateCamera(gmap.CameraUpdate.newCameraPosition(
@@ -93,6 +100,20 @@ class VitoMapController {
           pitch: tilt,
         ),
         mbx.MapAnimationOptions(duration: 800),
+      );
+    }
+  }
+
+
+  /// Pans to [target] keeping the current zoom/bearing (Google `newLatLng`
+  /// semantics) — used by follow-the-driver tracking.
+  Future<void> animateToLatLng(gmap.LatLng target) async {
+    if (_google != null) {
+      await _google!.animateCamera(gmap.CameraUpdate.newLatLng(target));
+    } else if (_mapbox != null) {
+      await _mapbox!.flyTo(
+        mbx.CameraOptions(center: mbx.Point(coordinates: mbx.Position(target.longitude, target.latitude))),
+        mbx.MapAnimationOptions(duration: 500),
       );
     }
   }
@@ -146,7 +167,8 @@ class VitoMap extends StatefulWidget {
   final Set<gmap.Marker> googleMarkers;
   final Set<gmap.Polyline> polylines;
 
-  /// Google-only passthrough (zone boundaries etc.); not rendered on Mapbox.
+  /// Zone boundaries etc. Rendered natively on Google; on Mapbox they are
+  /// mirrored as polygon annotations (fill + outline).
   final Set<gmap.Polygon> googlePolygons;
   final bool myLocationEnabled;
 
@@ -202,6 +224,7 @@ class VitoMap extends StatefulWidget {
 class _VitoMapState extends State<VitoMap> {
   mbx.PointAnnotationManager? _pointManager;
   mbx.PolylineAnnotationManager? _lineManager;
+  mbx.PolygonAnnotationManager? _fillManager;
   mbx.MapboxMap? _mapboxMap;
   bool _isLoading = true;
   String? _errorMessage;
@@ -230,8 +253,10 @@ class _VitoMapState extends State<VitoMap> {
   void dispose() {
     _pointManager?.deleteAll();
     _lineManager?.deleteAll();
+    _fillManager?.deleteAll();
     _pointManager = null;
     _lineManager = null;
+    _fillManager = null;
     _mapboxMap = null;
     super.dispose();
   }
@@ -361,18 +386,37 @@ class _VitoMapState extends State<VitoMap> {
     widget.onCameraIdle?.call();
   }
 
-  /// Fallback pin drawn once for markers created without [VitoMarker.iconBytes]
-  /// (Google renders BitmapDescriptor.defaultMarker; Mapbox has no built-in pin,
-  /// so without this those markers would silently not render).
-  static Uint8List? _defaultPinCache;
+  /// Fallback pins drawn once per colour for markers created without
+  /// [VitoMarker.iconBytes] (Google renders BitmapDescriptor.defaultMarker;
+  /// Mapbox has no built-in pin, so without this those markers would silently
+  /// not render). Colour is derived from the marker id so pickup, destination,
+  /// driver and my-location pins stay distinguishable on Mapbox.
+  static final Map<int, Uint8List> _pinCache = {};
 
-  static Future<Uint8List> _defaultMarkerBytes() async {
-    final cached = _defaultPinCache;
+  /// Maps the marker-id vocabulary used across both apps (from/to/destination/
+  /// driverPosition/rider_N/my_location/home) onto distinct pin colours.
+  static Color pinColorForMarkerId(String id) {
+    final key = id.toLowerCase();
+    if (key.contains('driver') || key.contains('rider') || key.contains('car') || key.contains('vehicle')) {
+      return const Color(0xFF4285F4); // blue — the vehicle
+    }
+    if (key.contains('from') || key.contains('pickup') || key.contains('home') || key.contains('sender')) {
+      return const Color(0xFF34A853); // green — origin
+    }
+    if (key.contains('my_location') || key.contains('current')) {
+      return const Color(0xFF00897B); // teal — the user
+    }
+    // destination / to / receiver / anything else: classic red pin.
+    return const Color(0xFFEA4335);
+  }
+
+  static Future<Uint8List> _defaultMarkerBytes([Color color = const Color(0xFFEA4335)]) async {
+    final cached = _pinCache[color.toARGB32()];
     if (cached != null) return cached;
     const double size = 96;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    final paintFill = Paint()..color = const Color(0xFFEA4335);
+    final paintFill = Paint()..color = color;
     final paintStroke = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
@@ -389,7 +433,7 @@ class _VitoMapState extends State<VitoMap> {
     canvas.drawCircle(const Offset(size / 2, size / 2.6), size / 9, Paint()..color = Colors.white);
     final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
-    _defaultPinCache = bytes;
+    _pinCache[color.toARGB32()] = bytes;
     return bytes;
   }
 
@@ -398,32 +442,58 @@ class _VitoMapState extends State<VitoMap> {
     await map.location.updateSettings(mbx.LocationComponentSettings(enabled: widget.myLocationEnabled));
     _pointManager = await map.annotations.createPointAnnotationManager();
     _lineManager = await map.annotations.createPolylineAnnotationManager();
-    await _syncMapboxAnnotations();
+    _fillManager = await map.annotations.createPolygonAnnotationManager();
+    _lastAnnotationSignature = _annotationSignature();
+    await _requestAnnotationSync();
     setState(() => _isLoading = false);
     widget.onMapCreated?.call(VitoMapController.mapbox(map));
+  }
+
+  // Serializes annotation rebuilds: GetBuilder screens rebuild on every location
+  // poll, and overlapping deleteAll/create rounds would race and flicker.
+  bool _syncInProgress = false;
+  bool _syncPending = false;
+
+  Future<void> _requestAnnotationSync() async {
+    if (_syncInProgress) {
+      _syncPending = true;
+      return;
+    }
+    _syncInProgress = true;
+    try {
+      do {
+        _syncPending = false;
+        await _syncMapboxAnnotations();
+      } while (_syncPending && mounted);
+    } finally {
+      _syncInProgress = false;
+    }
   }
 
   Future<void> _syncMapboxAnnotations() async {
     final pm = _pointManager;
     final lm = _lineManager;
+    final fm = _fillManager;
     if (pm == null || lm == null) return;
     await pm.deleteAll();
     await lm.deleteAll();
+    await fm?.deleteAll();
 
     for (final m in widget.markers) {
       await pm.create(mbx.PointAnnotationOptions(
         geometry: mbx.Point(coordinates: mbx.Position(m.position.longitude, m.position.latitude)),
-        image: m.iconBytes ?? await _defaultMarkerBytes(),
+        image: m.iconBytes ?? await _defaultMarkerBytes(pinColorForMarkerId(m.id)),
         iconRotate: m.rotation,
       ));
     }
 
     // Legacy google_maps_flutter markers: bytes are unreadable from a
-    // BitmapDescriptor, so render their positions with the default pin.
+    // BitmapDescriptor, so render their positions with a default pin whose
+    // colour is derived from the marker id (pickup/destination/driver/...).
     for (final m in widget.googleMarkers) {
       await pm.create(mbx.PointAnnotationOptions(
         geometry: mbx.Point(coordinates: mbx.Position(m.position.longitude, m.position.latitude)),
-        image: await _defaultMarkerBytes(),
+        image: await _defaultMarkerBytes(pinColorForMarkerId(m.markerId.value)),
         iconRotate: m.rotation,
       ));
     }
@@ -438,16 +508,58 @@ class _VitoMapState extends State<VitoMap> {
         lineWidth: line.width.toDouble(),
       ));
     }
+
+    // Zone overlays (out-of-zone shading etc.) — parity with the Google branch.
+    if (fm != null) {
+      for (final polygon in widget.googlePolygons) {
+        if (polygon.points.length < 3) continue;
+        await fm.create(mbx.PolygonAnnotationOptions(
+          geometry: mbx.Polygon(coordinates: [
+            polygon.points.map((p) => mbx.Position(p.longitude, p.latitude)).toList(),
+          ]),
+          // Alpha travels via fillOpacity; the colour itself is passed opaque so
+          // the transparency isn't applied twice.
+          fillColor: polygon.fillColor.withValues(alpha: 1).toARGB32(),
+          fillOpacity: polygon.fillColor.a,
+          fillOutlineColor: polygon.strokeColor.toARGB32(),
+        ));
+      }
+    }
   }
+
+  /// Cheap change signature over everything `_syncMapboxAnnotations` renders.
+  /// Callers rebuild fresh `Set` instances every frame, so instance equality
+  /// (`oldWidget.markers != widget.markers`) is always "changed" and would
+  /// thrash deleteAll+create on every rebuild.
+  List<Object?> _annotationSignature() => <Object?>[
+        for (final m in widget.markers) ...[m.id, m.position, m.rotation, identityHashCode(m.iconBytes)],
+        for (final m in widget.googleMarkers) ...[m.markerId.value, m.position, m.rotation],
+        for (final l in widget.polylines) ...[
+          l.polylineId.value,
+          l.color.toARGB32(),
+          l.width,
+          l.points.length,
+          if (l.points.isNotEmpty) l.points.first,
+          if (l.points.isNotEmpty) l.points.last,
+        ],
+        for (final p in widget.googlePolygons) ...[
+          p.polygonId.value,
+          p.fillColor.toARGB32(),
+          p.points.length,
+          if (p.points.isNotEmpty) p.points.first,
+        ],
+      ];
+
+  List<Object?> _lastAnnotationSignature = const [];
 
   @override
   void didUpdateWidget(covariant VitoMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_useMapbox && _mapboxMap != null &&
-        (oldWidget.markers != widget.markers ||
-            oldWidget.googleMarkers != widget.googleMarkers ||
-            oldWidget.polylines != widget.polylines)) {
-      _syncMapboxAnnotations();
+    if (!_useMapbox || _mapboxMap == null) return;
+    final signature = _annotationSignature();
+    if (!listEquals(signature, _lastAnnotationSignature)) {
+      _lastAnnotationSignature = signature;
+      _requestAnnotationSync();
     }
   }
 }

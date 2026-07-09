@@ -21,36 +21,43 @@ class MartController extends GetxController implements GetxService {
     return const [];
   }
 
+  // `notify: false` only suppresses the loading spinner (silent background
+  // refresh); the UI is ALWAYS rebuilt after fresh data lands, otherwise the
+  // 15s auto-refresh replaces the list without GetBuilder ever repainting.
   Future<void> getPendingOrders({bool notify = true}) async {
-    isLoading = true;
-    if (notify) update();
+    if (notify) {
+      isLoading = true;
+      update();
+    }
     final response = await martServiceInterface.getPendingOrders();
     if (response.statusCode == 200) {
       pendingOrders = _extractList(response.body)
           .whereType<Map<String, dynamic>>()
           .map(MartOrderModel.fromJson)
           .toList();
-    } else {
+    } else if (notify) {
       ApiChecker.checkApi(response);
     }
     isLoading = false;
-    if (notify) update();
+    update();
   }
 
   Future<void> getMyOrders({bool notify = true}) async {
-    isLoading = true;
-    if (notify) update();
+    if (notify) {
+      isLoading = true;
+      update();
+    }
     final response = await martServiceInterface.getMyOrders();
     if (response.statusCode == 200) {
       myOrders = _extractList(response.body)
           .whereType<Map<String, dynamic>>()
           .map(MartOrderModel.fromJson)
           .toList();
-    } else {
+    } else if (notify) {
       ApiChecker.checkApi(response);
     }
     isLoading = false;
-    if (notify) update();
+    update();
   }
 
   Future<MartOrderModel?> getOrderDetails(String id, {bool notify = true}) async {

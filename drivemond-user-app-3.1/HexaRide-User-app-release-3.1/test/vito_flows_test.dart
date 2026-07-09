@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/data/api_checker.dart';
 import 'package:ride_sharing_user_app/features/ride/domain/models/remaining_distance_model.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
@@ -9,6 +10,8 @@ import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_ite
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
 import 'package:ride_sharing_user_app/util/parse_utils.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/mart_order_status.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/services/mart_service_interface.dart';
 
 /// Unit tests for VITO-specific flows in the user app.
 /// These validate localization, token logic, and widget structure
@@ -397,6 +400,48 @@ void main() {
   });
 
   // WS4 — pure mart order-status logic extracted from mart_order_tracking_screen.
+  // X1 — the order idempotency key must survive transport failures (timeout,
+  // no connectivity, 5xx) so a retry replays the SAME request and the backend
+  // dedups instead of creating a duplicate order / double charge. Only a
+  // definitive 4xx rejection (or success) rotates the key.
+  group('MartController idempotency key retention', () {
+    Future<List<String?>> keysForTwoAttempts(int statusCode, {Map<String, dynamic>? body}) async {
+      final service = _KeyCapturingMartService(statusCode: statusCode, body: body ?? {});
+      final controller = MartController(martServiceInterface: service);
+      Future<void> attempt() => controller.createOrder(
+            items: [{'product_id': 'p1', 'quantity': 1}],
+            deliveryAddress: 'addr',
+            paymentMethod: 'cash',
+          );
+      await attempt();
+      await attempt();
+      return service.capturedKeys;
+    }
+
+    test('transport failure (statusCode 0/1) keeps the key for the retry', () async {
+      for (final code in [0, 1]) {
+        final keys = await keysForTwoAttempts(code);
+        expect(keys[0], isNotNull);
+        expect(keys[1], keys[0], reason: 'retry after transport failure must reuse the key');
+      }
+    });
+
+    test('5xx keeps the key for the retry', () async {
+      final keys = await keysForTwoAttempts(500);
+      expect(keys[1], keys[0]);
+    });
+
+    test('definitive 4xx rejection rotates the key', () async {
+      final keys = await keysForTwoAttempts(422);
+      expect(keys[1], isNot(keys[0]));
+    });
+
+    test('success rotates the key for the next distinct order', () async {
+      final keys = await keysForTwoAttempts(200, body: {'data': {'id': 'o1', 'total_amount': 10}});
+      expect(keys[1], isNot(keys[0]));
+    });
+  });
+
   group('mart_order_status', () {
     test('martOrderStepIndex follows pending→accepted→picked_up→delivered', () {
       expect(martOrderStepIndex('pending'), 0);
@@ -718,4 +763,41 @@ void main() {
       });
     });
   });
+}
+
+
+class _KeyCapturingMartService implements MartServiceInterface {
+  _KeyCapturingMartService({required this.statusCode, required this.body});
+  final int statusCode;
+  final Map<String, dynamic> body;
+  final List<String?> capturedKeys = [];
+
+  @override
+  Future createOrder(Map<String, dynamic> orderData, {String? idempotencyKey}) async {
+    capturedKeys.add(idempotencyKey);
+    return Response(statusCode: statusCode, body: body);
+  }
+
+  @override
+  Future getProducts({String? category, String? search, int limit = 20, String? sort, bool? isFeatured, bool? isPopular}) async => Response(statusCode: 200, body: {'data': []});
+  @override
+  Future getCategories() async => Response(statusCode: 200, body: {'data': []});
+  @override
+  Future getProductDetails(String id) async => Response(statusCode: 200, body: {'data': {}});
+  @override
+  Future getOrders({int limit = 20}) async => Response(statusCode: 200, body: {'data': []});
+  @override
+  Future getOrderDetails(String id) async => Response(statusCode: 200, body: {'data': {}});
+  @override
+  Future cancelOrder(String id, {String? reason}) async => Response(statusCode: 200, body: {});
+  @override
+  Future reviewOrder(String id, int rating, String? comment) async => Response(statusCode: 200, body: {});
+  @override
+  Future createOrderPaymentIntent(String orderId) async => Response(statusCode: 200, body: {});
+  @override
+  Future applyPromoCode(String code, double orderTotal) async => Response(statusCode: 200, body: {});
+  @override
+  Future toggleFavorite(String productId) async => Response(statusCode: 200, body: {});
+  @override
+  Future getFavorites() async => Response(statusCode: 200, body: {'data': []});
 }
