@@ -229,8 +229,8 @@ class ConfigController extends Controller
     public function getZone(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'lat' => 'required',
-            'lng' => 'required',
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
         ]);
 
         if ($validator->fails()) {
@@ -273,10 +273,10 @@ class ConfigController extends Controller
     public function distanceApi(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'origin_lat' => 'required',
-            'origin_lng' => 'required',
-            'destination_lat' => 'required',
-            'destination_lng' => 'required',
+            'origin_lat' => 'required|numeric|between:-90,90',
+            'origin_lng' => 'required|numeric|between:-180,180',
+            'destination_lat' => 'required|numeric|between:-90,90',
+            'destination_lng' => 'required|numeric|between:-180,180',
             'mode' => 'required'
         ]);
 
@@ -292,8 +292,8 @@ class ConfigController extends Controller
     public function geocodeApi(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'lat' => 'required',
-            'lng' => 'required',
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
         ]);
 
         if ($validator->fails()) {

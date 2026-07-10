@@ -28,6 +28,14 @@ class VitoMartDriverController extends Controller
         }
 
         $orders = MartOrder::where('status', 'pending')
+            // Card orders are only dispatchable once Stripe has confirmed payment —
+            // otherwise a never-paid order could be delivered and the driver credited
+            // for money the platform never collected. Cash is pay-on-delivery and
+            // wallet is debited at creation, so both are fulfillable immediately.
+            ->where(function ($q) {
+                $q->where('payment_method', '!=', 'card')
+                    ->orWhere('payment_status', 'paid');
+            })
             ->with('items.product', 'customer')
             ->orderByDesc('created_at')
             ->paginate(min($request->input('limit', 20), 100));
@@ -54,6 +62,11 @@ class VitoMartDriverController extends Controller
             $order = MartOrder::where('id', $request->order_id)
                 ->where('status', 'pending')
                 ->whereNull('driver_id')
+                // Same rule as pendingOrders: unpaid card orders are not acceptable.
+                ->where(function ($q) {
+                    $q->where('payment_method', '!=', 'card')
+                        ->orWhere('payment_status', 'paid');
+                })
                 ->lockForUpdate()
                 ->first();
 

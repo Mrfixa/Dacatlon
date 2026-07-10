@@ -141,6 +141,38 @@ promo cleared on every cart mutation, cart preserved on failed order), cancel ga
 driver delivery proof offline persistence/restore, EN/ES i18n exact parity in both apps, Google
 (default) provider path regression-free, auth journeys (token gate -> QR -> signup -> OTP) intact.
 
+## Wave 15 — end-to-end backend + admin panel audit (BK/AD-series)
+
+Two read-only sweeps (backend API surface; admin web panel) over everything post-Wave-13. All
+confirmed findings fixed. Money/auth/Stripe cores re-verified: no CRITICAL.
+
+### Backend API (BK)
+| ID | Severity | Area | Finding | Status |
+|----|----------|------|---------|--------|
+| BK1 | Medium (money) | TripManagement / mart | Card mart orders were `pending`+`unpaid` yet dispatchable — driver could accept + deliver + get wallet-credited for an order never paid (no card-on-delivery capture). `pendingOrders` and `acceptOrder` now exclude `payment_method=card` unless `payment_status=paid`; cash (pay-on-delivery) and wallet (debited at create) still fulfil immediately. | fixed |
+| BK2 | Medium | AuthManagement / OTP SMS | Twilio fallback creds read via `env()` on the request path → null under `config:cache`, silently killing OTP delivery. Moved to `config('services.twilio.*')` (added the block to `config/services.php`). | fixed |
+| BK3 | Medium | BusinessManagement / MapProviderService | Every provider HTTP call used Laravel's 30s default timeout with no try/catch — a provider slowdown blocked FPM workers and 500'd geocode/autocomplete. Added `timeout(6)/connectTimeout(3)` to all 11 calls and wrapped each public op in try/catch returning the app-parseable empty fallback. | fixed |
+| BK4 | Low | TripManagement / health | Unauthenticated `/api/health` echoed raw DB/cache exception messages. Now returns generic `'error'`, detail to log only. | fixed |
+| BK5 | Low | BusinessManagement / ConfigController | `origin/destination lat/lng` + `lat/lng` validated `required` only; concatenated unencoded into the outbound Google URL. Added `numeric|between` bounds (customer + driver). | fixed |
+| BK6 | Low | Gateways / stripe routes | `payment-intent` / `order-payment-intent` had `idempotent` but no throttle (spam distinct live PaymentIntents). Added `throttle:10,1` to match peers. | fixed |
+| BK7 | Low | AuthManagement / QR API | `generateToken` API defaulted length 16/32, but `pinRegister` requires `size:64` → API-issued invites un-redeemable. Default + floor the length at 64. | fixed |
+| BK8 | Low | VehicleManagement / routes | Driver + customer vehicle catalog routes lacked `scope:` middleware (cross-scope reachable). Added `scope:AccessToDriver` / `scope:AccessToCustomer`. | fixed |
+| BK9 | Low | app / IdempotencyKey | Check-then-execute with no lock: same-key double-tap within the window ran twice. Added a `Cache::lock` (block ≤10s, fail-open) with a post-lock cache re-check. | fixed |
+| BK10 | Low | AuthManagement / OTP attempts | 5-attempt cap was read-check-increment (concurrent verifies over-granted). Replaced with an atomic conditional `where('attempts','<',5)->increment` in both OTP verify paths. | fixed |
+
+**Verified OK (backend):** Stripe webhook idempotency (stripe_event_id unique + lock + status re-check), server-side order-amount recompute, mart wallet debit/refund atomicity, promo used_count + per-user caps under lock, mart status machine replay-safety, PIN auth lockout + token revocation, scope middleware on mart routes, vehicle seeder idempotency, tip 30% cap, (0,0)-coordinate rejection, escaped LIKE search.
+
+### Admin panel (AD)
+| ID | Severity | Area | Finding | Status |
+|----|----------|------|---------|--------|
+| AD1 | High | BusinessManagement / config controllers | Payment/SMS/AI/Login/FirebaseOtp config controllers stored secrets with **no** `authorize()` and only the `admin` middleware (no per-module permission) — any employee role could read/overwrite live gateway keys via direct URL. Added `business_view`/`business_edit` gates matching the sibling `ThirdPartyController` (+ two ungated `NotificationController` methods). | fixed |
+| AD2 | Medium | TripManagement / mart export | CSV/XLSX export wrote user-controlled names/promo unescaped → spreadsheet formula injection; and `->get()` was unbounded + ignored the date range. Added `csvSafe()` (`'` prefix on `=+-@`), a 20k-row cap, and the date-range filter. | fixed |
+| AD3 | Low | TripManagement / promo admin | Percent promo could be saved >100% (bounded to free by the compute clamp, but no warning). `discount_value` now `max:100` when `discount_type=percent`. | fixed |
+| AD4 | Low | TripManagement / mart dashboard | "Top products" ignored the selected date range (always all-time). Joined `mart_orders` and applied the `from/to` filter. | fixed |
+| AD5 | Low | TripManagement / mart categories | Category delete didn't check for products still referencing it by name → stranded, unfilterable products. `destroy` now blocks with a count when products are attached. | fixed |
+
+**Verified OK (admin):** all VitoMart controller methods gate on the correct `vito_mart_*` permission; no GET-based state changes in the mart group; Google Map form gated + provider whitelisted + keys not echoed; mart blades escape all user data with `{{ }}`; all `admin.mart.*` route names resolve; admin cancel refund path atomic; order list eager-loaded (no N+1).
+
 ## Accepted (reviewed, intentionally not changed)
 
 | ID | Severity | Area | Finding & rationale | Status |

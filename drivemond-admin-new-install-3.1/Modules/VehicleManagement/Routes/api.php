@@ -9,7 +9,7 @@ use Modules\VehicleManagement\Http\Controllers\Api\Driver\VehicleModelController
 
 
 Route::group(['prefix' => 'customer'], function () {
-    Route::group(['prefix' => 'vehicle', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['prefix' => 'vehicle', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToCustomer']], function () {
 
 
         Route::group(['prefix' => 'category'], function () {
@@ -22,7 +22,7 @@ Route::group(['prefix' => 'customer'], function () {
 
 
 Route::group(['prefix' => 'driver'], function () {
-    Route::group(['prefix' => 'vehicle', 'middleware' => ['auth:api', 'maintenance_mode']], function () {
+    Route::group(['prefix' => 'vehicle', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToDriver']], function () {
 
         Route::controller(VehicleController::class)->group(function () {
             Route::post('/store', 'store');

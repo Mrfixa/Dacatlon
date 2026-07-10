@@ -36,4 +36,14 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+
+    // Runtime fallback SMS gateway for OTP delivery (used only when no admin
+    // SMS gateway is configured). Read via config() so it works under
+    // `php artisan config:cache` — env() is null there.
+    'twilio' => [
+        'sid' => env('TWILIO_ACCOUNT_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'from' => env('TWILIO_FROM_NUMBER'),
+    ],
+
 ];

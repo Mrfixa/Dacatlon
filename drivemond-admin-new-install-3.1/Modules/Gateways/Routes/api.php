@@ -29,8 +29,8 @@ Route::group(['prefix' => 'v1', 'as'=>'v1.'], function () {
 |--------------------------------------------------------------------------
 */
 Route::group(['prefix' => 'customer/stripe', 'middleware' => ['auth:api', 'maintenance_mode', 'scope:AccessToCustomer']], function () {
-    Route::middleware('idempotent')->post('payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createPaymentIntent']);
-    Route::middleware('idempotent')->post('order-payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createOrderPaymentIntent']);
+    Route::middleware(['idempotent', 'throttle:10,1'])->post('payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createPaymentIntent']);
+    Route::middleware(['idempotent', 'throttle:10,1'])->post('order-payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createOrderPaymentIntent']);
 });
 
 Route::post('stripe/webhook', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'webhook']);

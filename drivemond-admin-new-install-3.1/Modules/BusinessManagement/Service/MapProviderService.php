@@ -48,8 +48,20 @@ class MapProviderService
 
     public function autocomplete(string $searchText): array
     {
+        // Provider outages / timeouts must degrade to the same empty shape the
+        // apps already parse — never a 500 from a geocode hiccup.
+        try {
+            return $this->doAutocomplete($searchText);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Map provider autocomplete failed: ' . $e->getMessage());
+            return ['suggestions' => []];
+        }
+    }
+
+    private function doAutocomplete(string $searchText): array
+    {
         if ($this->provider() === 'mapbox') {
-            $response = Http::get('https://api.mapbox.com/search/searchbox/v1/suggest', [
+            $response = Http::timeout(6)->connectTimeout(3)->get('https://api.mapbox.com/search/searchbox/v1/suggest', [
                 'q' => $searchText,
                 'access_token' => $this->mapboxToken(),
                 'session_token' => (string) Str::uuid(),
@@ -61,7 +73,7 @@ class MapProviderService
             return ['suggestions' => []];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(6)->connectTimeout(3)->withHeaders([
             'Content-Type' => 'application/json',
             'X-Goog-Api-Key' => $this->googleKey(),
             'X-Goog-FieldMask' => '*',
@@ -98,8 +110,20 @@ class MapProviderService
 
     public function placeDetails(string $placeId): array
     {
+        // Provider outages / timeouts must degrade to the same empty shape the
+        // apps already parse — never a 500 from a geocode hiccup.
+        try {
+            return $this->doPlaceDetails($placeId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Map provider placeDetails failed: ' . $e->getMessage());
+            return ['id' => $placeId, 'types' => []];
+        }
+    }
+
+    private function doPlaceDetails(string $placeId): array
+    {
         if ($this->provider() === 'mapbox') {
-            $response = Http::get('https://api.mapbox.com/search/searchbox/v1/retrieve/' . urlencode($placeId), [
+            $response = Http::timeout(6)->connectTimeout(3)->get('https://api.mapbox.com/search/searchbox/v1/retrieve/' . urlencode($placeId), [
                 'access_token' => $this->mapboxToken(),
                 'session_token' => (string) Str::uuid(),
             ]);
@@ -109,7 +133,7 @@ class MapProviderService
             return ['id' => $placeId, 'types' => []];
         }
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(6)->connectTimeout(3)->withHeaders([
             'Content-Type' => 'application/json',
             'X-Goog-Api-Key' => $this->googleKey(),
             'X-Goog-FieldMask' => '*',
@@ -148,8 +172,20 @@ class MapProviderService
 
     public function reverseGeocode(string|float $lat, string|float $lng): array
     {
+        // Provider outages / timeouts must degrade to the same empty shape the
+        // apps already parse — never a 500 from a geocode hiccup.
+        try {
+            return $this->doReverseGeocode($lat, $lng);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Map provider reverseGeocode failed: ' . $e->getMessage());
+            return ['results' => [], 'status' => 'ZERO_RESULTS'];
+        }
+    }
+
+    private function doReverseGeocode(string|float $lat, string|float $lng): array
+    {
         if ($this->provider() === 'mapbox') {
-            $response = Http::get('https://api.mapbox.com/search/geocode/v6/reverse', [
+            $response = Http::timeout(6)->connectTimeout(3)->get('https://api.mapbox.com/search/geocode/v6/reverse', [
                 'latitude' => $lat,
                 'longitude' => $lng,
                 'access_token' => $this->mapboxToken(),
@@ -160,7 +196,7 @@ class MapProviderService
             return ['results' => [], 'status' => 'ZERO_RESULTS'];
         }
 
-        $response = Http::get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $lat . ',' . $lng . '&key=' . $this->googleKey());
+        $response = Http::timeout(6)->connectTimeout(3)->get(MAP_API_BASE_URI . '/geocode/json?latlng=' . $lat . ',' . $lng . '&key=' . $this->googleKey());
         return $response->json() ?? [];
     }
 
@@ -191,10 +227,22 @@ class MapProviderService
 
     public function distanceMatrix(string|float $originLat, string|float $originLng, string|float $destLat, string|float $destLng, string $mode = 'driving'): array
     {
+        // Provider outages / timeouts must degrade to the same empty shape the
+        // apps already parse — never a 500 from a geocode hiccup.
+        try {
+            return $this->doDistanceMatrix($originLat, $originLng, $destLat, $destLng, $mode);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Map provider distanceMatrix failed: ' . $e->getMessage());
+            return ['rows' => [], 'status' => 'ZERO_RESULTS'];
+        }
+    }
+
+    private function doDistanceMatrix(string|float $originLat, string|float $originLng, string|float $destLat, string|float $destLng, string $mode = 'driving'): array
+    {
         if ($this->provider() === 'mapbox') {
             $profile = $mode === 'walking' ? 'walking' : ($mode === 'bicycling' ? 'cycling' : 'driving');
             $coordinates = $originLng . ',' . $originLat . ';' . $destLng . ',' . $destLat;
-            $response = Http::get('https://api.mapbox.com/directions-matrix/v1/mapbox/' . $profile . '/' . $coordinates, [
+            $response = Http::timeout(6)->connectTimeout(3)->get('https://api.mapbox.com/directions-matrix/v1/mapbox/' . $profile . '/' . $coordinates, [
                 'annotations' => 'distance,duration',
                 'sources' => 0,
                 'destinations' => 1,
@@ -206,7 +254,7 @@ class MapProviderService
             return ['rows' => [], 'status' => 'ZERO_RESULTS'];
         }
 
-        $response = Http::get(MAP_API_BASE_URI . '/distancematrix/json?origins=' . $originLat . ',' . $originLng . '&destinations=' . $destLat . ',' . $destLng . '&travelmode=' . $mode . '&key=' . $this->googleKey());
+        $response = Http::timeout(6)->connectTimeout(3)->get(MAP_API_BASE_URI . '/distancematrix/json?origins=' . $originLat . ',' . $originLng . '&destinations=' . $destLat . ',' . $destLng . '&travelmode=' . $mode . '&key=' . $this->googleKey());
         return $response->json() ?? [];
     }
 
@@ -250,6 +298,18 @@ class MapProviderService
      */
     public function routes(array $originCoordinates, array $destinationCoordinates, array $intermediateCoordinates = [], array $drivingMode = ['DRIVE']): array
     {
+        // Provider outages / timeouts must degrade to the same empty shape the
+        // apps already parse — never a 500 from a geocode hiccup.
+        try {
+            return $this->doRoutes($originCoordinates, $destinationCoordinates, $intermediateCoordinates, $drivingMode);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Map provider routes failed: ' . $e->getMessage());
+            return ['error' => 'API request failed'];
+        }
+    }
+
+    private function doRoutes(array $originCoordinates, array $destinationCoordinates, array $intermediateCoordinates = [], array $drivingMode = ['DRIVE']): array
+    {
         if ($this->provider() === 'mapbox') {
             $points = [[$originCoordinates[1], $originCoordinates[0]]]; // lng,lat
             if (!empty($intermediateCoordinates) && !is_null($intermediateCoordinates[0][0] ?? null)) {
@@ -260,7 +320,7 @@ class MapProviderService
             $points[] = [$destinationCoordinates[1], $destinationCoordinates[0]];
             $coordinates = implode(';', array_map(fn ($p) => $p[0] . ',' . $p[1], $points));
 
-            $response = Http::get('https://api.mapbox.com/directions/v5/mapbox/driving-traffic/' . $coordinates, [
+            $response = Http::timeout(6)->connectTimeout(3)->get('https://api.mapbox.com/directions/v5/mapbox/driving-traffic/' . $coordinates, [
                 'geometries' => 'polyline',
                 'overview' => 'full',
                 'access_token' => $this->mapboxToken(),
@@ -347,11 +407,11 @@ class MapProviderService
             'X-Goog-FieldMask' => '*',
         ];
 
-        $response = Http::withHeaders($headers)->post($url, $data);
+        $response = Http::timeout(6)->connectTimeout(3)->withHeaders($headers)->post($url, $data);
 
         if (!isset($response['routes'][0])) {
             $data['travelMode'] = 'DRIVE';
-            $response = Http::withHeaders($headers)->post($url, $data);
+            $response = Http::timeout(6)->connectTimeout(3)->withHeaders($headers)->post($url, $data);
         }
 
         if (!$response->successful()) {

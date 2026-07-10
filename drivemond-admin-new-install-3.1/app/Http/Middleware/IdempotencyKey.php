@@ -28,16 +28,40 @@ class IdempotencyKey
                 ->header('Idempotency-Replayed', 'true');
         }
 
-        $response = $next($request);
-
-        // Cache only successful responses; never cache 4xx/5xx so callers can fix and retry.
-        if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
-            Cache::put($cacheKey, [
-                'body'   => $response->getContent(),
-                'status' => $response->getStatusCode(),
-            ], now()->addHours(24));
+        // Serialize concurrent requests carrying the same key: without a lock, a
+        // double-tap arriving before the first response is cached executes twice
+        // (two orders, two payment intents). The second waiter re-checks the
+        // cache after acquiring the lock and replays instead of re-executing.
+        $lock = Cache::lock($cacheKey . ':lock', 20);
+        $locked = false;
+        try {
+            $locked = $lock->block(10);
+        } catch (\Throwable $e) {
+            // Lock unsupported/timed out — fail open (pre-lock behaviour).
         }
 
-        return $response;
+        try {
+            if ($locked && Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                return response()->json(json_decode($cached['body'], true), $cached['status'])
+                    ->header('Idempotency-Replayed', 'true');
+            }
+
+            $response = $next($request);
+
+            // Cache only successful responses; never cache 4xx/5xx so callers can fix and retry.
+            if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300) {
+                Cache::put($cacheKey, [
+                    'body'   => $response->getContent(),
+                    'status' => $response->getStatusCode(),
+                ], now()->addHours(24));
+            }
+
+            return $response;
+        } finally {
+            if ($locked) {
+                $lock->release();
+            }
+        }
     }
 }

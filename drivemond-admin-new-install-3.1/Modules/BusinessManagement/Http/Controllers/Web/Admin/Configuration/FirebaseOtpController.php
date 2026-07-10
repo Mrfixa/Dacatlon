@@ -34,6 +34,7 @@ class FirebaseOtpController extends BaseController
 
     public function firebaseOtpConfigGet(): Application|Factory|\Illuminate\Contracts\View\View|\Illuminate\Foundation\Application
     {
+        $this->authorize('business_view');
         $firebaseOtpValues = $this->businessSettingService->getBy(criteria: ['settings_type' => FIREBASE_OTP]);
         return view('businessmanagement::admin.configuration.firebase-otp', compact('firebaseOtpValues'));
     }
@@ -45,6 +46,7 @@ class FirebaseOtpController extends BaseController
      */
     public function firebaseOtpConfigSet(FirebaseOtpSetupStoreOrUpdateRequest $request): RedirectResponse
     {
+        $this->authorize('business_edit');
         $this->businessSettingService->storeOrUpdateFirebaseOtpSetting($request->validated());
         Toastr::success(DEFAULT_UPDATE_200['message']);
         return back();

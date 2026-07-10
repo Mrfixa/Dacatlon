@@ -23,6 +23,20 @@ class MartOrderAdminController extends Controller
      */
     private const FILTERABLE = ['pending', 'accepted', 'picked_up', 'delivered', 'cancelled'];
 
+    /** Synchronous FastExcel download — cap rows so an all-time export can't exhaust memory. */
+    private const EXPORT_MAX_ROWS = 20000;
+
+    /**
+     * Neutralizes spreadsheet formula injection: a customer/driver-controlled
+     * name starting with = + - @ would otherwise execute as a formula when the
+     * exported CSV/XLSX is opened in Excel/Sheets.
+     */
+    private function csvSafe(?string $value): string
+    {
+        $value = (string) $value;
+        return preg_match('/^[=+\-@]/', $value) ? "'" . $value : $value;
+    }
+
     public function orderList(Request $request, string $type = 'all'): View
     {
         $this->authorize('vito_mart_view');
@@ -185,21 +199,32 @@ class MartOrderAdminController extends Controller
         $this->authorize('vito_mart_export');
 
         $type = $request->get('type', 'all');
+        $from = null;
+        $to = null;
+        if ($request->filled('data')) {
+            $range = getDateRange($request->data);
+            $from = $range['start'] ?? null;
+            $to = $range['end'] ?? null;
+        }
         $orders = MartOrder::with(['customer', 'driver'])
             ->when($type !== 'all' && in_array($type, self::FILTERABLE, true), fn ($q) => $q->where('status', $type))
+            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
             ->orderByDesc('created_at')
+            // Hard cap: exports are synchronous FastExcel downloads; an unbounded
+            // ->get() with two eager loads can exhaust memory on large stores.
+            ->limit(self::EXPORT_MAX_ROWS)
             ->get();
 
         $data = $orders->map(fn ($item) => [
             'id' => $item->id,
             'Order ID' => $item->ref_id,
             'Date' => date('d F Y h:i a', strtotime($item->created_at)),
-            'Customer' => trim(($item->customer?->first_name ?? '') . ' ' . ($item->customer?->last_name ?? '')) ?: translate('not_available'),
-            'Driver' => $item->driver ? trim(($item->driver->first_name ?? '') . ' ' . ($item->driver->last_name ?? '')) : translate('no_driver_assigned'),
+            'Customer' => $this->csvSafe(trim(($item->customer?->first_name ?? '') . ' ' . ($item->customer?->last_name ?? '')) ?: translate('not_available')),
+            'Driver' => $this->csvSafe($item->driver ? trim(($item->driver->first_name ?? '') . ' ' . ($item->driver->last_name ?? '')) : translate('no_driver_assigned')),
             'Total' => getCurrencyFormat($item->total_amount ?? 0),
             'Tip' => getCurrencyFormat($item->tip_amount ?? 0),
             'Discount' => getCurrencyFormat($item->discount_amount ?? 0),
-            'Promo' => $item->promo_code ?: '-',
+            'Promo' => $item->promo_code ? $this->csvSafe($item->promo_code) : '-',
             'Payment Method' => ucfirst($item->payment_method ?? '-'),
             'Payment Status' => ucfirst($item->payment_status ?? '-'),
             'Status' => str_replace('_', ' ', ucfirst($item->status)),

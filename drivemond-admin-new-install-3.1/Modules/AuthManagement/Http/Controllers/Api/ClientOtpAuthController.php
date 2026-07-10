@@ -104,14 +104,19 @@ class ClientOtpAuthController extends Controller
             );
         }
 
-        if ($record->attempts >= 5) {
+        // Atomic conditional increment: a plain read-check-increment lets two
+        // concurrent verifies both see attempts=4 and each get a guess beyond
+        // the 5-attempt cap. Zero affected rows means the cap was already hit.
+        $granted = DB::table('vito_otps')
+            ->where('id', $record->id)
+            ->where('attempts', '<', 5)
+            ->increment('attempts');
+        if (!$granted) {
             return response()->json(
                 ['errors' => ['message' => ['Too many failed attempts. Please request a new OTP.']]],
                 422
             );
         }
-
-        DB::table('vito_otps')->where('id', $record->id)->increment('attempts');
 
         if (!Hash::check($otp, $record->otp_hash)) {
             return response()->json(
@@ -254,9 +259,9 @@ class ClientOtpAuthController extends Controller
         // 2) Fallback: direct Twilio via env vars (TWILIO_ACCOUNT_SID / AUTH_TOKEN / FROM_NUMBER).
         $message = "Your VITO verification code is: {$otp}";
         try {
-            $sid   = env('TWILIO_ACCOUNT_SID');
-            $token = env('TWILIO_AUTH_TOKEN');
-            $from  = env('TWILIO_FROM_NUMBER');
+            $sid   = config('services.twilio.sid');
+            $token = config('services.twilio.token');
+            $from  = config('services.twilio.from');
 
             if ($sid && $token && $from) {
                 $client = new \Twilio\Rest\Client($sid, $token);

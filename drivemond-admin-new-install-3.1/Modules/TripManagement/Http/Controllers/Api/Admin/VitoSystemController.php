@@ -28,7 +28,10 @@ class VitoSystemController extends Controller
             DB::select('SELECT 1');
             $checks['database'] = 'ok';
         } catch (\Throwable $e) {
-            $checks['database'] = 'error: ' . $e->getMessage();
+            // Unauthenticated endpoint: never echo exception detail (may contain
+            // connection host/credentials). Full error goes to the log only.
+            \Illuminate\Support\Facades\Log::error('Health check database failure: ' . $e->getMessage());
+            $checks['database'] = 'error';
             $healthy = false;
         }
 
@@ -37,7 +40,8 @@ class VitoSystemController extends Controller
             Cache::put('_health_check', 1, 5);
             $checks['cache'] = 'ok';
         } catch (\Throwable $e) {
-            $checks['cache'] = 'error: ' . $e->getMessage();
+            \Illuminate\Support\Facades\Log::error('Health check cache failure: ' . $e->getMessage());
+            $checks['cache'] = 'error';
             $healthy = false;
         }
 

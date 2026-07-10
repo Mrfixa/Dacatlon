@@ -22,6 +22,7 @@ class AiSetupController extends Controller
      */
     public function index()
     {
+        $this->authorize('business_view');
         $aiSetting = $this->aiSettingService->findOneBy(criteria: ['ai_name' => 'OpenAI']);
 
         return view('businessmanagement::admin.configuration.ai-setup', compact('aiSetting'));
@@ -32,6 +33,7 @@ class AiSetupController extends Controller
      */
     public function update(AiSettingStoreOrUpdateRequest $request)
     {
+        $this->authorize('business_edit');
         $ai = $this->aiSettingService->findOneBy(criteria: ['ai_name' => 'OpenAI']);
         $data = $request->validated();
         $data['status'] = array_key_exists('status', $data) ? 1 : 0;

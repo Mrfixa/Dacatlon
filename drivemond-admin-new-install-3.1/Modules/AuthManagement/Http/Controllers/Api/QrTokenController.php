@@ -23,7 +23,9 @@ class QrTokenController extends Controller
             return response()->json(responseFormatter(constant: DEFAULT_400, errors: errorProcessor($validator)), 422);
         }
 
-        $tokenLength = $request->input('length', $request->role === 'customer' ? 16 : 32);
+        // pinRegister validates qr_token with size:64, so anything shorter is
+        // un-redeemable. Default (and floor) the length at 64 to match.
+        $tokenLength = max((int) $request->input('length', 64), 64);
         $tokenValue = Str::random($tokenLength);
 
         // Ensure uniqueness

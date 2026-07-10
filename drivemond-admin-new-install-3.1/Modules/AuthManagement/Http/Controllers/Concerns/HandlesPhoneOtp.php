@@ -64,11 +64,14 @@ trait HandlesPhoneOtp
             return ['ok' => false, 'status' => 404, 'message' => 'OTP has expired or was not found. Please request a new one.'];
         }
 
-        if ($record->attempts >= 5) {
+        // Atomic conditional increment (see ClientOtpAuthController::verifyOtp).
+        $granted = DB::table('vito_otps')
+            ->where('id', $record->id)
+            ->where('attempts', '<', 5)
+            ->increment('attempts');
+        if (!$granted) {
             return ['ok' => false, 'status' => 422, 'message' => 'Too many failed attempts. Please request a new OTP.'];
         }
-
-        DB::table('vito_otps')->where('id', $record->id)->increment('attempts');
 
         if (!Hash::check($otp, $record->otp_hash)) {
             return ['ok' => false, 'status' => 400, 'message' => 'Invalid OTP. Please try again.'];
@@ -98,9 +101,9 @@ trait HandlesPhoneOtp
 
         $message = "Your VITO verification code is: {$otp}";
         try {
-            $sid   = env('TWILIO_ACCOUNT_SID');
-            $token = env('TWILIO_AUTH_TOKEN');
-            $from  = env('TWILIO_FROM_NUMBER');
+            $sid   = config('services.twilio.sid');
+            $token = config('services.twilio.token');
+            $from  = config('services.twilio.from');
 
             if ($sid && $token && $from) {
                 $client = new \Twilio\Rest\Client($sid, $token);
