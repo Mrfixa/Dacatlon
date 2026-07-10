@@ -228,14 +228,17 @@ jobs:
         run: |
           VERSION=$(grep '^version:' drivemond-user-app-3.1/HexaRide-User-app-release-3.1/pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
           echo "Building admin ZIP for version $VERSION"
+          # Exclude only true junk. Keep the storage/framework + storage/logs
+          # DIRECTORIES (they carry .gitkeep, no cached content in a fresh CI
+          # checkout) — dropping them made the extracted app fail at boot with
+          # "Please provide a valid cache path". Strip cached *files* but leave
+          # the dirs (and their .gitkeep) intact.
           zip -r "vito-admin-v${VERSION}.zip" drivemond-admin-new-install-3.1 \
             --exclude "*/node_modules/*" \
             --exclude "*/.git/*" \
-            --exclude "*/storage/logs/*" \
             --exclude "*/.env" \
-            --exclude "*/storage/framework/cache/*" \
-            --exclude "*/storage/framework/views/*" \
-            --exclude "*/storage/framework/sessions/*"
+            --exclude "*/storage/logs/*.log" \
+            --exclude "*/storage/framework/views/*.php"
 
       - name: Upload Admin ZIP
         uses: actions/upload-artifact@v4

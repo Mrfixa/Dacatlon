@@ -18,7 +18,11 @@ class BusinessManagementDatabaseSeeder extends Seeder
                         ->where('key_name', $row['key_name'])
                         ->where('settings_type', $row['settings_type'])
                         ->value('id') ?? Uuid::uuid4()->toString(),
-                    'value'      => is_array($row['value']) ? json_encode($row['value']) : $row['value'],
+                    // `value` is a JSON column: scalars must be JSON-encoded too
+                    // ("Vito", not Vito), or MySQL rejects them (SQLite tolerates
+                    // raw strings, which is why this only surfaced on real MySQL).
+                    // The model casts value=>array, so this round-trips correctly.
+                    'value'      => json_encode($row['value']),
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]
