@@ -189,6 +189,13 @@ class ProfileController extends GetxController implements GetxService{
   }
 
   Future<Response> profileOnlineOffline( bool value) async {
+    // `value` is the DESIRED state. The backend endpoint is a blind toggle, so
+    // if local state already matches the request (stale UI, double tap), firing
+    // it would flip the driver the wrong way — skip instead.
+    if ((isOnline == "1") == value) {
+      update();
+      return Response(statusCode: 200);
+    }
     // Before going online, ensure location permission is granted. The recurring
     // location broadcaster (startLocationRecord → LocationController) needs
     // "always"/background access; a "while in use" grant leaves the driver
@@ -278,7 +285,8 @@ class ProfileController extends GetxController implements GetxService{
     modelList = [];
     if(selectedBrand != null){
       modelList.add(VehicleModels(id: 'abc', name: 'select_vehicle_model'));
-      modelList.addAll(selectedBrand!.vehicleModels!);
+      // Null-safe: a brand created without models must not crash the tap handler.
+      modelList.addAll(selectedBrand!.vehicleModels ?? []);
 
       int index = modelList.indexWhere((value)=> value.name == profileInfo?.vehicle?.model?.name);
       if(index == -1){

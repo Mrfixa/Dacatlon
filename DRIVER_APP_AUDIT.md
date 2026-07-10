@@ -383,3 +383,15 @@ fixed in source** (the earlier sections of this doc had drifted out of date).
 **Sweep notes (verified, no change):** localization EN/ES parity intact; `int.parse(offset)` /
 model `*.parse(json[...])` is a pervasive pre-existing pattern on server-supplied numeric fields
 (reliably present) — left as-is rather than blind-editing dozens of model files.
+
+## Wave 14 (2026-07-09) — post-v3.5 UX/flow sweep
+
+New findings on the v3.3–v3.5 surface, all fixed (or verified) — full detail in
+`AUDIT_TRACKER.md` Wave 14: **X2** pending-orders auto-refresh never repainted (new mart orders
+invisible), **X3** brand-without-models registration dead end, **X4** typed-but-not-tapped
+searchable dropdown selections dropped, **X8** online/offline toggle ignored its argument,
+**X9** shared idempotency key across endpoints (verified benign), **X10** brittle `is_active`
+cast could blank the brand list, and Mapbox-mode **MB1/MB2/MB4** (ride-map camera dead + swallowed
+throw, out-of-zone zoom-to-fit crash + missing zone shading, identical pins). Verified clean:
+mart delivery state machine + offline proof persistence, accept debounce, EN/ES parity.
+

@@ -35,7 +35,7 @@ class _AddNewAddressState extends State<AddNewAddress> {
   final TextEditingController houseController = TextEditingController();
   final TextEditingController addressLevelController = TextEditingController();
   CameraPosition? _cameraPosition;
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
 
   @override
   void initState() {
@@ -97,11 +97,8 @@ class _AddNewAddressState extends State<AddNewAddress> {
                               locationController.initialPosition,
                             initialZoom: 16,
                             onMapCreated: (VitoMapController vitoController) {
-                              final controller = vitoController.googleController;
-                              if (controller != null) {
-                                _mapController = controller;
-                                locationController.mapController = controller;
-                              }
+                              _mapController = vitoController;
+                              locationController.mapController = vitoController;
                             },
                             onCameraIdle: () {
                               if(_cameraPosition != null) {
@@ -137,9 +134,9 @@ class _AddNewAddressState extends State<AddNewAddress> {
                             onTap: ()=> Get.to(() => PickMapScreen(
                               type: LocationType.location,
                               onLocationPicked: (Position position, String address) {
-                                locationController.mapController!.moveCamera(CameraUpdate.newCameraPosition(
-                                  CameraPosition(target: LatLng(position.latitude, position.longitude), zoom: 16),
-                                ));
+                                locationController.mapController?.moveCamera(
+                                  LatLng(position.latitude, position.longitude), zoom: 16,
+                                );
                                 locationController.locationController.text = address;
                               },
                               address: widget.address ?? locationController.addAddress,

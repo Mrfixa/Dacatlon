@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ride_sharing_user_app/common_widgets/vito_map.dart';
 import 'package:ride_sharing_user_app/features/address/domain/models/address_model.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/location/view/pick_map_screen.dart';
@@ -9,7 +10,7 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:get/get.dart';
 
 class SearchAndPickLocationScreen extends StatefulWidget {
-  final GoogleMapController? mapController;
+  final VitoMapController? mapController;
   final Address? address;
   const SearchAndPickLocationScreen({super.key, this.mapController,this.address});
 
@@ -113,10 +114,8 @@ class _SearchAndPickLocationScreenState extends State<SearchAndPickLocationScree
                 RouteHelper.goPageAndHideTextField(context, PickMapScreen(
                   type: LocationType.location,
                   onLocationPicked: (Position position, String address) {
-                    locationController.mapController!.moveCamera(
-                      CameraUpdate.newCameraPosition(CameraPosition(
-                        target: LatLng(position.latitude, position.longitude), zoom: 16,
-                      )),
+                    locationController.mapController?.moveCamera(
+                      LatLng(position.latitude, position.longitude), zoom: 16,
                     );
                     locationController.locationController.text = address;
                   },

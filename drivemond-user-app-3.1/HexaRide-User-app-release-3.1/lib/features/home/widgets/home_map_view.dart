@@ -20,7 +20,7 @@ class HomeMapView extends StatefulWidget {
 }
 
 class HomeMapViewState extends State<HomeMapView> {
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   int isFirstCount = 0;
 
 
@@ -40,10 +40,6 @@ class HomeMapViewState extends State<HomeMapView> {
   Widget build(BuildContext context) {
     return GetBuilder<MapController>(builder: (mapController) {
       return GetBuilder<LocationController>(builder: (locationController) {
-        Completer<GoogleMapController> mapCompleter = Completer<GoogleMapController>();
-        if(mapController.mapController != null) {
-          mapCompleter.complete(mapController.mapController);
-        }
         return mapController.nearestDeliveryManMarkers != null ?
         Padding(
           padding: const EdgeInsets.only(bottom: Dimensions.paddingSizeDefault),
@@ -74,11 +70,8 @@ class HomeMapViewState extends State<HomeMapView> {
                   initialZoom: 13,
                   minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
                   onMapCreated: (vitoController) {
-                    final gController = vitoController.googleController;
-                    if (gController != null) {
-                      _mapController = gController;
-                      mapController.setMapController(gController);
-                    }
+                    _mapController = vitoController;
+                    mapController.setMapController(vitoController);
                   },
                   myLocationEnabled: true,
                   myLocationButtonEnabled: false,

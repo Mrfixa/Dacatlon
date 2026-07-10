@@ -774,6 +774,12 @@ class _MartOrderTrackingScreenState extends State<MartOrderTrackingScreen> {
   Widget _buildCancelButton(BuildContext context) {
     final canCancel = canCancelMartOrder(_currentStatus);
 
+    // Terminal orders (delivered/cancelled) get no cancel affordance at all —
+    // a disabled button with "in transit" copy there is misleading.
+    if (isMartOrderTerminal(_currentStatus)) {
+      return const SizedBox.shrink();
+    }
+
     if (!canCancel) {
       return Column(
         children: [

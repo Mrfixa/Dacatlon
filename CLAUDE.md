@@ -350,8 +350,14 @@ way when adding screens):
   `Modules/BusinessManagement/Service/MapProviderService`, which transforms Mapbox responses to
   the Google JSON shapes the apps parse (pure transforms unit-tested in
   `tests/Unit/MapProviderTransformTest.php`). Legacy screens pass google `Marker` sets via the
-  `googleMarkers` param (rendered as default pins on Mapbox); prefer `markers` (`VitoMarker` with
-  `iconBytes`) in new code.
+  `googleMarkers` param (rendered on Mapbox as default pins colour-coded by marker id:
+  driver/rider=blue, from/pickup/home=green, my_location=teal, destination/other=red); prefer
+  `markers` (`VitoMarker` with `iconBytes`) in new code. `googlePolygons` (zone shading) are
+  mirrored as Mapbox polygon annotations, so zone overlays work on both providers.
+  **Never hold a raw `GoogleMapController` in a screen/controller** — it is null on Mapbox. Keep
+  the `VitoMapController` from `onMapCreated` and use its provider-agnostic ops (`animateCamera`,
+  `moveCamera`, `animateToLatLng` zoom-preserving pan, `fitBounds`, `dispose`); the location/map
+  controllers in both apps are already typed this way.
 
 Features:
 - Loading indicator during map initialization

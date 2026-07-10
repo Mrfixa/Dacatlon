@@ -9,7 +9,12 @@ import 'package:ride_sharing_user_app/util/styles.dart';
 /// suggestion overlay. Used for the vehicle brand / model / category selectors so
 /// long lists become type-to-search instead of scroll-only. Tapping the field
 /// with an empty query shows the full list, matching the old dropdown behaviour.
-class SearchableDropdownField<T> extends StatelessWidget {
+///
+/// Typing an exact item name and leaving the field (submit or tap outside)
+/// commits that item as if it had been tapped — otherwise the field would
+/// visibly read e.g. "Toyota" while the form still holds the placeholder and
+/// validation fails with a contradictory "select vehicle brand" message.
+class SearchableDropdownField<T> extends StatefulWidget {
   final List<T> items;
   final TextEditingController controller;
   final String hintText;
@@ -34,11 +39,45 @@ class SearchableDropdownField<T> extends StatelessWidget {
     return items.where((item) => itemLabel(item).toLowerCase().contains(query)).toList();
   }
 
+  /// Pure, testable exact-match lookup used when the user types a value without
+  /// tapping the suggestion row: matches the raw or translated label,
+  /// case-insensitively and trimmed. Returns null when nothing matches exactly.
+  static T? findExactMatch<T>(List<T> items, String text, String Function(T) itemLabel) {
+    final query = text.trim().toLowerCase();
+    if (query.isEmpty) return null;
+    for (final item in items) {
+      final label = itemLabel(item);
+      if (label.toLowerCase() == query || label.tr.toLowerCase() == query) return item;
+    }
+    return null;
+  }
+
+  @override
+  State<SearchableDropdownField<T>> createState() => _SearchableDropdownFieldState<T>();
+}
+
+class _SearchableDropdownFieldState<T> extends State<SearchableDropdownField<T>> {
+  // Last text committed through onSelected — used to skip redundant re-commits
+  // (re-selecting the same brand would otherwise reset the chosen model).
+  String? _lastCommittedText;
+
+  void _commitExactMatchIfTyped() {
+    final text = widget.controller.text;
+    if (text.trim().isEmpty || text == _lastCommittedText) return;
+    final match = SearchableDropdownField.findExactMatch(widget.items, text, widget.itemLabel);
+    if (match != null) {
+      widget.controller.text = widget.itemLabel(match).tr;
+      _lastCommittedText = widget.controller.text;
+      widget.onSelected(match);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return TypeAheadField<T>(
-      controller: controller,
-      suggestionsCallback: (pattern) => filterSuggestions(items, pattern, itemLabel),
+      controller: widget.controller,
+      suggestionsCallback: (pattern) =>
+          SearchableDropdownField.filterSuggestions(widget.items, pattern, widget.itemLabel),
       builder: (context, fieldController, focusNode) {
         return Container(
           width: Get.width,
@@ -53,9 +92,14 @@ class SearchableDropdownField<T> extends StatelessWidget {
             focusNode: focusNode,
             cursorColor: Theme.of(context).primaryColor,
             style: textRegular.copyWith(color: Theme.of(context).textTheme.bodyMedium!.color),
+            onSubmitted: (_) => _commitExactMatchIfTyped(),
+            onTapOutside: (_) {
+              _commitExactMatchIfTyped();
+              focusNode.unfocus();
+            },
             decoration: InputDecoration(
               border: InputBorder.none,
-              hintText: hintText,
+              hintText: widget.hintText,
               hintStyle: textRegular.copyWith(color: Theme.of(context).hintColor),
               suffixIcon: Icon(Icons.keyboard_arrow_down, color: Theme.of(context).hintColor),
             ),
@@ -66,14 +110,15 @@ class SearchableDropdownField<T> extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
           child: Text(
-            itemLabel(item).tr,
+            widget.itemLabel(item).tr,
             style: textRegular.copyWith(color: Theme.of(context).textTheme.bodyMedium!.color),
           ),
         );
       },
       onSelected: (item) {
-        controller.text = itemLabel(item).tr;
-        onSelected(item);
+        widget.controller.text = widget.itemLabel(item).tr;
+        _lastCommittedText = widget.controller.text;
+        widget.onSelected(item);
       },
       emptyBuilder: (context) => Padding(
         padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),

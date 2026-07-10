@@ -26,7 +26,7 @@ class PickMapScreen extends StatefulWidget {
 }
 
 class _PickMapScreenState extends State<PickMapScreen> {
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   CameraPosition? _cameraPosition;
   bool _isCameraMoving = false;
 
@@ -58,7 +58,7 @@ class _PickMapScreenState extends State<PickMapScreen> {
               minMaxZoomPreference: const MinMaxZoomPreference(0, 16),
               onMapCreated: (VitoMapController vitoController) {
                 Future.delayed(const Duration(milliseconds: 1000)).then((value) {
-                  _mapController = vitoController.googleController;
+                  _mapController = vitoController;
                     Get.find<LocationController>().updatePosition(
                       _cameraPosition?.target ?? (widget.address != null ?
                       LatLng(widget.address?.latitude ?? 0, widget.address?.longitude ?? 0) :

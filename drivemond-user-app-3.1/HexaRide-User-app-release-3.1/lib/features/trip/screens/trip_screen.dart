@@ -73,6 +73,9 @@ class _TripScreenState extends State<TripScreen> with SingleTickerProviderStateM
                           },
                         ),
                         isDense: true,
+                        // Search runs over trips loaded so far, not the full
+                        // server history — say so instead of looking broken.
+                        helperText: tripController.searchQuery.isEmpty ? null : 'search_loaded_trips_hint'.tr,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
                         ),

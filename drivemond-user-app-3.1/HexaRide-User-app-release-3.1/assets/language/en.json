@@ -1183,6 +1183,7 @@
   "featured_products": "Featured Products",
   "popular_products": "Popular Products",
   "all_products": "All Products",
+  "search_loaded_trips_hint": "Searches trips loaded so far \u2014 scroll to load more",
   "search_trips": "Search trips",
   "select_on_map": "Select on map",
   "saved_addresses": "Saved addresses",

@@ -23,7 +23,7 @@ class OutOfZoneMapScreen extends StatefulWidget {
 }
 
 class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
-  GoogleMapController? _mapController;
+  VitoMapController? _mapController;
   Timer? _timer ;
   Set<Polygon> _polygons = {};
   Set<Polyline> _polyLine = {};
@@ -140,7 +140,7 @@ class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
               initialTarget: Get.find<LocationController>().initialPosition,
               initialZoom: 16,
               onMapCreated: (VitoMapController vitoController) async {
-                _mapController = vitoController.googleController;
+                _mapController = vitoController;
                 await _loadData();
 
                 _setMapBounds();
@@ -180,10 +180,9 @@ class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
                   iconColor: Theme.of(context).primaryColor,
                   title: '', icon: Images.currentLocation,
                   onTap: () async {
-                   _mapController?.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
-                     target: LatLng(location!.latitude, location!.longitude),
-                     zoom: 12,
-                   )));
+                   _mapController?.moveCamera(
+                     LatLng(location!.latitude, location!.longitude), zoom: 12,
+                   );
                   },
                 );
               }),
@@ -204,10 +203,17 @@ class _OutOfZoneMapScreenState extends State<OutOfZoneMapScreen> {
     zoomToFit(_mapController, bounds, centerBounds, 0);
   }
 
-  Future<void> zoomToFit(GoogleMapController? controller, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.2}) async {
+  Future<void> zoomToFit(VitoMapController? vitoController, LatLngBounds? bounds, LatLng centerBounds, double bearing, {double padding = 0.2}) async {
+    final GoogleMapController? controller = vitoController?.googleController;
+    if (controller == null) {
+      // Mapbox branch: no getVisibleRegion — frame the zone with the unified
+      // bounds-fitting camera instead of the zoom-out loop.
+      if (bounds != null) await vitoController?.fitBounds(bounds, padding: 60);
+      return;
+    }
     bool keepZoomingOut = true;
     while(keepZoomingOut) {
-      final LatLngBounds screenBounds = await controller!.getVisibleRegion();
+      final LatLngBounds screenBounds = await controller.getVisibleRegion();
       if(fits(bounds!, screenBounds)) {
         keepZoomingOut = false;
         final double zoomLevel = await controller.getZoomLevel() - padding;
