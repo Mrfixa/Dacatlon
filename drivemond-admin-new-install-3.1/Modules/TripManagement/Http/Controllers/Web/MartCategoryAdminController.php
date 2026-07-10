@@ -74,7 +74,16 @@ class MartCategoryAdminController extends Controller
     public function destroy(string $id): RedirectResponse
     {
         $this->authorize('vito_mart_delete');
-        MartCategory::findOrFail($id)->delete();
+        $category = MartCategory::findOrFail($id);
+        // Products reference the category by name (no FK) — deleting one that is
+        // still in use would strand those products on a name the dropdown no
+        // longer offers. Force the admin to move the products first.
+        $inUse = \Modules\TripManagement\Entities\MartProduct::where('category', $category->name)->count();
+        if ($inUse > 0) {
+            Toastr::error(translate('category_has_products_reassign_first') . ' (' . $inUse . ')');
+            return back();
+        }
+        $category->delete();
         Toastr::success(translate('category_deleted_successfully'));
         return back();
     }

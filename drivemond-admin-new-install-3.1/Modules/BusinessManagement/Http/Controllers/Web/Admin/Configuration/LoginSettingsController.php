@@ -37,12 +37,14 @@ class LoginSettingsController extends BaseController
     }
 
     public function store(LoginSettingsStoreOrUpdateRequest $request) {
+        $this->authorize('business_edit');
        $this->businessSettingService->updateLoginSettingsData(data: $request->validated());
 
         return response()->json(['success' => true, 'successMessage' => 'Information Updated Successfully!', 'redirectUrl' => route('admin.business.configuration.login-settings.index')]);
     }
 
     public function otpLoginAttemptsIndex() {
+        $this->authorize('business_view');
         $settings = $this->businessSettingService
             ->getBy(criteria: ['settings_type' => 'business_settings']);
 
@@ -51,6 +53,7 @@ class LoginSettingsController extends BaseController
 
     public function otpLoginAttemptsStore(OtpAndLoginAttemptsStoreOrUpdateRequest $request)
     {
+        $this->authorize('business_edit');
         $this->businessSettingService->updateOtpLoginAttemptsData($request->validated());
 
         return response()->json(['success' => true, 'successMessage' => 'Information Updated Successfully!', 'redirectUrl' => route('admin.business.configuration.login-settings.otp-login-attempts-index')]);

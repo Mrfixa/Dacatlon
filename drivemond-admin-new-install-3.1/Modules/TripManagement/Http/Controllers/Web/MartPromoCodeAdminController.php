@@ -85,7 +85,11 @@ class MartPromoCodeAdminController extends Controller
         $validated = $request->validate([
             'code'             => $codeRule,
             'discount_type'    => 'required|in:percent,fixed',
-            'discount_value'   => 'required|numeric|min:0.01|max:999999.99',
+            // Percent promos are capped at 100 — computeDiscount clamps at the
+            // subtotal anyway, but a fat-fingered 1000% should fail loudly here.
+            'discount_value'   => $request->input('discount_type') === 'percent'
+                ? 'required|numeric|min:0.01|max:100'
+                : 'required|numeric|min:0.01|max:999999.99',
             'min_order_amount' => 'nullable|numeric|min:0|max:999999.99',
             'max_discount'     => 'nullable|numeric|min:0|max:999999.99',
             'usage_limit'      => 'nullable|integer|min:1|max:1000000',

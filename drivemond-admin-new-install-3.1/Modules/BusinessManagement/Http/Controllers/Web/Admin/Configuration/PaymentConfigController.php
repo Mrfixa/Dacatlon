@@ -32,6 +32,7 @@ class PaymentConfigController extends BaseController
 
     public function paymentConfigGet()
     {
+        $this->authorize('business_view');
         $dataValues = $this->settingService->getBy(criteria: ['settings_type' => PAYMENT_CONFIG]);
         return view('businessmanagement::admin.configuration.payment-methods', compact('dataValues'));
     }
@@ -39,6 +40,7 @@ class PaymentConfigController extends BaseController
 
     public function paymentConfigSet(PaymentConfigSetupStoreOrUpdateRequest $request)
     {
+        $this->authorize('business_edit');
         $this->settingService->storeOrUpdatePaymentSetting($request->validated());
         Toastr::success(DEFAULT_UPDATE_200['message']);
         return back();

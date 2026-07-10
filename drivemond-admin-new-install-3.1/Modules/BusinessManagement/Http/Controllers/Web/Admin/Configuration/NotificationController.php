@@ -48,6 +48,7 @@ class NotificationController extends BaseController
 
     public function firebasePushNotificationFields(string $type = null): JsonResponse
     {
+        $this->authorize('business_view');
         $notifications = $this->firebasePushNotificationService->getBy(criteria: ['type' => convertToSnakeCaseIfNeeded($type)])->groupBy('group');
         return response()->json(view('businessmanagement::admin.configuration.partials._firebase-notification-fields', compact('notifications', 'type'))->render());
     }
@@ -92,6 +93,7 @@ class NotificationController extends BaseController
 
     public function pushStore(FirebasePushNotificationsUpdateRequest $request, $type): JsonResponse
     {
+        $this->authorize('business_edit');
         try {
             foreach ($request['notification'] as $notification) {
                 $status = array_key_exists('status', $notification) ? 1 : 0;

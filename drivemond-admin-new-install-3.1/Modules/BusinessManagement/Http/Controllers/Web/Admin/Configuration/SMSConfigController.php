@@ -33,6 +33,7 @@ class SMSConfigController extends BaseController
 
     public function smsConfigGet(): Application|Factory|\Illuminate\Contracts\View\View|\Illuminate\Foundation\Application
     {
+        $this->authorize('business_view');
         $dataValues = $this->settingService->getBy(criteria: ['settings_type' => SMS_CONFIG]);
         return view('businessmanagement::admin.configuration.sms-gateway', compact('dataValues'));
     }
@@ -44,6 +45,7 @@ class SMSConfigController extends BaseController
      */
     public function smsConfigSet(SmsSettingSetupStoreOrUpdateRequest $request): RedirectResponse
     {
+        $this->authorize('business_edit');
         $this->settingService->storeOrUpdateSMSSetting($request->validated());
         Toastr::success(DEFAULT_UPDATE_200['message']);
         return back();

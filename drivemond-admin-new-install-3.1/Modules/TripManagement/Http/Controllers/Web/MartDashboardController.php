@@ -39,6 +39,9 @@ class MartDashboardController extends Controller
         // Top 5 products by quantity sold (joined through order items).
         $topProducts = DB::table('mart_order_items')
             ->join('mart_products', 'mart_products.id', '=', 'mart_order_items.product_id')
+            ->join('mart_orders', 'mart_orders.id', '=', 'mart_order_items.order_id')
+            // Honour the same date range as every other card on this dashboard.
+            ->when($from && $to, fn ($q) => $q->whereBetween('mart_orders.created_at', [$from, $to]))
             ->select('mart_products.name', DB::raw('SUM(mart_order_items.quantity) as qty'), DB::raw('SUM(mart_order_items.total_price) as revenue'))
             ->groupBy('mart_products.id', 'mart_products.name')
             ->orderByDesc('qty')
