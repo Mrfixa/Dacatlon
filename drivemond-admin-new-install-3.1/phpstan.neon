@@ -6,6 +6,15 @@ includes:
 
 parameters:
     level: 1
+    # larastan infers model column types from migrations. Its default only scans
+    # database/migrations; the canonical mart/auth/gateway create-tables live in
+    # the module migration dirs, so include those or model properties read as
+    # "undefined" (e.g. MartPromoCode::$used_count).
+    databaseMigrationsPath:
+        - database/migrations
+        - Modules/TripManagement/Database/Migrations
+        - Modules/AuthManagement/Database/Migrations
+        - Modules/Gateways/Database/Migrations
     paths:
         - Modules/AuthManagement/Http/Controllers/Api/VitoAuthController.php
         - Modules/AuthManagement/Http/Controllers/Api/QrTokenController.php
