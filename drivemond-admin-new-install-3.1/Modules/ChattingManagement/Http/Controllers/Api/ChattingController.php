@@ -51,6 +51,9 @@ class ChattingController extends Controller
 
     public function findChannel(Request $request)
     {
+        if (!$request->filled('channel_id')) {
+            return response()->json(responseFormatter(constant: DEFAULT_404), 404);
+        }
         $channel = $this->channelListService->findOne($request['channel_id']);
         if (!$channel) {
             return response()->json(responseFormatter(constant: DEFAULT_404), 404);
@@ -305,6 +308,9 @@ class ChattingController extends Controller
 
     public function conversation(Request $request): JsonResponse
     {
+        if (!$request->filled('channel_id')) {
+            return response()->json(responseFormatter(constant: DEFAULT_400), 400);
+        }
 
         $user = auth()->user();
         $channelUser = $this->channelUserService->findOneBy(criteria: ['channel_id' => $request['channel_id'], ['user_id', '!=', $user->id]]);
@@ -318,7 +324,7 @@ class ChattingController extends Controller
         $whereHasRelations = [
             'channel.channel_users' => ['user_id' => $user->id]
         ];
-        $this->channelConversationService->updatedBy(criteria: ['channel_id' => $request['channel_id'], 'user_id' => $channelUser->user_id], data: ['is_read' => 1]);
+        $this->channelConversationService->updatedBy(criteria: ['channel_id' => $request['channel_id'], 'user_id' => $channelUser?->user_id], data: ['is_read' => 1]);
         $conversations = $this->channelConversationService->getBy(
             criteria: $attributes,
             whereHasRelations: $whereHasRelations,

@@ -516,6 +516,9 @@ class TripRequestController extends Controller
 
     public function finalFareCalculation(Request $request): JsonResponse
     {
+        if (!$request->filled('trip_request_id')) {
+            return response()->json(responseFormatter(constant: TRIP_REQUEST_404), 404);
+        }
         $trip = $this->tripRequestService->findOne(
             id: $request['trip_request_id'],
             relations: ['vehicleCategory.tripFares', 'customer', 'driver', 'coupon', 'discount', 'time', 'coordinate', 'fee', 'tripStatus', 'parcelRefund']
