@@ -56,7 +56,7 @@ class _ProfileStatusCardWidgetState extends State<ProfileStatusCardWidget> {
             SizedBox(child: ClipRRect(
               borderRadius: BorderRadius.circular(Dimensions.paddingSizeExtraSmall),
               child: ImageWidget(width: 40,height: 40,
-                image: '${Get.find<SplashController>().config!.imageBaseUrl!.profileImage}/${widget.profileController.profileInfo!.profileImage}',
+                image: '${Get.find<SplashController>().config?.imageBaseUrl?.profileImage ?? ''}/${widget.profileController.profileInfo!.profileImage}',
               ),
             )),
             const SizedBox(width: Dimensions.paddingSizeDefault),
@@ -132,7 +132,7 @@ class _ProfileStatusCardWidgetState extends State<ProfileStatusCardWidget> {
               ]),
               const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
-              if(Get.find<SplashController>().config!.levelStatus!)
+              if(Get.find<SplashController>().config?.levelStatus ?? false)
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withValues(alpha: .10),

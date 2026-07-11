@@ -100,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> loadData({bool isReload = false}) async{
     if (mounted) setState(() => _isLoading = true);
 
+    try {
     if(isReload) {
       Get.find<ConfigController>().getConfigData();
     }
@@ -148,8 +149,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     HomeScreenHelper.checkMaintanceMode();
-    
-    if (mounted) setState(() => _isLoading = false);
+    } finally {
+      // Always clear the loader — a throw in any awaited call above must not leave
+      // the home stuck on HomeShimmer forever.
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
 

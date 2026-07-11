@@ -64,6 +64,12 @@ jobs:
         id: build
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          # Exported to the process env (not just --dart-define) so Gradle's
+          # System.getenv("MAPS_API_KEY") in android/app/build.gradle.kts resolves the real
+          # key into the native manifest. Without this the APK ships "YOUR_MAP_KEY_HERE" and
+          # the Google Maps SDK renders solid grey tiles.
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
           set -o pipefail
           flutter build apk --release \
@@ -159,6 +165,12 @@ jobs:
         id: build
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          # Exported to the process env (not just --dart-define) so Gradle's
+          # System.getenv("MAPS_API_KEY") in android/app/build.gradle.kts resolves the real
+          # key into the native manifest. Without this the APK ships "YOUR_MAP_KEY_HERE" and
+          # the Google Maps SDK renders solid grey tiles.
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
           set -o pipefail
           flutter build apk --release \

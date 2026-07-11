@@ -395,7 +395,7 @@ void _setMapCurrentRoutes(){
 
         }else if((rideController.currentTripDetails!.currentStatus == AppConstants.completed && rideController.currentTripDetails!.paymentStatus == AppConstants.unPaid)
             || (rideController.currentTripDetails!.currentStatus == AppConstants.cancelled && rideController.currentTripDetails!.paymentStatus == AppConstants.unPaid &&
-                rideController.currentTripDetails!.paidFare! > 0)){
+                (rideController.currentTripDetails!.paidFare ?? 0) > 0)){
           Get.off(()=>const PaymentScreen(fromParcel: false));
         } else{
           Get.offAll(()=> const DashboardScreen());

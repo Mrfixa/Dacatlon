@@ -144,6 +144,9 @@ jobs:
       - name: Build debug APK
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          # Native manifest key for Gradle's System.getenv (see build-apk.yml note).
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
@@ -210,6 +213,9 @@ jobs:
       - name: Build debug APK
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          # Native manifest key for Gradle's System.getenv (see build-apk.yml note).
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
           flutter build apk --debug \
             --dart-define=MAPS_API_KEY=${{ secrets.MAPS_API_KEY }} \
