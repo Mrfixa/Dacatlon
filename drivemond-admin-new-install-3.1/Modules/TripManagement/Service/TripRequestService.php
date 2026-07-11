@@ -1553,6 +1553,10 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
 
     public function rideList(array $data = [])
     {
+        // filter/status/start/end are optional query params; default the keys so a request
+        // without them returns a list instead of 500ing on an undefined array key.
+        $data += ['filter' => null, 'status' => null, 'start' => null, 'end' => null];
+        $date = null;
         if (!is_null($data['filter']) && $data['filter'] != CUSTOM_DATE) {
             $date = getDateRange($data['filter']);
         } elseif (!is_null($data['filter'])) {
@@ -1562,9 +1566,11 @@ class TripRequestService extends BaseService implements TripRequestServiceInterf
             ]);
         }
 
-        $whereBetweenCriteria = [
+        // No filter → no date restriction (return all rides) instead of dereferencing an
+        // undefined $date.
+        $whereBetweenCriteria = $date ? [
             'created_at' => [$date['start'], $date['end']],
-        ];
+        ] : [];
 
         $criteria = [
             'driver_id' => auth('api')->id(),
