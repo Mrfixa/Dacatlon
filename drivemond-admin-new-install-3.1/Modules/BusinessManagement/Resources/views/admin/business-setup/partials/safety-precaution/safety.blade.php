@@ -21,16 +21,16 @@
                            data-name="safety_feature_status"
                            data-type="{{SAFETY_FEATURE_SETTINGS}}"
                            data-url="{{route('admin.business.setup.update-business-setting')}}"
-                           data-icon=" {{($settings->firstWhere('key_name', 'safety_feature_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-safety-feature.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-safety-feature.svg')}}"
+                           data-icon=" {{($settings->firstWhere('key_name', 'safety_feature_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-safety-feature.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-safety-feature.svg')}}"
                            data-title="{{translate('Are you sure')}}?"
                            data-sub-title="{{
-                                         ($settings->firstWhere('key_name', 'safety_feature_status')->value?? 0) == 1 ?
+                                         ($settings->firstWhere('key_name', 'safety_feature_status')?->value?? 0) == 1 ?
                                          translate('Do you want to turn Off '). "<b>" . translate('Safety Feature') ."</b>? " . translate("When it is off") . ', ' . translate('the customer and the driver can not send safety alert & communicate with emergency number.') :
                                          translate('Do you want to turn ON '). "<b>" . translate('Safety Feature') ."</b>? " . translate("When it is on") . ', ' . translate('the customer and the driver can send safety alert & communicate with emergency number.')
                                          }}"
-                           data-confirm-btn="{{($settings->firstWhere('key_name', 'safety_feature_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                           data-confirm-btn="{{($settings->firstWhere('key_name', 'safety_feature_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
                            data-target-content=".safety_view-card"
-                        {{($settings->firstWhere('key_name', 'safety_feature_status')->value?? 0) == 1? 'checked' : ''}}
+                        {{($settings->firstWhere('key_name', 'safety_feature_status')?->value?? 0) == 1? 'checked' : ''}}
                     >
                     <span class="switcher_control"></span>
                 </label>
@@ -168,15 +168,15 @@
                            data-name="emergency_number_for_call_status"
                            data-type="{{SAFETY_FEATURE_SETTINGS}}"
                            data-url="{{route('admin.business.setup.update-business-setting')}}"
-                           data-icon=" {{($settings->firstWhere('key_name', 'emergency_number_for_call_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-emergency-number.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-emergency-number.svg')}}"
+                           data-icon=" {{($settings->firstWhere('key_name', 'emergency_number_for_call_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-emergency-number.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-emergency-number.svg')}}"
                            data-title="{{translate('Are you sure')}}?"
                            data-sub-title="{{
-                                                ($settings->firstWhere('key_name', 'emergency_number_for_call_status')->value?? 0) == 1 ?
+                                                ($settings->firstWhere('key_name', 'emergency_number_for_call_status')?->value?? 0) == 1 ?
                                                  translate('Do you want to turn OFF Emergency Number for Call option for driver and customer')."? ":
                                                  translate('Do you want to turn ON Emergency Number for Call option for driver and customer')."? "
                                                   }}"
-                           data-confirm-btn="{{($settings->firstWhere('key_name', 'emergency_number_for_call_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
-                        {{($settings->firstWhere('key_name', 'emergency_number_for_call_status')->value?? 0) == 1? 'checked' : ''}}
+                           data-confirm-btn="{{($settings->firstWhere('key_name', 'emergency_number_for_call_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                        {{($settings->firstWhere('key_name', 'emergency_number_for_call_status')?->value?? 0) == 1? 'checked' : ''}}
                     >
                     <span class="switcher_control"></span>
                 </label>
@@ -382,15 +382,15 @@
                            data-name="safety_alert_reasons_status"
                            data-type="{{SAFETY_FEATURE_SETTINGS}}"
                            data-url="{{route('admin.business.setup.update-business-setting')}}"
-                           data-icon=" {{($settings->firstWhere('key_name', 'safety_alert_reasons_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-safety-alert-reason.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-safety-alert-reason.svg')}}"
+                           data-icon=" {{($settings->firstWhere('key_name', 'safety_alert_reasons_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-safety-alert-reason.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-safety-alert-reason.svg')}}"
                            data-title="{{translate('Are you sure')}}?"
                            data-sub-title="{{
-                                            ($settings->firstWhere('key_name', 'safety_alert_reasons_status')->value?? 0) == 1 ?
+                                            ($settings->firstWhere('key_name', 'safety_alert_reasons_status')?->value?? 0) == 1 ?
                                              translate('Do you want to turn OFF Safety Alert Reasons option for customer and driver')."? ":
                                               translate('Do you want to turn ON Safety Alert Reasons option for customer and driver')."? "
                                               }}"
-                           data-confirm-btn="{{($settings->firstWhere('key_name', 'safety_alert_reasons_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
-                        {{($settings->firstWhere('key_name', 'safety_alert_reasons_status')->value?? 0) == 1? 'checked' : ''}}
+                           data-confirm-btn="{{($settings->firstWhere('key_name', 'safety_alert_reasons_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                        {{($settings->firstWhere('key_name', 'safety_alert_reasons_status')?->value?? 0) == 1? 'checked' : ''}}
                     >
                     <span class="switcher_control"></span>
                 </label>

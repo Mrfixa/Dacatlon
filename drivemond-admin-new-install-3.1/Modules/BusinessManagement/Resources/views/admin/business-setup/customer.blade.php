@@ -34,7 +34,7 @@
                                 <label class="switcher rounded-pill cmn_focus">
                                     <input class="switcher_input" id="customerReview" name="customer_review"
                                            type="checkbox" data-type="{{CUSTOMER_SETTINGS}}" tabindex="2"
-                                        {{($settings->firstWhere('key_name', CUSTOMER_REVIEW)->value?? 0) == 1? 'checked' : ''}}
+                                        {{($settings->firstWhere('key_name', CUSTOMER_REVIEW)?->value?? 0) == 1? 'checked' : ''}}
                                     >
                                     <span class="switcher_control"></span>
                                 </label>
@@ -70,10 +70,10 @@
                                            data-name="{{CUSTOMER_LEVEL}}"
                                            data-type="{{CUSTOMER_SETTINGS}}"
                                            data-url="{{route('admin.business.setup.update-business-setting')}}"
-                                           data-icon="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)->value?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png')}}"
-                                           data-title="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)->value?? 0) == 0?translate('By Turning ON Level Feature') .'?' : translate('By Turning OFF Level Feature').'?'}}"
-                                           data-sub-title="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)->value?? 0) == 0?translate('If you turn ON level feature, customer will see this feature on app.') : translate('If you turning off customer level feature, please do it at the beginning stage of business. Because once driver use this feature & you will off this feature they will be confused or worried about it.')}}"
-                                        {{($settings->firstWhere('key_name', CUSTOMER_LEVEL)->value?? 0) == 1? 'checked' : ''}}
+                                           data-icon="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)?->value?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png')}}"
+                                           data-title="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)?->value?? 0) == 0?translate('By Turning ON Level Feature') .'?' : translate('By Turning OFF Level Feature').'?'}}"
+                                           data-sub-title="{{($settings->firstWhere('key_name', CUSTOMER_LEVEL)?->value?? 0) == 0?translate('If you turn ON level feature, customer will see this feature on app.') : translate('If you turning off customer level feature, please do it at the beginning stage of business. Because once driver use this feature & you will off this feature they will be confused or worried about it.')}}"
+                                        {{($settings->firstWhere('key_name', CUSTOMER_LEVEL)?->value?? 0) == 1? 'checked' : ''}}
                                     >
                                     <span class="switcher_control"></span>
                                 </label>

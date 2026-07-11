@@ -158,8 +158,8 @@
                                                        data-url="{{route('admin.business.setup.update-business-setting')}}"
                                                        data-icon=" {{dynamicAsset('public/assets/admin-module/img/extra-fare.png')}}"
                                                        data-title="{{translate('Are you Sure to turn off Extra Fare for All Zones') .'?'}}"
-                                                       data-sub-title="{{($allZoneExtraFareSetups->firstWhere('key_name', 'extra_fare_status')->value?? 0) == 1 ? translate('Once you turn off this option, Customers will not be required to pay any Extra Fares.') : ""}}"
-                                                       data-confirm-btn="{{($allZoneExtraFareSetups->firstWhere('key_name', 'extra_fare_status')->value?? 0) == 1 ? translate('Turn Off') : ""}}"
+                                                       data-sub-title="{{($allZoneExtraFareSetups->firstWhere('key_name', 'extra_fare_status')?->value?? 0) == 1 ? translate('Once you turn off this option, Customers will not be required to pay any Extra Fares.') : ""}}"
+                                                       data-confirm-btn="{{($allZoneExtraFareSetups->firstWhere('key_name', 'extra_fare_status')?->value?? 0) == 1 ? translate('Turn Off') : ""}}"
                                                     {{$allZoneExtraFareSetups->firstWhere('key_name', 'extra_fare_status')?->value == 1 ? "checked" : 'disabled'}}
                                                 >
                                             </label>

@@ -161,7 +161,7 @@
                                                                     class="text-danger">*</span>
                                                         </label>
                                                         <input type="email" name="business_contact_email"
-                                                               value="{{ $settings->firstWhere('key_name', 'business_contact_email')->value ?? old('business_contact_email') }}"
+                                                               value="{{ $settings->firstWhere('key_name', 'business_contact_email')?->value ?? old('business_contact_email') }}"
                                                                id="business_email"
                                                                class="form-control {{ $settings->firstWhere('key_name', 'business_contact_email')?->value ?? old('business_contact_email') ? 'dark-border' : '' }}"
                                                                placeholder="{{ translate('Ex: company@email.com') }}"
@@ -218,7 +218,7 @@
                                                                 {{ translate('Select_your_country') }}</option>
                                                             @foreach (COUNTRIES as $country)
                                                                 <option value="{{ $country['code'] }}"
-                                                                        {{ ($settings->where('key_name', 'country_code')->first()->value ?? '') == $country['code'] ? 'selected' : '' }}>
+                                                                        {{ ($settings->where('key_name', 'country_code')->first()?->value ?? '') == $country['code'] ? 'selected' : '' }}>
                                                                     {{ $country['name'] }}</option>
                                                             @endforeach
                                                         </select>
@@ -289,7 +289,7 @@
                                                                 {{ translate('select_your_time_zone') }}</option>
                                                             @foreach (TIME_ZONES as $zone)
                                                                 <option value="{{ $zone['tzCode'] }}"
-                                                                        {{ ($settings->where('key_name', 'time_zone')->first()->value ?? '') == $zone['tzCode'] ? 'selected' : '' }}>
+                                                                        {{ ($settings->where('key_name', 'time_zone')->first()?->value ?? '') == $zone['tzCode'] ? 'selected' : '' }}>
                                                                     (GMT{{ $zone['utc'] }})
                                                                     {{ $zone['tzCode'] }}</option>
                                                             @endforeach
@@ -320,7 +320,7 @@
                                                             <div class="flex-grow-1">
                                                                 <input type="radio" name="time_format" value="H:i:s"
                                                                        id="time_format_right" tabindex="14"
-                                                                        {{ ($settings->where('key_name', 'time_format')->first()->value ?? '') == 'H:i:s' ? 'checked' : '' }}>
+                                                                        {{ ($settings->where('key_name', 'time_format')->first()?->value ?? '') == 'H:i:s' ? 'checked' : '' }}>
                                                                 <label for="time_format_right"
                                                                        class="media gap-2 align-items-center">
                                                                     <span
@@ -389,7 +389,7 @@
                                                                 ($) {{ translate('left') }}
                                                             </option>
                                                             <option
-                                                                    value="right" {{ ($settings->where('key_name', 'currency_symbol_position')->first()->value ?? '') == 'right' ? 'selected' : '' }}>
+                                                                    value="right" {{ ($settings->where('key_name', 'currency_symbol_position')->first()?->value ?? '') == 'right' ? 'selected' : '' }}>
                                                                 {{ translate('right') }} ($)
                                                             </option>
                                                         </select>
@@ -485,13 +485,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('Primary') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'website_color')->value['primary'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'website_color')?->value['primary'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="website_color[primary]"
                                                                    class="form-control form-control_color" tabindex="20"
-                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')->value['primary'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')?->value['primary'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">
@@ -507,13 +507,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('secondary') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'website_color')->value['secondary'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'website_color')?->value['secondary'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="website_color[secondary]"
                                                                    class="form-control form-control_color" tabindex="21"
-                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')->value['secondary'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')?->value['secondary'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">
@@ -529,13 +529,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('Background') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'website_color')->value['background'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'website_color')?->value['background'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="website_color[background]"
                                                                    class="form-control form-control_color" tabindex="22"
-                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')->value['background'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'website_color')?->value['background'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">
@@ -551,13 +551,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('Text_Dark') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'text_color')->value['primary'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'text_color')?->value['primary'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="text_color[primary]"
                                                                    class="form-control form-control_color" tabindex="23"
-                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')->value['primary'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')?->value['primary'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">
@@ -573,13 +573,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('Text_Medium') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'text_color')->value['secondary'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'text_color')?->value['secondary'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="text_color[secondary]"
                                                                    class="form-control form-control_color" tabindex="24"
-                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')->value['secondary'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')?->value['secondary'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">
@@ -595,13 +595,13 @@
                                                         <div class="fs-12 text-dark">
                                                             <div class="mb-1">{{ translate('Text_Light') }}</div>
                                                             <div class="color_code text-uppercase">
-                                                                {{ $settings->firstWhere('key_name', 'text_color')->value['light'] ?? null }}
+                                                                {{ $settings->firstWhere('key_name', 'text_color')?->value['light'] ?? null }}
                                                             </div>
                                                         </div>
                                                         <div class="color-code-wrapper border rounded">
                                                             <input type="color" name="text_color[light]"
                                                                    class="form-control form-control_color" tabindex="25"
-                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')->value['light'] ?? null }}">
+                                                                   value="{{ $settings->firstWhere('key_name', 'text_color')?->value['light'] ?? null }}">
                                                             <div class="hover-div text-white">
                                                                 <div
                                                                         class="d-flex justify-content-center align-items-center h-100">

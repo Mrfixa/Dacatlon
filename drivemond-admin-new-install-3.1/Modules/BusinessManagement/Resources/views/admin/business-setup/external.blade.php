@@ -45,7 +45,7 @@
                                         <input
                                             data-url="{{ route('admin.business.setup.info.maintenance') }}"
                                             type="checkbox" id="maintenance-mode-input" name="activation_mode"
-                                            class="switcher_input" {{ ($settings->firstWhere('key', 'activation_mode')->value ?? 0) == 1 ? 'checked' : '' }} {{env('APP_MODE')=='demo' ? 'disabled' : ''}}>
+                                            class="switcher_input" {{ ($settings->firstWhere('key', 'activation_mode')?->value ?? 0) == 1 ? 'checked' : '' }} {{env('APP_MODE')=='demo' ? 'disabled' : ''}}>
                                         <span class="switcher_control"></span>
                                     </label>
                                 </div>

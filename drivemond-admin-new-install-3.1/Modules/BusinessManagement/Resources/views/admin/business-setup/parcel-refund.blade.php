@@ -43,9 +43,9 @@
                                                 data-url="{{route('admin.business.setup.update-business-setting')}}"
                                                 data-icon=" {{dynamicAsset('public/assets/admin-module/img/parcel_tracking.png')}}"
                                                 data-title="{{translate('Are you sure')}}?"
-                                                data-sub-title="{{($settings->firstWhere('key_name', 'parcel_refund_status')->value?? 0) == 1 ? translate('Do you want to turn OFF Parcel Refund for customer')."? " .translate("When it’s off the customer will not be able to  refund any parcel.") : translate('Do you want to turn ON Parcel Refund for customer')."? ". translate('When it’s off the customer will be able to  refund any parcel.')}}"
-                                                data-confirm-btn="{{($settings->firstWhere('key_name', 'parcel_refund_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
-                                            {{($settings->firstWhere('key_name', 'parcel_refund_status')->value?? 0) == 1? 'checked' : ''}}
+                                                data-sub-title="{{($settings->firstWhere('key_name', 'parcel_refund_status')?->value?? 0) == 1 ? translate('Do you want to turn OFF Parcel Refund for customer')."? " .translate("When it’s off the customer will not be able to  refund any parcel.") : translate('Do you want to turn ON Parcel Refund for customer')."? ". translate('When it’s off the customer will be able to  refund any parcel.')}}"
+                                                data-confirm-btn="{{($settings->firstWhere('key_name', 'parcel_refund_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                                            {{($settings->firstWhere('key_name', 'parcel_refund_status')?->value?? 0) == 1? 'checked' : ''}}
                                         >
                                         <span class="switcher_control"></span>
                                     </label>

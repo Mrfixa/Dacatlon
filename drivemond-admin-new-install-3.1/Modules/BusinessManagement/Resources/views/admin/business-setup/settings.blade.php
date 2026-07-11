@@ -36,7 +36,7 @@
                                         <input type="number" name="trip_commission"
                                             class="form-control" id="business_name"
                                             placeholder="{{translate('Ex: 5')}}" step="0.1"
-                                            value="{{$settings->firstWhere('key_name', 'trip_commission')->value ?? ''}}"
+                                            value="{{$settings->firstWhere('key_name', 'trip_commission')?->value ?? ''}}"
                                         tabindex="1">
                                     </div>
                                     <div class="col-lg-6">
@@ -50,7 +50,7 @@
                                             <input type="number" name="vat_percent" class="form-control"
                                                     id="business_contact_num" tabindex="2"
                                                     placeholder="{{translate('Ex: 5')}}" step="0.1"
-                                                    value="{{$settings->firstWhere('key_name', 'vat_percent')->value ?? ''}}">
+                                                    value="{{$settings->firstWhere('key_name', 'vat_percent')?->value ?? ''}}">
                                         </div>
                                     </div>
                                 </div>
@@ -77,7 +77,7 @@
                                         <input type="number" name="search_radius" class="form-control"
                                             step="any" tabindex="3"
                                             id="business_email" placeholder="{{translate('Ex: 5')}}"
-                                            value="{{$settings->firstWhere('key_name', 'search_radius')->value ?? ''}}">
+                                            value="{{$settings->firstWhere('key_name', 'search_radius')?->value ?? ''}}">
 
                                     </div>
                                     <div class="col-lg-6">
@@ -92,7 +92,7 @@
                                                 class="form-control" step="any" tabindex="4"
                                                 id="driver_completion_radius"
                                                 placeholder="{{translate('Ex: 15')}}"
-                                                value="{{$settings->firstWhere('key_name', 'driver_completion_radius')->value ?? ''}}">
+                                                value="{{$settings->firstWhere('key_name', 'driver_completion_radius')?->value ?? ''}}">
 
                                         </div>
                                     </div>
@@ -107,7 +107,7 @@
                                             <input type="text" name="websocket_url" class="form-control"
                                                 id="websocket_url" tabindex="5"
                                                 placeholder="{{translate('Ex: your_domain_name')}}"
-                                                value="{{$settings->firstWhere('key_name', 'websocket_url')->value ?? env('PUSHER_HOST')}}" disabled>
+                                                value="{{$settings->firstWhere('key_name', 'websocket_url')?->value ?? env('PUSHER_HOST')}}" disabled>
                                         </div>
                                     </div>
                                     <div class="col-lg-6">
@@ -120,7 +120,7 @@
                                             </label>
                                             <input type="number" name="websocket_port" class="form-control"
                                                 id="business_email" placeholder="{{translate('Ex: 6001')}}" tabindex="6"
-                                                value="{{$settings->firstWhere('key_name', 'websocket_port')->value ?? ''}}">
+                                                value="{{$settings->firstWhere('key_name', 'websocket_port')?->value ?? ''}}">
                                         </div>
                                     </div>
                                 </div>
@@ -171,7 +171,7 @@
                                 <input type="number" name="pagination_limit" tabindex="13"
                                     class="form-control" id="business_email"
                                     placeholder="{{translate('Ex: 15')}}"
-                                    value="{{$settings->firstWhere('key_name', 'pagination_limit')->value ?? ''}}">
+                                    value="{{$settings->firstWhere('key_name', 'pagination_limit')?->value ?? ''}}">
                             </div>
                         </div>
                     </div>
