@@ -209,7 +209,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver{
                     ),
 
                     InkWell(
-                      onTap: () => Get.to(const ProfileScreen()),
+                      onTap: () => Get.to(() => const ProfileScreen()),
                       child: const DriverHeaderInfoWidget(),
                     ),
 

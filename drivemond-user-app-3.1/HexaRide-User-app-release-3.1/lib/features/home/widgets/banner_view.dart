@@ -20,7 +20,7 @@ class _BannerViewState extends State<BannerView> {
 
   @override
   Widget build(BuildContext context) {
-    String baseurl = Get.find<ConfigController>().config!.imageBaseUrl!.banner!;
+    String baseurl = Get.find<ConfigController>().config?.imageBaseUrl?.banner ?? '';
     return GetBuilder<BannerController>(
       builder: (bannerController) {
 

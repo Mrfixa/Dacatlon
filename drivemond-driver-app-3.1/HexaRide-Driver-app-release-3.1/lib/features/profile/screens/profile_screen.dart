@@ -82,13 +82,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: profileController.profileTypeIndex != 2 ?
                           ImageWidget(width: 80,height: 80,
                             image:
-                            '${Get.find<SplashController>().config!.imageBaseUrl!.profileImage}/'
+                            '${Get.find<SplashController>().config?.imageBaseUrl?.profileImage ?? ''}/'
                                 '${profileController.profileInfo!.profileImage!}',
                           ) :
                           profileController.profileInfo!.vehicle != null ?
                           ImageWidget(width: 80,height: 80,
                             image:
-                            '${Get.find<SplashController>().config!.imageBaseUrl!.vehicleCategory}/${profileController.profileInfo?.vehicle?.category?.image ?? ''}',
+                            '${Get.find<SplashController>().config?.imageBaseUrl?.vehicleCategory ?? ''}/${profileController.profileInfo?.vehicle?.category?.image ?? ''}',
                           ) :
                           const SizedBox(),
                         ),
@@ -195,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       scrollDirection: Axis.horizontal,
                       itemCount: profileController.profileType.length,
                       itemBuilder: (context, index){
-                        if(!(Get.find<SplashController>().config!.levelStatus! == false && index == 1)){
+                        if(!((Get.find<SplashController>().config?.levelStatus ?? false) == false && index == 1)){
                           return SizedBox(width: Get.width/2.3, child: ProfileTypeButtonWidget(
                             profileTypeName : profileController.profileType[index], index: index,
                           ));

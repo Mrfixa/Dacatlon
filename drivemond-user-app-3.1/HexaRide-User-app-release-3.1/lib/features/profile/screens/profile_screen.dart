@@ -69,7 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: ClipRRect(borderRadius: BorderRadius.circular(50),
                               child: ImageWidget(height: 70, width: 70,
                                 image: profileController.profileModel?.data?.profileImage != null ?
-                                '${Get.find<ConfigController>().config!.imageBaseUrl!.profileImage}/'
+                                '${Get.find<ConfigController>().config?.imageBaseUrl?.profileImage ?? ''}/'
                                     '${profileController.profileModel?.data?.profileImage??''}' :
                                 '',
                                 placeholder: Images.personPlaceholder, fit: BoxFit.cover,

@@ -205,7 +205,12 @@ flutter analyze --no-fatal-infos
 flutter test test/vito_flows_test.dart
 
 # Build (API keys required at build time)
-flutter build apk --debug \
+# NOTE: MAPS_API_KEY / MAPBOX_ACCESS_TOKEN must ALSO be exported as process env vars, not just
+# --dart-define. android/app/build.gradle.kts reads System.getenv("MAPS_API_KEY") to inject the
+# native Google Maps manifest key (com.google.android.geo.API_KEY); a --dart-define is a Dart
+# compile-time constant Gradle can't see, so it falls back to "YOUR_MAP_KEY_HERE" → grey map tiles.
+# CI does this in the workflow `env:` blocks (build-apk.yml / vito-ci.yml).
+MAPS_API_KEY=<key> MAPBOX_ACCESS_TOKEN=<token> flutter build apk --debug \
   --dart-define=MAPS_API_KEY=<key> \
   --dart-define=STRIPE_PUBLISHABLE_KEY=<key> \
   --dart-define=BASE_URL=<https://your-api-host>
