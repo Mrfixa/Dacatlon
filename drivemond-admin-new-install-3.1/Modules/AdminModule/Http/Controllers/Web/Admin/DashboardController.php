@@ -92,11 +92,13 @@ class DashboardController extends BaseController
         $transactions = $this->transactionService->getBy(criteria: ['user_id' => \auth()->user()->id], orderBy: ['created_at' => 'desc'])->take(7);
         $superAdmin = $this->employeeService->findOneBy(criteria: ['user_type' => 'super-admin']);
         $superAdminAccount = $this->userAccountService->findOneBy(criteria: ['user_id' => $superAdmin?->id]);
-        $customers = $this->customerService->getBy(criteria: ['user_type' => CUSTOMER, 'is_active' => true])->count();
-        $drivers = $this->driverService->getBy(criteria: ['user_type' => DRIVER, 'is_active' => true])->count();
-        $totalCouponAmountGiven = $this->tripRequestService->getBy(criteria: ['payment_status' => PAID])->SUM('coupon_amount');
-        $totalDiscountAmountGiven = $this->tripRequestService->getBy(criteria: ['payment_status' => PAID])->SUM('discount_amount');
-        $totalParcels = $this->tripRequestService->getBy(criteria: ['type' => PARCEL])->count();
+        // DB-side aggregates: these previously hydrated every customer/driver/paid-trip row
+        // into memory just to count/sum on the dashboard landing page.
+        $customers = $this->customerService->getCountBy(criteria: ['user_type' => CUSTOMER, 'is_active' => true]);
+        $drivers = $this->driverService->getCountBy(criteria: ['user_type' => DRIVER, 'is_active' => true]);
+        $totalCouponAmountGiven = $this->tripRequestService->getSumBy('coupon_amount', criteria: ['payment_status' => PAID]);
+        $totalDiscountAmountGiven = $this->tripRequestService->getSumBy('discount_amount', criteria: ['payment_status' => PAID]);
+        $totalParcels = $this->tripRequestService->getCountBy(criteria: ['type' => PARCEL]);
         $totalEarning = $this->tripRequestService->getBy(criteria: ['payment_status' => PAID], whereHasRelations: $whereHasRelations, relations: ['fee'])->sum('fee.admin_commission');
         $totalParcelsEarning = $this->tripRequestService->getBy(criteria: $totalParcelsEarningCriteria, whereHasRelations: $whereHasRelations, relations: ['fee'])->sum('fee.admin_commission');
         $totalRegularRide = $this->tripRequestService->getRidesBy(criteria: ['type' => RIDE_REQUEST, 'ride_request_type' => 'regular'])->count();

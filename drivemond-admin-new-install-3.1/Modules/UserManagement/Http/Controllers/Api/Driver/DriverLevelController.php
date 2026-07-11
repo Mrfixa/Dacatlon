@@ -49,11 +49,11 @@ class DriverLevelController extends Controller
         $level = DriverLevelResource::make($level);
         $totalTrip = $user?->driverTrips?->count();
 
-        $tripTotalEarning = $this->tripRequestService->getBy(criteria: ['driver_id' => $user->id, 'payment_status' => PAID])->sum('paid_fare');
+        $tripTotalEarning = $this->tripRequestService->getSumBy('paid_fare', criteria: ['driver_id' => $user->id, 'payment_status' => PAID]);
         $trip = $this->tripRequestService->getBy(criteria: ['driver_id' => $user->id, 'payment_status' => PAID]);
         $adminCommission = $this->tripRequestFeeService->getBy(whereInCriteria: ['trip_request_id' => $trip->pluck('id')])->sum('admin_commission');
-        $cancelTrip = $this->tripRequestService->getBy(criteria: ['driver_id' => $user->id, 'current_status' => CANCELLED])->count();
-        $completedTrip = $this->tripRequestService->getBy(criteria: ['driver_id' => $user->id, 'current_status' => COMPLETED])->count();
+        $cancelTrip = $this->tripRequestService->getCountBy(criteria: ['driver_id' => $user->id, 'current_status' => CANCELLED]);
+        $completedTrip = $this->tripRequestService->getCountBy(criteria: ['driver_id' => $user->id, 'current_status' => COMPLETED]);
         $reviewGiven = $user->givenReviews->count();
         $cancellationRate = ($cancelTrip / ($totalTrip == 0 ? 1 : $totalTrip)) * 100;
         $earningAmount = $tripTotalEarning - $adminCommission;

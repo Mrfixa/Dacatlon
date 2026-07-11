@@ -248,6 +248,62 @@ class BaseRepository implements EloquentRepositoryInterface
         return $model->get();
     }
 
+    /**
+     * DB-side COUNT with the same criteria semantics as getBy(). Use instead of
+     * getBy(...)->count() to avoid hydrating the whole result set into memory.
+     */
+    public function getCountBy(array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): int
+    {
+        return $this->applyAggregateCriteria($criteria, $whereInCriteria, $whereBetweenCriteria, $whereHasRelations)->count();
+    }
+
+    /**
+     * DB-side SUM of a column with the same criteria semantics as getBy(). Use instead of
+     * getBy(...)->sum('column') to avoid hydrating the whole result set into memory.
+     */
+    public function getSumBy(string $column, array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): float
+    {
+        return (float) $this->applyAggregateCriteria($criteria, $whereInCriteria, $whereBetweenCriteria, $whereHasRelations)->sum($column);
+    }
+
+    /**
+     * Shared where-builder for the aggregate helpers above. Mirrors the criteria/whereIn/
+     * whereHas/whereBetween handling in getBy() so counts and sums match a getBy() query.
+     */
+    private function applyAggregateCriteria(array $criteria, array $whereInCriteria, array $whereBetweenCriteria, array $whereHasRelations)
+    {
+        return $this->model->newQuery()
+            ->when(!empty($criteria), function ($q) use ($criteria) {
+                $q->where($criteria);
+            })
+            ->when(!empty($whereInCriteria), function ($q) use ($whereInCriteria) {
+                foreach ($whereInCriteria as $column => $values) {
+                    $q->whereIn($column, $values);
+                }
+            })
+            ->when(!empty($whereHasRelations), function ($q) use ($whereHasRelations) {
+                foreach ($whereHasRelations as $relation => $conditions) {
+                    $q->whereHas($relation, function ($query) use ($conditions) {
+                        foreach ($conditions as $field => $value) {
+                            if (is_int($field) && is_array($value) && count($value) === 3) {
+                                [$f, $operator, $val] = $value;
+                                $query->where($f, $operator, $val);
+                            } elseif (is_array($value)) {
+                                $query->whereIn($field, $value);
+                            } else {
+                                $query->where($field, $value);
+                            }
+                        }
+                    });
+                }
+            })
+            ->when(!empty($whereBetweenCriteria), function ($q) use ($whereBetweenCriteria) {
+                foreach ($whereBetweenCriteria as $column => $range) {
+                    $q->whereBetween($column, $range);
+                }
+            });
+    }
+
     public function create(array $data): ?Model
     {
         return $this->model->create($data);

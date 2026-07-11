@@ -12,6 +12,10 @@ interface BaseServiceInterface
 
     public function getBy(array $criteria = [], array $searchCriteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = [], array $withAvgRelations = [], array $relations = [], array $orderBy = [], ?int $limit = null, ?int $offset = null, bool $onlyTrashed = false, bool $withTrashed = false, array $withCountQuery = [], array $appends = [], array $groupBy = []): Collection|LengthAwarePaginator;
 
+    public function getCountBy(array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): int;
+
+    public function getSumBy(string $column, array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): float;
+
     public function create(array $data): ?Model;
 
     public function update(string|int $id, array $data = []): ?Model;

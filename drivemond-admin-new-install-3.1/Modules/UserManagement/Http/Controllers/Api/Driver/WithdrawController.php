@@ -60,7 +60,7 @@ class WithdrawController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'withdraw_method' => 'required',
-            'amount' => 'required',
+            'amount' => 'required|numeric|min:0.01',
         ]);
         if ($validator->fails()) {
 
@@ -81,29 +81,38 @@ class WithdrawController extends Controller
             }
         }
         $user = auth('api')->user();
-        $account = $user->userAccount;
-        if (($account?->receivable_balance - $account?->payable_balance) < $request->amount) {
-            return response()->json(responseFormatter(INSUFFICIENT_FUND_403), 403);
-        }
 
         DB::beginTransaction();
-        $attributes = [
-            'user_id' => $user->id,
-            'amount' => $request->amount,
-            'method_id' => $request->withdraw_method,
-            'method_fields' => $data,
-        ];
-        if (!is_null($request->note)) {
-            $attributes['driver_note'] = $request->note;
+        try {
+            // Lock the account row and re-read the balance INSIDE the transaction so two
+            // concurrent withdraw requests can't both pass the check and over-withdraw.
+            $account = $user->userAccount()->lockForUpdate()->first();
+            if (($account?->receivable_balance - $account?->payable_balance) < $request->amount) {
+                DB::rollBack();
+                return response()->json(responseFormatter(INSUFFICIENT_FUND_403), 403);
+            }
+
+            $attributes = [
+                'user_id' => $user->id,
+                'amount' => $request->amount,
+                'method_id' => $request->withdraw_method,
+                'method_fields' => $data,
+            ];
+            if (!is_null($request->note)) {
+                $attributes['driver_note'] = $request->note;
+            }
+            $attribute = $this->withdrawRequestService->create(data: $attributes);
+            if ($account?->payable_balance == 0){
+                $this->withdrawRequestWithoutAdjustTransaction($user, $request->amount, $attribute);
+            }
+            if ($account?->payable_balance > 0 && $account?->receivable_balance > $account?->payable_balance){
+                $this->withdrawRequestWithAdjustTransaction($user, $request->amount, $attribute);
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
-        $attribute = $this->withdrawRequestService->create(data: $attributes);
-        if ($account?->payable_balance == 0){
-            $this->withdrawRequestWithoutAdjustTransaction($user, $request->amount, $attribute);
-        }
-        if ($account?->payable_balance > 0 && $account?->receivable_balance > $account?->payable_balance){
-            $this->withdrawRequestWithAdjustTransaction($user, $request->amount, $attribute);
-        }
-        DB::commit();
 
         return response()->json(responseFormatter(WITHDRAW_REQUEST_200));
     }

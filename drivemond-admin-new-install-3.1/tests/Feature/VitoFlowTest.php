@@ -4560,4 +4560,27 @@ class VitoFlowTest extends TestCase
         $this->assertEquals('cancelled', $fresh->status);
         $this->assertEquals('refund_pending', $fresh->payment_status);
     }
+
+    /**
+     * Regression for the fresh-install crash: customer/driver_verification must be seeded under
+     * settings_type 'business_information' — that's where AuthController::registrationFromOtp and
+     * the Login Settings screen read them. When they were seeded under 'business_settings' the
+     * lookup returned null and the verification/registration flow threw.
+     */
+    public function test_business_settings_seeder_places_verification_under_business_information(): void
+    {
+        (new \Modules\BusinessManagement\Database\Seeders\BusinessManagementDatabaseSeeder())->run();
+
+        foreach (['customer_verification', 'driver_verification'] as $key) {
+            $this->assertNotNull(
+                businessConfig($key, 'business_information'),
+                "{$key} should be seeded under business_information"
+            );
+            // And no stray copy left under the wrong type.
+            $this->assertDatabaseMissing('business_settings', [
+                'key_name' => $key,
+                'settings_type' => 'business_settings',
+            ]);
+        }
+    }
 }

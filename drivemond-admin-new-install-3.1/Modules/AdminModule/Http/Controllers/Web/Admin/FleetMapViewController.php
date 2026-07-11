@@ -7,14 +7,25 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\View\View;
 use Modules\TripManagement\Service\Interfaces\SafetyAlertServiceInterface;
 use Modules\UserManagement\Service\Interfaces\CustomerServiceInterface;
 use Modules\UserManagement\Service\Interfaces\DriverServiceInterface;
 use Modules\ZoneManagement\Service\Interfaces\ZoneServiceInterface;
 
-class FleetMapViewController extends BaseController
+class FleetMapViewController extends BaseController implements HasMiddleware
 {
+    /**
+     * Every fleet-map endpoint exposes live driver/customer GPS + safety-alert pins. The route
+     * group carries no permission middleware, so gate the whole controller behind `dashboard`
+     * (matches the sidebar's @can('dashboard')) instead of adding authorize() to all 12 methods.
+     */
+    public static function middleware(): array
+    {
+        return ['can:dashboard'];
+    }
+
     protected $zoneService;
     protected $safetyAlertService;
     protected $driverService;

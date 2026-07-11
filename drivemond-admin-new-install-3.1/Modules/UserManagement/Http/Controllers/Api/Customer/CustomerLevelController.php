@@ -40,11 +40,11 @@ class CustomerLevelController extends Controller
         }
 
         $level = CustomerLevelResource::make($level);
-        $spendAmount = $this->tripRequestService->getBy(criteria: ['customer_id' => $user->id, 'payment_status' => PAID])->sum('paid_fare');
+        $spendAmount = $this->tripRequestService->getSumBy('paid_fare', criteria: ['customer_id' => $user->id, 'payment_status' => PAID]);
         $totalTrip = $user?->customerTrips?->count();
         $reviewGiven = $user->givenReviews->count();
-        $cancelTrip = $this->tripRequestService->getBy(criteria: ['customer_id' => $user->id, 'current_status' => CANCELLED])->count();
-        $completedTrip = $this->tripRequestService->getBy(criteria: ['customer_id' => $user->id, 'current_status' => COMPLETED])->count();
+        $cancelTrip = $this->tripRequestService->getCountBy(criteria: ['customer_id' => $user->id, 'current_status' => CANCELLED]);
+        $completedTrip = $this->tripRequestService->getCountBy(criteria: ['customer_id' => $user->id, 'current_status' => COMPLETED]);
         $cancellationRate = ($cancelTrip / ($totalTrip == 0 ? 1 : $totalTrip)) * 100;
 
         $completedCurrentLevelTarget = [

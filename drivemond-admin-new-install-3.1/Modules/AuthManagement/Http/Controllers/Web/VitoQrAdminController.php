@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Modules\AuthManagement\Entities\QrToken;
@@ -15,6 +16,8 @@ class VitoQrAdminController extends Controller
 {
     public function index(Request $request): View
     {
+        // QR tokens gate app registration; surfaced under Trip Management in the sidebar.
+        Gate::authorize('trip_view');
         $search = $request->search;
         $tokens = QrToken::with('creator')
             ->when($search, function ($q) use ($search) {
@@ -29,6 +32,7 @@ class VitoQrAdminController extends Controller
 
     public function generate(Request $request): RedirectResponse
     {
+        Gate::authorize('trip_edit');
         $request->validate([
             'role' => 'required|in:driver,customer',
         ]);
@@ -47,6 +51,7 @@ class VitoQrAdminController extends Controller
 
     public function revoke(string $id): RedirectResponse
     {
+        Gate::authorize('trip_edit');
         $token = QrToken::findOrFail($id);
         $token->update(['is_revoked' => true]);
 
@@ -57,6 +62,7 @@ class VitoQrAdminController extends Controller
 
     public function download(string $id): Response
     {
+        Gate::authorize('trip_view');
         $token = QrToken::findOrFail($id);
 
         // simple-qrcode's PNG backend requires the Imagick PHP extension. On the

@@ -59,8 +59,13 @@ class BusinessManagementDatabaseSeeder extends Seeder
             ['key_name' => 'temporary_login_block_time',       'settings_type' => 'business_settings', 'value' => '60'],
             ['key_name' => 'maximum_otp_hit',                  'settings_type' => 'business_settings', 'value' => '5'],
             ['key_name' => 'otp_resend_time',                  'settings_type' => 'business_settings', 'value' => '60'],
-            ['key_name' => 'customer_verification',            'settings_type' => 'business_settings', 'value' => '0'],
-            ['key_name' => 'driver_verification',              'settings_type' => 'business_settings', 'value' => '0'],
+            // NOTE: customer/driver_verification are read+written under `business_information`
+            // (LoginSettingsController, BusinessSettingService, AuthController), so they MUST be
+            // seeded there — not `business_settings` — or businessConfig() returns null and the
+            // registration/verification flow throws (fresh-install crash). See migration
+            // 2026_07_11_000001_fix_business_settings_types.
+            ['key_name' => 'customer_verification',            'settings_type' => 'business_information', 'value' => '0'],
+            ['key_name' => 'driver_verification',              'settings_type' => 'business_information', 'value' => '0'],
             ['key_name' => 'sms_verification',                 'settings_type' => 'business_settings', 'value' => '0'],
             ['key_name' => 'email_verification',               'settings_type' => 'business_settings', 'value' => '0'],
             ['key_name' => 'firebase_otp_verification_status', 'settings_type' => 'business_settings', 'value' => '0'],
@@ -86,7 +91,11 @@ class BusinessManagementDatabaseSeeder extends Seeder
             // ── Customer Settings ─────────────────────────────────────────────
             ['key_name' => 'loyalty_points',         'settings_type' => 'customer_settings', 'value' => ['status' => 0, 'points' => 0, 'equivalent_value' => 0, 'minimum_points' => 0]],
             ['key_name' => 'customer_wallet',        'settings_type' => 'customer_settings', 'value' => ['add_fund_status' => 1, 'min_deposit_limit' => 1, 'max_deposit_limit' => 10000]],
-            ['key_name' => 'customer_login_options', 'settings_type' => 'customer_settings', 'value' => ['manual_login' => 1, 'otp_login' => 0]],
+            // login_options live under `login_settings` — that's where the admin Login Settings
+            // screen + InstallUpdateTrait read/write them. driver_login_options was previously
+            // never seeded at all.
+            ['key_name' => 'customer_login_options', 'settings_type' => 'login_settings', 'value' => ['manual_login' => 1, 'otp_login' => 0]],
+            ['key_name' => 'driver_login_options',   'settings_type' => 'login_settings', 'value' => ['manual_login' => 1, 'otp_login' => 0]],
 
             // ── Review / Level Flags ──────────────────────────────────────────
             ['key_name' => 'customer_review', 'settings_type' => 'customer_review', 'value' => '1'],
@@ -135,6 +144,9 @@ class BusinessManagementDatabaseSeeder extends Seeder
             ['key_name' => 'safety_feature_status',           'settings_type' => 'safety_feature_settings', 'value' => '0'],
             ['key_name' => 'emergency_number_for_call_status', 'settings_type' => 'safety_feature_settings', 'value' => '0'],
             ['key_name' => 'emergency_govt_number_for_call',  'settings_type' => 'safety_feature_settings', 'value' => ''],
+            // Read by the Safety screen + customer/driver ConfigController; seed so the "other
+            // emergency numbers" list isn't null on a fresh install.
+            ['key_name' => 'emergency_other_numbers_for_call', 'settings_type' => 'safety_feature_settings', 'value' => []],
             ['key_name' => 'safety_alert_reasons_status',     'settings_type' => 'safety_feature_settings', 'value' => '0'],
             ['key_name' => 'for_trip_delay',                  'settings_type' => 'safety_feature_settings', 'value' => ['minimum_delay_time' => 30, 'time_format' => 'minute']],
             ['key_name' => 'after_trip_complete',             'settings_type' => 'safety_feature_settings', 'value' => ['safety_feature_active_status' => 0, 'set_time' => 5]],

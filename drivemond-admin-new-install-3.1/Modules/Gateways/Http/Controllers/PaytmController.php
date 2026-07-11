@@ -41,7 +41,8 @@ class PaytmController extends Controller
             }
 
             $config = array(
-                'PAYTM_ENVIRONMENT' => (env('APP_MODE') == 'live') ? 'PROD' : 'TEST',
+                // config('app.mode') (not env()) so the live/test switch survives config:cache.
+                'PAYTM_ENVIRONMENT' => (config('app.mode') == 'live') ? 'PROD' : 'TEST',
                 'PAYTM_MERCHANT_KEY' => env('PAYTM_MERCHANT_KEY', $paytm->merchant_key),
                 'PAYTM_MERCHANT_MID' => env('PAYTM_MERCHANT_MID', $paytm->merchant_id),
                 'PAYTM_MERCHANT_WEBSITE' => env('PAYTM_MERCHANT_WEBSITE', $paytm->merchant_website_link),

@@ -18,12 +18,14 @@ class ReviewController extends BaseController
 
     public function driverReviewExport($id, $reviewed, Request $request)
     {
+        $this->authorize('user_export');
         $exportData = $this->reviewService->export($id, $reviewed, $request, "driver");
         return exportData($exportData, $request['file'], 'usermanagement::admin.driver.transaction.print');
     }
 
     public function customerReviewExport($id, $reviewed, Request $request)
     {
+        $this->authorize('user_export');
         $exportData = $this->reviewService->export($id, $reviewed, $request, "customer");
         return exportData($exportData, $request['file'], 'usermanagement::admin.driver.transaction.print');
     }

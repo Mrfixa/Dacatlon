@@ -64,6 +64,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Install / Environment metadata
+    |--------------------------------------------------------------------------
+    |
+    | Surfaced read-only on the admin Environment Setup screen. Exposed here as
+    | config keys so they survive `php artisan config:cache` — raw env() returns
+    | null once the config is cached, which left that screen blank.
+    |
+    */
+
+    'mode' => env('APP_MODE', 'live'),
+
+    'buyer_username' => env('BUYER_USERNAME'),
+
+    'purchase_code' => env('PURCHASE_CODE'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

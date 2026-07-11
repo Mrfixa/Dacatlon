@@ -43,7 +43,7 @@ class SafetyAlertService extends BaseService implements Interfaces\SafetyAlertSe
 
     public function create(array $data): ?Model
     {
-        $tripRequestCurrentStatus = $this->tripRequestService->findOneBy(criteria: ['id' => $data['trip_request_id']])->current_status;
+        $tripRequestCurrentStatus = $this->tripRequestService->findOneBy(criteria: ['id' => $data['trip_request_id']])?->current_status;
         $geocode = app(\Modules\BusinessManagement\Service\MapProviderService::class)
             ->reverseGeocode($data['lat'], $data['lng']);
         $attributes = [];

@@ -28,6 +28,7 @@ class BlogDraftController extends Controller
      */
     public function edit($id)
     {
+        $this->authorize('blog_view');
         $blogCategories = $this->blogCategoryService->getAll(orderBy: ['id' => 'desc']);
         $activeBlogCategories = $this->blogCategoryService->getBy(criteria: ['status' => 1], orderBy: ['id' => 'desc']);
         $isAiSetupEnabled = $this->aiSettingService->findOneBy(criteria: ['status' => 1]);
@@ -40,6 +41,7 @@ class BlogDraftController extends Controller
      * Update the specified resource in storage.
      */
     public function update(BlogDraftStoreOrUpdateRequest $request, $id) {
+        $this->authorize('blog_edit');
         $saveType = ['is_published' => 1];
 
         if ($request->filled('draft'))
