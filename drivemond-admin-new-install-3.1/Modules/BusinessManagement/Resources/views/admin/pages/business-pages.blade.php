@@ -65,7 +65,7 @@
                                     <div class="character-count">
                                         <textarea name="short_description" id="business_address" cols="30" rows="5"
                                                   class="form-control character-count-field"  maxlength="800" data-max-character="800"
-                                                  placeholder="{{ translate('Type Here ...') }}">{{ $data?->value['short_description'] }}</textarea>
+                                                  placeholder="{{ translate('Type Here ...') }}">{{ ($data?->value['short_description'] ?? '') }}</textarea>
                                         <span>{{translate('0/800')}}</span>
                                     </div>
 
@@ -78,14 +78,14 @@
                                     <div class="d-flex flex-column align-items-center gap-3">
                                         <div class="upload-file">
 
-                                            <input type="file" name="image" class="upload-file__input {{$data?->value['image'] ? "d-none":""}}" accept="{{ IMAGE_ACCEPTED_EXTENSIONS }}" data-max-upload-size="{{ $maxSize }}">
-                                            <span class="edit-btn {{$data?->value['image'] ? "":"d-none"}}">
+                                            <input type="file" name="image" class="upload-file__input {{($data?->value['image'] ?? '') ? "d-none":""}}" accept="{{ IMAGE_ACCEPTED_EXTENSIONS }}" data-max-upload-size="{{ $maxSize }}">
+                                            <span class="edit-btn {{($data?->value['image'] ?? '') ? "":"d-none"}}">
                                                 <i class="bi bi-pencil-square text-primary"></i>
                                             </span>
                                             <div class="upload-file__img border-light-mode rounded-10 upload-file__img_banner">
                                                 <img src="{{ onErrorImage(
-                                                    $data?->value['image'],
-                                                    dynamicStorage('storage/app/public/business/pages') . '/' . $data?->value['image'],
+                                                    ($data?->value['image'] ?? ''),
+                                                    dynamicStorage('storage/app/public/business/pages') . '/' . ($data?->value['image'] ?? ''),
                                                     dynamicAsset('public/assets/admin-module/img/media/banner-upload-file.png'),
                                                     'business/pages/',
                                                 ) }}"
@@ -102,7 +102,7 @@
 
                         <h5 class="mb-2 text-capitalize">{{ translate('long_description') }}</h5>
                         <textarea id="summernote"
-                                  name="long_description">{{ $data?->value['long_description'] }}</textarea>
+                                  name="long_description">{{ ($data?->value['long_description'] ?? '') }}</textarea>
                         <div class="col-12 d-flex justify-content-end mt-5">
                             <button type="submit"
                                     class="btn btn-primary text-capitalize cmn_focus">{{ translate('submit') }}</button>

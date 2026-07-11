@@ -68,9 +68,9 @@ class FleetMapViewController extends BaseController implements HasMiddleware
         $latSum = 0;
         $lngSum = 0;
         $totalPoints = 0;
-        $polygons = $zone ? json_encode([formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates'])]) : json_encode([[]]);
+        $polygons = $zone ? json_encode([formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? []))]) : json_encode([[]]);
         if ($zone) {
-            foreach (formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates']) as $point) {
+            foreach (formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? [])) as $point) {
                 $latSum += $point->lat;
                 $lngSum += $point->lng;
                 $totalPoints++;
@@ -183,9 +183,9 @@ class FleetMapViewController extends BaseController implements HasMiddleware
         $latSum = 0;
         $lngSum = 0;
         $totalPoints = 0;
-        $polygons = $zone ? json_encode([formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates'])]) : json_encode([[]]);
+        $polygons = $zone ? json_encode([formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? []))]) : json_encode([[]]);
         if ($zone) {
-            foreach (formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates']) as $point) {
+            foreach (formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? [])) as $point) {
                 $latSum += $point->lat;
                 $lngSum += $point->lng;
                 $totalPoints++;
@@ -223,9 +223,9 @@ class FleetMapViewController extends BaseController implements HasMiddleware
         $latSum = 0;
         $lngSum = 0;
         $totalPoints = 0;
-        $polygons = $zone ? json_encode([formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates'])]) : json_encode([[]]);
+        $polygons = $zone ? json_encode([formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? []))]) : json_encode([[]]);
         if ($zone) {
-            foreach (formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates']) as $point) {
+            foreach (formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? [])) as $point) {
                 $latSum += $point->lat;
                 $lngSum += $point->lng;
                 $totalPoints++;
@@ -262,9 +262,9 @@ class FleetMapViewController extends BaseController implements HasMiddleware
         $latSum = 0;
         $lngSum = 0;
         $totalPoints = 0;
-        $polygons = $zone ? json_encode([formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates'])]) : json_encode([[]]);
+        $polygons = $zone ? json_encode([formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? []))]) : json_encode([[]]);
         if ($zone) {
-            foreach (formatCoordinates(json_decode($zone?->coordinates[0]->toJson(), true)['coordinates']) as $point) {
+            foreach (formatCoordinates((json_decode($zone?->coordinates ?? '', true)['coordinates'][0] ?? [])) as $point) {
                 $latSum += $point->lat;
                 $lngSum += $point->lng;
                 $totalPoints++;
