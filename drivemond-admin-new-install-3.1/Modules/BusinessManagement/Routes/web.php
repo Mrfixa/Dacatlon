@@ -286,10 +286,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'admin'], f
                         Route::get('/', 'businessStatistics')->name('index');
                         Route::post('update', 'updateBusinessStatistics')->name('update');
                     });
-                    Route::group(['prefix' => 'our-platform', 'as' => 'our-platform.'], function () {
-                        Route::get('/', 'ourPlatform')->name('index');
-                        Route::post('update', 'updateOurPlatform')->name('update');
-                    });
                     Route::group(['prefix' => 'earn-money', 'as' => 'earn-money.'], function () {
                         Route::get('/', 'earnMoney')->name('index');
                         Route::post('update-section', 'updateEarnMoneySection')->name('update-section');

@@ -33,6 +33,15 @@ class SafetyAlertController extends Controller
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
         }
+        // Ownership guard: only the trip's own customer may raise a safety alert on it.
+        // Without this any customer could fabricate alerts against arbitrary trip UUIDs.
+        $ownsTrip = $this->tripRequestService->findOneBy(criteria: [
+            'id' => $request->trip_request_id,
+            'customer_id' => auth()->id(),
+        ]);
+        if (!$ownsTrip) {
+            return response()->json(responseFormatter(DEFAULT_404), 403);
+        }
         $whereHasRelations = [
             'sentBy' => [
                 'user_type' => CUSTOMER

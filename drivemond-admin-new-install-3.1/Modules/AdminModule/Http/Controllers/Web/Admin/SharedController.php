@@ -51,6 +51,9 @@ class SharedController extends BaseController
 
     public function getSafetyAlert()
     {
+        // Exposes live safety-alert user/trip data; gate like the dashboard widget it feeds.
+        // (getNotifications/seenNotification/lang stay open — every admin's top bar uses them.)
+        $this->authorize('dashboard');
         $safetyAlerts = $this->safetyAlertService->getBy(criteria: ['status' => PENDING], orderBy: ['created_at' => 'desc']);
         $route = count($safetyAlerts) > 0 ? $this->safetyAlertService->safetyAlertLatestUserRoute() : 'javascript:void(0)';
         $safetyAlert = $this->safetyAlertService->findOneBy(criteria: ['status' => PENDING], relations: ['sentBy', 'trip', 'lastLocation'], orderBy: ['created_at' => 'desc']);

@@ -159,17 +159,6 @@ class LandingPageController extends BaseController
         return back();
     }
 
-    public function ourPlatform()
-    {
-        return view('businessmanagement::admin.pages.our-platform');
-    }
-
-    public function updateOurPlatform(Request $request)
-    {
-        Toastr::success(LANDING_PAGE_UPDATE_200['message']);
-        return back();
-    }
-
     public function earnMoney()
     {
         $this->authorize('business_view');

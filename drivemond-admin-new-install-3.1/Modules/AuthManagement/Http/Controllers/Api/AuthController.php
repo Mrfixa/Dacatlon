@@ -779,7 +779,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $verification = businessConfig('customer_verification', BUSINESS_INFORMATION)->value ?? 0;
+        $verification = businessConfig('customer_verification', BUSINESS_INFORMATION)?->value ?? 0;
         if (!$verification) {
 
             return response()->json(responseFormatter(CUSTOMER_VERIFICATION_400), 400);

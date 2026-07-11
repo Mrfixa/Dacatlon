@@ -69,7 +69,7 @@ class VitoSystemController extends Controller
                 ->where('created_at', '>=', $now->copy()->subDay())
                 ->count();
 
-            // Wallet transaction volume last 24h
+            // Total customer wallet balance held across all accounts (all-time, not a 24h flow).
             $walletVolume = UserAccount::sum('wallet_balance');
 
             // Mart fulfillment SLA: % of mart orders delivered within 2h of creation (last 7d)

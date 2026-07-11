@@ -83,8 +83,11 @@ class NotificationController extends BaseController
                 }
             }
         }
+        Cache::forget('server_key');
         Cache::rememberForever('server_key', function () {
-            return json_decode(businessConfig('server_key')->value);
+            // server_key is not seeded on a fresh install; guard the null so the
+            // first save of the notification/Firebase config form can't fatal.
+            return json_decode(businessConfig('server_key')?->value ?? 'null');
         });
         $this->firebaseMessageConfigFileGen();
         Toastr::success(BUSINESS_SETTING_UPDATE_200['message']);

@@ -6,11 +6,21 @@ use App\Http\Controllers\Controller;
 use Exception as ExceptionAlias;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
 use Modules\AiModule\Service\Interfaces\ContentGeneratorServiceInterface;
 
-class BlogController extends Controller
+class BlogController extends Controller implements HasMiddleware
 {
     protected $contentGeneratorService;
+
+    /**
+     * These endpoints spend AI credits; require blog-authoring permission so a limited
+     * employee can't drive the generator via direct AJAX calls.
+     */
+    public static function middleware(): array
+    {
+        return ['can:blog_add'];
+    }
 
     public function __construct(ContentGeneratorServiceInterface $contentGeneratorService)
     {

@@ -27,6 +27,16 @@ class BaseService implements BaseServiceInterface
         return $this->baseRepository->getBy(criteria: $criteria, searchCriteria: $searchCriteria, whereInCriteria: $whereInCriteria, whereBetweenCriteria: $whereBetweenCriteria, whereHasRelations: $whereHasRelations, withAvgRelations: $withAvgRelations, relations: $relations, orderBy: $orderBy, limit: $limit, offset: $offset, onlyTrashed: $onlyTrashed, withTrashed: $withTrashed, withCountQuery: $withCountQuery, appends: $appends, groupBy: $groupBy);
     }
 
+    public function getCountBy(array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): int
+    {
+        return $this->baseRepository->getCountBy(criteria: $criteria, whereInCriteria: $whereInCriteria, whereBetweenCriteria: $whereBetweenCriteria, whereHasRelations: $whereHasRelations);
+    }
+
+    public function getSumBy(string $column, array $criteria = [], array $whereInCriteria = [], array $whereBetweenCriteria = [], array $whereHasRelations = []): float
+    {
+        return $this->baseRepository->getSumBy(column: $column, criteria: $criteria, whereInCriteria: $whereInCriteria, whereBetweenCriteria: $whereBetweenCriteria, whereHasRelations: $whereHasRelations);
+    }
+
     public function create(array $data): ?Model
     {
         return $this->baseRepository->create(data: $data);

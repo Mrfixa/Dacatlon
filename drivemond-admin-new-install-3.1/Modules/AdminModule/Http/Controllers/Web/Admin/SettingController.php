@@ -30,6 +30,12 @@ class SettingController extends BaseController
 
     public function update(EmployeeUpdateSettingRequest $request, $id)
     {
+        // This is the "my profile" page: an employee may only update their own account.
+        // Without this check any authenticated employee could POST update-profile/{anyId}
+        // and overwrite another employee's (incl. super-admin's) email + password.
+        if ((string) $id !== (string) auth()->id()) {
+            abort(403);
+        }
         $this->employeeService->update(id: $id, data: $request->all());
         Toastr::success(translate(DEFAULT_200['message']));
         return back();

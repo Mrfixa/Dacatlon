@@ -28,6 +28,7 @@ class LevelAccessController extends BaseController
 
     public function store(LevelAccessStoreOrUpdateRequest $request)
     {
+        $this->authorize('user_edit');
         return response()->json($this->levelAccessService->update(id: $request->id, data: $request->validated()));
     }
 }

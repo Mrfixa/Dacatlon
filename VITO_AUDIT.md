@@ -60,3 +60,53 @@ test logins, SMS-on-registration, QR-code image download, and admin-flow gaps.
   default-users seeder).
 - Apps: covered by CI (`flutter analyze` + `vito_flows_test.dart` language-parity) and
   the UI-Goldens artifact.
+
+---
+
+## Wave 16 — Full backend + admin-frontend audit (v3.6.3)
+
+End-to-end sweep of the whole admin panel and backend (three parallel Explore passes + hand
+verification). Fixes shipped in v3.6.3:
+
+**Fresh-install crashes (broke a clean `migrate --seed` on MySQL):**
+- `customer_verification`/`driver_verification` were seeded under `settings_type=business_settings`
+  but every reader/writer uses `business_information` → `businessConfig()` returned null and the
+  customer verify/registration flow threw. Seeder corrected + idempotent data migration
+  (`2026_07_11_000001_fix_business_settings_verification_type`) re-points existing rows;
+  `AuthController:782` and `NotificationController:87` (`server_key`) made null-safe.
+
+**Authorization / security:**
+- IDOR: `SettingController::update` (my-profile) now enforces self-only — previously any employee
+  could overwrite another employee's email+password by id.
+- Un-gated controllers now `authorize()`: FleetMap (live GPS → `dashboard`), CashCollect (money),
+  VitoQrAdmin web (token mint/revoke), ActivityLog, Review export, Shared safety-alert, AiModule
+  blog-gen, LevelAccess, BlogDraft.
+- Safety-alert API (customer + driver) now checks the trip belongs to the caller (was IDOR); service
+  null-guarded against unknown trip UUIDs.
+- Driver withdrawal: balance check moved inside the transaction with `lockForUpdate` + positive-amount
+  validation (was a TOCTOU double-withdraw). The Vito↔Mart `walletTransfer` twin was already
+  lock-safe — left as-is.
+
+**Performance:** dashboard landing page and driver/customer level checks converted from
+`getBy(...)->count()/->sum()` (full-table hydration) to DB-side aggregates via new
+`BaseRepository::getCountBy/getSumBy`. (The `fee.admin_commission` relation-sums on the dashboard are
+a follow-up — left unchanged to avoid altering financial figures.)
+
+**"Empty settings pages" root causes:** Environment Setup read `env()` at render (blank under
+`config:cache`) → now reads `config()` (+ new `app.mode/buyer_username/purchase_code` keys);
+`login_options` seed aligned to `login_settings` (+ `driver_login_options` now seeded);
+`emergency_other_numbers_for_call` now seeded.
+
+**Dead code removed:** "Our Platform" (no-op stub page) + route/methods; 3 orphaned mockup views
+(login-setup, notification, landing-page); unused `RideTimeoutJob` (real auto-cancel is the
+scheduled `trip-request:cancel`/`CancelPendingTrips` command). **Not** removed: the External /
+Ecommerce admin page — it configures the live Vito↔Mart wallet integration (`ExternalConfigurationService`,
+`externalConfig()`), so it is functional, just unlinked from the sidebar.
+
+**Low-risk:** admin product-search `LIKE` wildcard escaping; `PaytmController` APP_MODE via
+`config()`; corrected a mislabeled wallet metric comment.
+
+### Verification
+- All 32 changed PHP files lint-clean; new `VitoFlowTest` case asserts the seeder places the
+  verification keys under `business_information`. PHPStan + full `VitoFlowTest` + Flutter analyze/tests
+  run in CI (dev deps can't install in the audit sandbox).

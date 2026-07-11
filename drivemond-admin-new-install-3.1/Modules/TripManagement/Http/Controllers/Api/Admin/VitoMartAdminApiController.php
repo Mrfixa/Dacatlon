@@ -15,7 +15,10 @@ class VitoMartAdminApiController extends Controller
     {
         $query = MartProduct::query();
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            // Escape LIKE wildcards so % / _ in the search term are matched literally
+            // (mirrors the customer-facing VitoMartController::products sanitisation).
+            $escapedSearch = str_replace(['%', '_'], ['\\%', '\\_'], (string) $request->search);
+            $query->where('name', 'like', '%'.$escapedSearch.'%');
         }
         if ($request->filled('category')) {
             $query->where('category', $request->category);
