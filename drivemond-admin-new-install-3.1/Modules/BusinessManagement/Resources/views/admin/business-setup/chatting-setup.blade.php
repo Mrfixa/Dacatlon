@@ -40,11 +40,11 @@
                                                name="driver_question_answer_status"
                                                data-name="driver_question_answer_status" data-type="{{ CHATTING_SETTINGS }}"
                                                data-url="{{ route('admin.business.setup.update-business-setting') }}"
-                                               data-icon="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/question-answer-off.png') : dynamicAsset('public/assets/admin-module/img/question-answer-on.png') }}"
+                                               data-icon="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/question-answer-off.png') : dynamicAsset('public/assets/admin-module/img/question-answer-on.png') }}"
                                                data-title="{{ translate('Are you sure') }}?"
-                                               data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? translate('Do you want to turn OFF predefined Q & A for the driver') . '? ' . translate('When it’s off the Driver will not be able to see any predefined Q & A.') : translate('Do you want to turn ON predefined Q & A for the driver') . '? ' . translate('When it’s on the Driver will be able to see any predefined Q & A.') }}"
-                                               data-confirm-btn="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                            {{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                               data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? translate('Do you want to turn OFF predefined Q & A for the driver') . '? ' . translate('When it’s off the Driver will not be able to see any predefined Q & A.') : translate('Do you want to turn ON predefined Q & A for the driver') . '? ' . translate('When it’s on the Driver will be able to see any predefined Q & A.') }}"
+                                               data-confirm-btn="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                            {{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                         <span class="switcher_control"></span>
                                     </label>
                                 </div>
@@ -249,11 +249,11 @@
                                             name="driver_question_answer_status"
                                             data-name="driver_question_answer_status" data-type="{{ CHATTING_SETTINGS }}"
                                             data-url="{{ route('admin.business.setup.update-business-setting') }}"
-                                            data-icon="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/question-answer-off.png') : dynamicAsset('public/assets/admin-module/img/question-answer-on.png') }}"
+                                            data-icon="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/question-answer-off.png') : dynamicAsset('public/assets/admin-module/img/question-answer-on.png') }}"
                                             data-title="{{ translate('Are you sure') }}?"
-                                            data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? translate('Do you want to turn OFF predefined Q & A for the driver') . '? ' . translate('When it’s off the Driver will not be able to see any predefined Q & A.') : translate('Do you want to turn ON predefined Q & A for the driver') . '? ' . translate('When it’s on the Driver will be able to see any predefined Q & A.') }}"
-                                            data-confirm-btn="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                        {{ ($settings->firstWhere('key_name', 'driver_question_answer_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                            data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? translate('Do you want to turn OFF predefined Q & A for the driver') . '? ' . translate('When it’s off the Driver will not be able to see any predefined Q & A.') : translate('Do you want to turn ON predefined Q & A for the driver') . '? ' . translate('When it’s on the Driver will be able to see any predefined Q & A.') }}"
+                                            data-confirm-btn="{{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                        {{ ($settings->firstWhere('key_name', 'driver_question_answer_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                     <span class="switcher_control"></span>
                                 </label>
                             </div>

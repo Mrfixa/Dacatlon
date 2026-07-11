@@ -38,10 +38,10 @@
                                                data-name="referral_earning_status"
                                                data-type="{{ CUSTOMER }}"
                                                data-url="{{route('admin.business.setup.referral-earning.update-referral-setting')}}"
-                                               data-icon=" {{ ($customerSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-referral-earning.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-referral-earning.svg') }}"
-                                               data-title="{{ ($customerSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('Want to disable referral earnings') : translate('Want to enable referral earnings')}}?"
-                                               data-sub-title="{{($customerSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('If you disable referral earnings, customers will no longer receive rewards for referring new users') : translate('If you enable referral earnings, customers will be able to earn rewards by referring new users.')}}"
-                                               data-confirm-btn="{{($customerSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                                               data-icon=" {{ ($customerSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-referral-earning.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-referral-earning.svg') }}"
+                                               data-title="{{ ($customerSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('Want to disable referral earnings') : translate('Want to enable referral earnings')}}?"
+                                               data-sub-title="{{($customerSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('If you disable referral earnings, customers will no longer receive rewards for referring new users') : translate('If you enable referral earnings, customers will be able to earn rewards by referring new users.')}}"
+                                               data-confirm-btn="{{($customerSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
                                             {{ $customerSettings->firstWhere('key_name','referral_earning_status')?->value == 1 ? "checked" : "" }}
                                                data-target-content=".customer-referral-card"
                                         >
@@ -216,10 +216,10 @@
                                                data-name="referral_earning_status"
                                                data-type="{{ DRIVER }}"
                                                data-url="{{route('admin.business.setup.referral-earning.update-referral-setting')}}"
-                                               data-icon=" {{ ($driverSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-referral-earning.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-referral-earning.svg') }}"
-                                               data-title="{{ ($driverSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('Want to disable referral earnings') : translate('Want to enable referral earnings')}}?"
-                                               data-sub-title="{{($driverSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('If you disable referral earnings, drivers will no longer receive rewards for referring new users') : translate('If you enable referral earnings, drivers will be able to earn rewards by referring new users.')}}"
-                                               data-confirm-btn="{{($driverSettings->firstWhere('key_name', 'referral_earning_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                                               data-icon=" {{ ($driverSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-referral-earning.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-referral-earning.svg') }}"
+                                               data-title="{{ ($driverSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('Want to disable referral earnings') : translate('Want to enable referral earnings')}}?"
+                                               data-sub-title="{{($driverSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('If you disable referral earnings, drivers will no longer receive rewards for referring new users') : translate('If you enable referral earnings, drivers will be able to earn rewards by referring new users.')}}"
+                                               data-confirm-btn="{{($driverSettings->firstWhere('key_name', 'referral_earning_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
                                                {{ $driverSettings->firstWhere('key_name','referral_earning_status')?->value == 1 ? "checked" : "" }}
                                                data-target-content=".driver-referral-card"
                                         >

@@ -105,7 +105,7 @@
                                             <label class="switcher">
                                                 <input type="checkbox" name="driver_otp_confirmation_for_trip"
                                                        class="switcher_input" tabindex="3"
-                                                    {{ $settings->where('key_name', 'driver_otp_confirmation_for_trip')->first()->value ?? 0 == 1 ? 'checked' : '' }}>
+                                                    {{ $settings->where('key_name', 'driver_otp_confirmation_for_trip')->first()?->value ?? 0 == 1 ? 'checked' : '' }}>
                                                 <span class="switcher_control"></span>
                                             </label>
                                         </div>
@@ -132,7 +132,7 @@
                                         <div class="position-relative">
                                             <label class="switcher">
                                                 <input type="checkbox" name="enable_real_time_location_sharing" class="switcher_input" tabindex="4"
-                                                    {{ $settings->where('key_name', 'enable_real_time_location_sharing')->first()->value ?? 0 == 1 ? 'checked' : '' }}
+                                                    {{ $settings->where('key_name', 'enable_real_time_location_sharing')->first()?->value ?? 0 == 1 ? 'checked' : '' }}
                                                 >
                                                 <span class="switcher_control"></span>
                                             </label>
@@ -168,7 +168,7 @@
                                 <a href="javascript:"
                                    class="text-info fw-semibold fs-12 text-nowrap d-flex view-btn">
                                     <span class="text-underline">{{ translate('View') }}</span>
-                                    @if(($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 )
+                                    @if(($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 )
                                         <span><i class="tio-arrow-upward"></i> </span>
                                     @else
                                         <span><i class="tio-arrow-downward"></i> </span>
@@ -180,11 +180,11 @@
                                            name="schedule_trip_status" tabindex="6"
                                            data-name="schedule_trip_status" data-type="{{ SCHEDULE_TRIP_SETTINGS }}"
                                            data-url="{{ route('admin.business.setup.update-business-setting') }}"
-                                           data-icon=" {{ ($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-schedule-trip.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-schedule-trip.svg') }}"
-                                           data-title="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 ? translate('Want to disable scheduled trips') : translate('Want to enable scheduled trips') }}?"
-                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 ? translate('If you disable scheduled trips, then users will no longer be able to book rides in advance.') : translate('If you enable scheduled trips, then users will be able to book rides in advance.') }}"
-                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                        {{ ($settings->firstWhere('key_name', 'schedule_trip_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                           data-icon=" {{ ($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/svg/turn-off-schedule-trip.svg') : dynamicAsset('public/assets/admin-module/img/svg/turn-on-schedule-trip.svg') }}"
+                                           data-title="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 ? translate('Want to disable scheduled trips') : translate('Want to enable scheduled trips') }}?"
+                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 ? translate('If you disable scheduled trips, then users will no longer be able to book rides in advance.') : translate('If you enable scheduled trips, then users will be able to book rides in advance.') }}"
+                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                        {{ ($settings->firstWhere('key_name', 'schedule_trip_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                     <span class="switcher_control"></span>
                                 </label>
                             </div>
@@ -331,13 +331,13 @@
                                                             <label class="switcher">
                                                                 <input type="checkbox" name="increase_fare"
                                                                     class="switcher_input" tabindex="13"
-                                                                    {{ $settings->where('key_name', 'increase_fare')->first()->value ?? 0 == 1 ? 'checked' : '' }}>
+                                                                    {{ $settings->where('key_name', 'increase_fare')->first()?->value ?? 0 == 1 ? 'checked' : '' }}>
                                                                 <span class="switcher_control"></span>
                                                             </label>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="{{ $settings->where('key_name', 'increase_fare')->first()->value ?? 0 == 1 ? '' : 'visually-hidden' }}" id="increaseFareAmountWrapper">
+                                                <div class="{{ $settings->where('key_name', 'increase_fare')->first()?->value ?? 0 == 1 ? '' : 'visually-hidden' }}" id="increaseFareAmountWrapper">
                                                     <label for="IncreaseFareAmount" class="form-label">
                                                         {{ translate('Increase_Fare_amount_(%)') }} <span class="text-danger">*</span>
                                                         <i class="bi bi-info-circle-fill text-primary cursor-pointer" data-bs-toggle="tooltip"

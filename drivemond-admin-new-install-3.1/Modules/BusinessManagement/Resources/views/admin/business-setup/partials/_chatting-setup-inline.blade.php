@@ -16,11 +16,11 @@
                        data-name="chatting_setup_status"
                        data-type="{{CHATTING_SETTINGS}}"
                        data-url="{{route('admin.business.setup.update-business-setting')}}"
-                       data-icon=" {{($settings->firstWhere('key_name', 'chatting_setup_status')->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/chatting-off.png') : dynamicAsset('public/assets/admin-module/img/chatting-on.png')}}"
+                       data-icon=" {{($settings->firstWhere('key_name', 'chatting_setup_status')?->value ?? 0) == 1 ? dynamicAsset('public/assets/admin-module/img/chatting-off.png') : dynamicAsset('public/assets/admin-module/img/chatting-on.png')}}"
                        data-title="{{translate('Are you sure')}}?"
-                       data-sub-title="{{($settings->firstWhere('key_name', 'chatting_setup_status')->value?? 0) == 1 ? translate('Do you want to turn OFF Chatting Option for driver & admin')."? ": translate('Do you want to turn ON Chatting Option for driver & admin')."? "}}"
-                       data-confirm-btn="{{($settings->firstWhere('key_name', 'chatting_setup_status')->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
-                    {{($settings->firstWhere('key_name', 'chatting_setup_status')->value?? 0) == 1? 'checked' : ''}}
+                       data-sub-title="{{($settings->firstWhere('key_name', 'chatting_setup_status')?->value?? 0) == 1 ? translate('Do you want to turn OFF Chatting Option for driver & admin')."? ": translate('Do you want to turn ON Chatting Option for driver & admin')."? "}}"
+                       data-confirm-btn="{{($settings->firstWhere('key_name', 'chatting_setup_status')?->value?? 0) == 1 ? translate('Turn Off') : translate('Turn On')}}"
+                    {{($settings->firstWhere('key_name', 'chatting_setup_status')?->value?? 0) == 1? 'checked' : ''}}
                 >
                 <span class="switcher_control"></span>
             </label>

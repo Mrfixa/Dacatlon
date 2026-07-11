@@ -35,9 +35,9 @@
                                            data-url="{{ route('admin.business.setup.update-business-setting') }}"
                                            data-icon=" {{ dynamicAsset('public/assets/admin-module/img/parcel_tracking.png') }}"
                                            data-title="{{ translate('Are you sure?') }}"
-                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'parcel_tracking_status')->value ?? 0) == 1 ? translate('Do you want to turn OFF Parcel Tracking Link for customer? When it’s off the customer don’t received any parcel tracking link message.') : translate('Do you want to turn ON Parcel Tracking Link for customer? When turned ON, customers will receive a tracking link once the parcel is confirmed.') }}"
-                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'parcel_tracking_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                        {{ ($settings->firstWhere('key_name', 'parcel_tracking_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'parcel_tracking_status')?->value ?? 0) == 1 ? translate('Do you want to turn OFF Parcel Tracking Link for customer? When it’s off the customer don’t received any parcel tracking link message.') : translate('Do you want to turn ON Parcel Tracking Link for customer? When turned ON, customers will receive a tracking link once the parcel is confirmed.') }}"
+                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'parcel_tracking_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                        {{ ($settings->firstWhere('key_name', 'parcel_tracking_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                     <span class="switcher_control"></span>
                                 </label>
                             </div>
@@ -60,7 +60,7 @@
                                                     <textarea class="form-control character-count-field" maxlength="200"
                                                               data-max-character="200" id="trackingLinkTemplate"
                                                               name="parcel_tracking_message" rows="4" tabindex="2"
-                                                              placeholder="{{ translate('Write your message here') }}">{{ $settings->firstWhere('key_name', 'parcel_tracking_message')->value ?? old('parcel_tracking_message') }}</textarea>
+                                                              placeholder="{{ translate('Write your message here') }}">{{ $settings->firstWhere('key_name', 'parcel_tracking_message')?->value ?? old('parcel_tracking_message') }}</textarea>
                                                     <span class="text-end text-right d-block text-muted mt-1">{{ translate('0/200') }}</span>
                                                 </div>
                                             </div>
@@ -140,9 +140,9 @@
                                            data-url="{{ route('admin.business.setup.update-business-setting') }}"
                                            data-icon=" {{ dynamicAsset('public/assets/admin-module/img/parcel_return.png') }}"
                                            data-title="{{ translate('Are you sure?') }}"
-                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')->value ?? 0) == 1 ? translate('Do you want to turn OFF Parcel Return Time & Fee for driver? When it’s off the driver don’t need to pay return fee for delay. ') : translate('Do you want to turn ON Parcel Return Time & Fee for driver? When it’s ON, the driver need to pay parcel return delay fee. ') }}"
-                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                        {{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')?->value ?? 0) == 1 ? translate('Do you want to turn OFF Parcel Return Time & Fee for driver? When it’s off the driver don’t need to pay return fee for delay. ') : translate('Do you want to turn ON Parcel Return Time & Fee for driver? When it’s ON, the driver need to pay parcel return delay fee. ') }}"
+                                           data-confirm-btn="{{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                        {{ ($settings->firstWhere('key_name', 'parcel_return_time_fee_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                     <span class="switcher_control"></span>
                                 </label>
                             </div>
@@ -278,7 +278,7 @@
                                     <a href="javascript:"
                                        class="text-info fw-semibold fs-12 text-nowrap d-flex view-btn">
                                         <span class="text-underline">{{ translate('View') }}</span>
-                                        @if(($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 )
+                                        @if(($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 )
                                             <span><i class="tio-arrow-upward"></i> </span>
                                         @else
                                             <span><i class="tio-arrow-downward"></i> </span>
@@ -292,9 +292,9 @@
                                                data-url="{{ route('admin.business.setup.update-business-setting') }}"
                                                data-icon=" {{ dynamicAsset('public/assets/admin-module/img/parcel_return.png') }}"
                                                data-title="{{ translate('Are you sure?') }}"
-                                               data-sub-title="{{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 ? translate('If the toggle is turned OFF, Customer will not notify if their requested weight exceeds the capacity.') : translate('If the toggle is turned ON, Customer will notify if their requested weight exceeds the capacity.') }}"
-                                               data-confirm-btn="{{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
-                                            {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                               data-sub-title="{{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 ? translate('If the toggle is turned OFF, Customer will not notify if their requested weight exceeds the capacity.') : translate('If the toggle is turned ON, Customer will notify if their requested weight exceeds the capacity.') }}"
+                                               data-confirm-btn="{{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 ? translate('Turn Off') : translate('Turn On') }}"
+                                            {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                         <span class="switcher_control"></span>
                                     </label>
                                 </div>
@@ -312,7 +312,7 @@
                                                                step="0.01" min="0.01" max="99999999" tabindex="13"
                                                                class="form-control"
                                                                value="{{ $settings->firstWhere('key_name', 'max_parcel_weight')?->value }}"
-                                                               {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 ? '' : 'disabled' }}
+                                                               {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 ? '' : 'disabled' }}
                                                                placeholder="{{translate("Ex: 15 ").$settings->firstWhere('key_name', 'parcel_weight_unit')?->value}}">
 
                                                     </div>
@@ -324,7 +324,7 @@
                                                 Reset
                                             </button>
                                             <button type="submit"
-                                                    class="btn btn-primary text-capitalize cmn_focus" tabindex="14" {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')->value ?? 0) == 1 ? '' : 'disabled' }}>{{ translate('submit') }}</button>
+                                                    class="btn btn-primary text-capitalize cmn_focus" tabindex="14" {{ ($settings->firstWhere('key_name', 'max_parcel_weight_status')?->value ?? 0) == 1 ? '' : 'disabled' }}>{{ translate('submit') }}</button>
                                         </div>
                                     </div>
                                 </div>

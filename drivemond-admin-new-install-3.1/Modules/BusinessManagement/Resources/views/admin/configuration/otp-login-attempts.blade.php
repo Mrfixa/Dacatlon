@@ -28,7 +28,7 @@
                                                     </label>
                                                     <input type="text" name="maximum_otp_hit" class="form-control"
                                                            id="maximum_otp_hit" placeholder="{{translate('Ex: 10')}}" tabindex="9"
-                                                           value="{{$settings->firstWhere('key_name', 'maximum_otp_hit')->value ?? ''}}" data-decimal="0">
+                                                           value="{{$settings->firstWhere('key_name', 'maximum_otp_hit')?->value ?? ''}}" data-decimal="0">
                                                     <span class="error-text" data-error="maximum_otp_hit"></span>
                                                 </div>
                                             </div>
@@ -41,7 +41,7 @@
                                                     </label>
                                                     <input type="text" name="otp_resend_time" class="form-control" tabindex="10"
                                                            id="otp_resend_time" placeholder="{{translate('Ex: 60')}}"
-                                                           value="{{$settings->firstWhere('key_name', 'otp_resend_time')->value ?? ''}}" data-decimal="0">
+                                                           value="{{$settings->firstWhere('key_name', 'otp_resend_time')?->value ?? ''}}" data-decimal="0">
                                                     <span class="error-text" data-error="otp_resend_time"></span>
                                                 </div>
                                             </div>
@@ -54,7 +54,7 @@
                                                     </label>
                                                     <input type="text" name="temporary_block_time" class="form-control" tabindex="11"
                                                            id="temporary_block_time" placeholder="{{translate('Ex: 600')}}" data-decimal="0"
-                                                           value="{{$settings->firstWhere('key_name', 'temporary_block_time')->value ?? ''}}">
+                                                           value="{{$settings->firstWhere('key_name', 'temporary_block_time')?->value ?? ''}}">
                                                     <span class="error-text" data-error="temporary_block_time"></span>
                                                 </div>
                                             </div>
@@ -80,7 +80,7 @@
                                                 </label>
                                                 <input type="text" name="maximum_login_hit" class="form-control" tabindex="7"
                                                        id="maximum_login_hit" placeholder="{{translate('Ex: 10')}}"
-                                                       value="{{$settings->firstWhere('key_name', 'maximum_login_hit')->value ?? ''}}" data-decimal="0">
+                                                       value="{{$settings->firstWhere('key_name', 'maximum_login_hit')?->value ?? ''}}" data-decimal="0">
                                                 <span class="error-text" data-error="maximum_login_hit"></span>
                                             </div>
                                             <div class="col-lg-4">
@@ -93,7 +93,7 @@
                                                     <input type="text" name="temporary_login_block_time"
                                                            class="form-control" id="temporary_login_block_time"
                                                            placeholder="{{translate('Ex: 10')}}" tabindex="8"
-                                                           value="{{$settings->firstWhere('key_name', 'temporary_login_block_time')->value ?? ''}}" data-decimal="0">
+                                                           value="{{$settings->firstWhere('key_name', 'temporary_login_block_time')?->value ?? ''}}" data-decimal="0">
                                                     <span class="error-text" data-error="temporary_login_block_time"></span>
                                                 </div>
                                             </div>

@@ -31,7 +31,7 @@
                                            data-name="driver_self_registration"
                                            data-type="business_information" tabindex="4"
                                            data-url="{{ route('admin.business.setup.update-business-setting') }}"
-                                           {{--                                           data-icon="{{ ($settings->firstWhere('key_name', 'driver_self_registration')->value ?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png') }}"--}}
+                                           {{--                                           data-icon="{{ ($settings->firstWhere('key_name', 'driver_self_registration')?->value ?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png') }}"--}}
                                            data-title="{{ $driverSelfRegistrationStatus == 0 ? translate('Want to enable driver self-registration') : translate('Want to disable driver self-registration')}}?"
                                            data-sub-title="{{ $driverSelfRegistrationStatus == 0 ? translate(' If you turn on the driver self-registration, drivers can register directly. This streamlines onboarding.') : translate('If you turn off the driver self-registration, drivers will require an internal administrator to register their accounts.') }}"
                                         {{ $driverSelfRegistrationStatus == 1 ? 'checked' : '' }}
@@ -99,10 +99,10 @@
                                            name="driver_level" type="checkbox" data-name="driver_level"
                                            data-type="driver_settings" tabindex="4"
                                            data-url="{{ route('admin.business.setup.update-business-setting') }}"
-                                           data-icon="{{ ($settings->firstWhere('key_name', 'driver_level')->value ?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png') }}"
-                                           data-title="{{ ($settings->firstWhere('key_name', 'driver_level')->value ?? 0) == 0 ? translate('By Turning ON Level Feature') . '?' : translate('By Turning OFF Level Feature') . '?' }}"
-                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_level')->value ?? 0) == 0 ? translate('If you turn ON level feature, customer will see this feature on app.') : translate('If you turning off customer level feature, please do it at the beginning stage of business. Because once driver use this feature & you will off this feature they will be confused or worried about it.') }}"
-                                        {{ ($settings->firstWhere('key_name', 'driver_level')->value ?? 0) == 1 ? 'checked' : '' }}>
+                                           data-icon="{{ ($settings->firstWhere('key_name', 'driver_level')?->value ?? 0) == 0 ? dynamicAsset('public/assets/admin-module/img/level-up-on.png') : dynamicAsset('public/assets/admin-module/img/level-up-off.png') }}"
+                                           data-title="{{ ($settings->firstWhere('key_name', 'driver_level')?->value ?? 0) == 0 ? translate('By Turning ON Level Feature') . '?' : translate('By Turning OFF Level Feature') . '?' }}"
+                                           data-sub-title="{{ ($settings->firstWhere('key_name', 'driver_level')?->value ?? 0) == 0 ? translate('If you turn ON level feature, customer will see this feature on app.') : translate('If you turning off customer level feature, please do it at the beginning stage of business. Because once driver use this feature & you will off this feature they will be confused or worried about it.') }}"
+                                        {{ ($settings->firstWhere('key_name', 'driver_level')?->value ?? 0) == 1 ? 'checked' : '' }}>
                                     <span class="switcher_control"></span>
                                 </label>
                             </label>
