@@ -100,6 +100,10 @@ the Vito logo — easiest is to add `flutter_launcher_icons` to `dev_dependencie
 same source logo used for Android, and run `dart run flutter_launcher_icons` on the Mac (it writes
 all iOS sizes), or drop a 1024×1024 PNG into the asset catalog via Xcode's app-icon editor.
 
+> **Credentials:** the exact accounts/keys to obtain (Apple membership, Team ID, App IDs, APNs `.p8`,
+> Firebase iOS configs, Maps/Mapbox tokens, App Store Connect) and where each goes are in
+> **`IOS_PRODUCTION_CREDENTIALS.md`**.
+
 ## Outstanding user-supplied items (for a production build)
 - Your own iOS `GoogleService-Info.plist` (step 4).
 - Apple Developer **Team ID** + a distribution/provisioning profile (step 3).

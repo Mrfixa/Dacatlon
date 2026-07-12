@@ -34,8 +34,6 @@
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
     <string>This app need camera access for taking photo for user profile picture.</string>
-    <key>NSPrivacyAccessedAPITypes</key>
-    <string>This app need location permission for tracking driver start to destination trip.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>This app needs access to location for pick location for creating a ride request, Then driver can pickup you.</string>
     <key>NSLocationAlwaysUsageDescription</key>
