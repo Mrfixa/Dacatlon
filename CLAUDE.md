@@ -197,6 +197,12 @@ Both apps share the same structure. Commands below work from either app root.
 **User app:** `drivemond-user-app-3.1/HexaRide-User-app-release-3.1/`  
 **Driver app:** `drivemond-driver-app-3.1/HexaRide-Driver-app-release-3.1/`
 
+> Both apps now ship a complete `ios/` project (bundle IDs `com.sixamtech.hexarideuser` /
+> `com.sixamtech.hexariderider`, matching the Android `applicationId`s). iOS builds are **Mac-only**
+> (no macOS CI); the full local build path — Mapbox pod `~/.netrc` auth, `pod install`, signing team,
+> Firebase `GoogleService-Info.plist` swap, iOS Maps key — is documented in **`IOS_SETUP.md`** at the
+> repo root.
+
 ### Commands
 
 ```bash
