@@ -35,7 +35,11 @@ android {
         // project's key so a plain `flutter build` (no secret) still renders map tiles instead of
         // grey. Android Maps keys are embedded in every APK by design — protect it by restricting
         // it to this app's package name + release SHA-1 in Google Cloud Console, NOT by secrecy.
-        manifestPlaceholders["MAPS_API_KEY"] = System.getenv("MAPS_API_KEY") ?: "AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0"
+        // NOTE: treat a blank env var the same as unset. CI always sets `MAPS_API_KEY:` in the build
+        // step, so an empty repo secret makes getenv return "" (non-null) — `?:` would NOT fall back
+        // and the manifest would ship an empty key → grey map tiles in the release APK.
+        manifestPlaceholders["MAPS_API_KEY"] =
+            System.getenv("MAPS_API_KEY").let { if (it.isNullOrBlank()) "AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0" else it }
         manifestPlaceholders["MAPBOX_ACCESS_TOKEN"] = System.getenv("MAPBOX_ACCESS_TOKEN") ?: ""
     }
 

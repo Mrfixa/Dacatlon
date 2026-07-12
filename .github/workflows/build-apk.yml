@@ -66,8 +66,9 @@ jobs:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
           # Exported to the process env (not just --dart-define) so Gradle's
           # System.getenv("MAPS_API_KEY") in android/app/build.gradle.kts resolves the real
-          # key into the native manifest. Without this the APK ships "YOUR_MAP_KEY_HERE" and
-          # the Google Maps SDK renders solid grey tiles.
+          # key into the native manifest. If this repo secret is unset/empty the env var is
+          # still present-but-empty; build.gradle.kts treats blank as unset and falls back to the
+          # committed project key, so the APK never ships an empty key (which renders grey tiles).
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
           MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
@@ -167,8 +168,9 @@ jobs:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
           # Exported to the process env (not just --dart-define) so Gradle's
           # System.getenv("MAPS_API_KEY") in android/app/build.gradle.kts resolves the real
-          # key into the native manifest. Without this the APK ships "YOUR_MAP_KEY_HERE" and
-          # the Google Maps SDK renders solid grey tiles.
+          # key into the native manifest. If this repo secret is unset/empty the env var is
+          # still present-but-empty; build.gradle.kts treats blank as unset and falls back to the
+          # committed project key, so the APK never ships an empty key (which renders grey tiles).
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
           MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
         run: |
