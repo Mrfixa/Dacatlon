@@ -78,6 +78,14 @@ jobs:
           # version against each plugin's minimum, not just the Podfile platform).
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g" \
             ios/Runner.xcodeproj/project.pbxproj
+          # This is an UNSIGNED compile-verification build. The committed project uses
+          # CODE_SIGN_STYLE = Automatic, which makes newer Xcode (the runner pins the
+          # floating latest-stable) try to resolve a Development Team / provisioning
+          # profile during the device build's prepare phase — failing with "requires a
+          # selected Development Team" even under `flutter build ios --no-codesign`.
+          # Force manual signing with codesigning disabled so no team is ever required.
+          sed -i '' "s/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g" \
+            ios/Runner.xcodeproj/project.pbxproj
 
       - name: Write Podfile (iOS 16, use_frameworks for stripe/firebase)
         run: |
