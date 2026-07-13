@@ -100,7 +100,7 @@ class _PointToWalletMoneyWidgetState extends State<PointToWalletMoneyWidget> {
             Text('${'convertible_amount'.tr}: '
                 '${PriceConverter.convertPrice(context,
                 _convertDouble(amountController.text) /
-                    Get.find<SplashController>().config?.conversionRate ?? 0)}',
+                    (Get.find<SplashController>().config?.conversionRate ?? 0))}',
               style: textRobotoRegular,
               textAlign: TextAlign.center,
             ),

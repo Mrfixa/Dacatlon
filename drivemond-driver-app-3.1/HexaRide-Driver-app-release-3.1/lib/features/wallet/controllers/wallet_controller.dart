@@ -140,7 +140,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
     // update();
     Response? response = await walletServiceInterface.getLoyaltyPointList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         loyaltyPointModel = LoyaltyPointModel.fromJson(response.body);
       } else {
@@ -163,7 +163,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
     update();
     Response? response = await walletServiceInterface.convertPoint(point);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       getLoyaltyPointList(1);
       Get.find<ProfileController>().getProfileInfo();
       isLoading = false;
@@ -209,7 +209,7 @@ class WalletController extends GetxController implements GetxService {
   Future<void> getWithdrawMethods() async {
     methodList = [];
     Response? response = await walletServiceInterface.getDynamicWithdrawMethodList();
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       methodList.addAll(WithdrawModel
           .fromJson(response.body)
           .data!);
@@ -244,7 +244,15 @@ class WalletController extends GetxController implements GetxService {
       note,
     );
 
-    if (response?.statusCode == 200) {
+    // Null-guard a transport-layer failure so withdraw doesn't crash on response!.
+    if (response == null) {
+      isLoading = false;
+      update();
+      showCustomSnackBar('something_went_wrong'.tr);
+      return Response(statusCode: 503, statusText: 'no_response');
+    }
+
+    if (response.statusCode == 200) {
       Get.back();
       inputValueList.clear();
       inputFieldControllerList.clear();
@@ -257,7 +265,7 @@ class WalletController extends GetxController implements GetxService {
     }
     else {
       isLoading = false;
-      if (response != null) ApiChecker.checkApi(response);
+      ApiChecker.checkApi(response);
     }
 
     update();
@@ -369,7 +377,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getIncomeStatement(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         incomeStatement = TripModel.fromJson(response.body);
       } else {
@@ -389,7 +397,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getPayableHistoryList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         transactionModel = TransactionModel.fromJson(response.body);
       } else {
@@ -409,7 +417,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getWalletHistoryList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         transactionModel = TransactionModel.fromJson(response.body);
       } else {
@@ -429,7 +437,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getWithdrawPendingList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         pendingSettledWithdrawModel = PendingSettledWithdrawModel.fromJson(response.body);
       } else {
@@ -451,7 +459,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getWithdrawSettledList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         pendingSettledWithdrawModel = PendingSettledWithdrawModel.fromJson(response.body);
       } else {
@@ -509,7 +517,7 @@ class WalletController extends GetxController implements GetxService {
     isLoading = true;
 
     Response? response = await walletServiceInterface.getCashCollectHistoryList(offset);
-    if (response?.statusCode == 200) {
+    if (response!.statusCode == 200) {
       if (offset == 1) {
         transactionModel = TransactionModel.fromJson(response.body);
       } else {
