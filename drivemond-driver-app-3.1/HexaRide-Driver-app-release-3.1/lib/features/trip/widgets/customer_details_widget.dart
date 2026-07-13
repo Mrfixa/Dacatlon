@@ -111,7 +111,7 @@ class CustomerDetailsWidget extends StatelessWidget {
           )
           else
             ( isReviewed != null &&  !isReviewed! &&
-                Get.find<SplashController>().config!.reviewStatus! &&
+                (Get.find<SplashController>().config?.reviewStatus ?? false) &&
                 paymentStatus == 'paid') ?
             InkWell(
               onTap: (){

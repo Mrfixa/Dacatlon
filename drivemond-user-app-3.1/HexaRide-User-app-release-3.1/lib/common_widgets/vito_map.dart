@@ -244,6 +244,11 @@ class _VitoMapState extends State<VitoMap> {
   mbx.MapboxMap? _mapboxMap;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _googleReady = false;
+  String? _googleKeyWarning;
+  // Session-wide: once the user dismisses the key warning, don't re-probe on
+  // every map screen.
+  static bool _googleKeyWarningDismissed = false;
 
   late final bool _useMapbox = useMapboxProvider();
 
@@ -254,7 +259,7 @@ class _VitoMapState extends State<VitoMap> {
       final token = _mapboxAccessToken();
       if (token.isEmpty) {
         setState(() {
-          _errorMessage = 'Mapbox token not configured';
+          _errorMessage = 'map_token_not_configured'.tr;
           _isLoading = false;
         });
       } else {
@@ -262,6 +267,34 @@ class _VitoMapState extends State<VitoMap> {
       }
     } else {
       _isLoading = false;
+      _probeGoogleMapsKey();
+    }
+  }
+
+  /// One-shot diagnostic: a rejected Google Maps key (billing disabled on the
+  /// Cloud project, bad restrictions) renders silent grey tiles — the native
+  /// SDK gives Flutter no callback. Probe the key with a single REST call and
+  /// surface a dismissible banner only on a definitive project-level
+  /// rejection; network errors and merely-disabled REST APIs stay silent.
+  Future<void> _probeGoogleMapsKey() async {
+    if (_googleKeyWarningDismissed) return;
+    const key = String.fromEnvironment('MAPS_API_KEY',
+        defaultValue: 'AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0');
+    if (key.isEmpty) return;
+    try {
+      final gc = GetConnect();
+      gc.timeout = const Duration(seconds: 8);
+      final res = await gc.get(
+          'https://maps.googleapis.com/maps/api/geocode/json?latlng=0,0&key=$key');
+      final body = res.body;
+      if (body is Map && body['status'] == 'REQUEST_DENIED') {
+        final reason = (body['error_message'] ?? '').toString();
+        if (reason.contains('Billing') || reason.contains('API key')) {
+          if (mounted) setState(() => _googleKeyWarning = reason);
+        }
+      }
+    } catch (_) {
+      // Offline/timeout: the app-wide offline banner already covers this.
     }
   }
 
@@ -307,28 +340,59 @@ class _VitoMapState extends State<VitoMap> {
     }
 
     if (!_useMapbox) {
-      return gmap.GoogleMap(
-        style: widget.googleStyleJson,
-        initialCameraPosition: gmap.CameraPosition(target: widget.initialTarget, zoom: widget.initialZoom),
-        markers: {...widget.markers.map((m) => m.toGoogleMarker()), ...widget.googleMarkers},
-        polylines: widget.polylines,
-        polygons: widget.googlePolygons,
-        myLocationEnabled: widget.myLocationEnabled,
-        myLocationButtonEnabled: widget.myLocationButtonEnabled ?? widget.myLocationEnabled,
-        zoomControlsEnabled: widget.zoomControlsEnabled,
-        zoomGesturesEnabled: widget.zoomGesturesEnabled,
-        compassEnabled: widget.compassEnabled,
-        trafficEnabled: widget.trafficEnabled,
-        indoorViewEnabled: widget.indoorViewEnabled,
-        mapToolbarEnabled: widget.mapToolbarEnabled,
-        minMaxZoomPreference: widget.minMaxZoomPreference,
-        padding: widget.padding,
-        onTap: widget.onTap,
-        onCameraMove: widget.onCameraMove,
-        onCameraMoveStarted: widget.onCameraMoveStarted,
-        onCameraIdle: widget.onCameraIdle,
-        onMapCreated: (c) => widget.onMapCreated?.call(VitoMapController.google(c)),
-      );
+      return Stack(children: [
+        gmap.GoogleMap(
+          style: widget.googleStyleJson,
+          initialCameraPosition: gmap.CameraPosition(target: widget.initialTarget, zoom: widget.initialZoom),
+          markers: {...widget.markers.map((m) => m.toGoogleMarker()), ...widget.googleMarkers},
+          polylines: widget.polylines,
+          polygons: widget.googlePolygons,
+          myLocationEnabled: widget.myLocationEnabled,
+          myLocationButtonEnabled: widget.myLocationButtonEnabled ?? widget.myLocationEnabled,
+          zoomControlsEnabled: widget.zoomControlsEnabled,
+          zoomGesturesEnabled: widget.zoomGesturesEnabled,
+          compassEnabled: widget.compassEnabled,
+          trafficEnabled: widget.trafficEnabled,
+          indoorViewEnabled: widget.indoorViewEnabled,
+          mapToolbarEnabled: widget.mapToolbarEnabled,
+          minMaxZoomPreference: widget.minMaxZoomPreference,
+          padding: widget.padding,
+          onTap: widget.onTap,
+          onCameraMove: widget.onCameraMove,
+          onCameraMoveStarted: widget.onCameraMoveStarted,
+          onCameraIdle: widget.onCameraIdle,
+          onMapCreated: (c) {
+            if (mounted && !_googleReady) setState(() => _googleReady = true);
+            widget.onMapCreated?.call(VitoMapController.google(c));
+          },
+        ),
+        if (!_googleReady)
+          const IgnorePointer(child: Center(child: CircularProgressIndicator())),
+        if (_googleKeyWarning != null)
+          Positioned(top: 12, left: 12, right: 12, child: SafeArea(
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(children: [
+                  Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('${'maps_key_rejected'.tr}\n$_googleKeyWarning',
+                      style: const TextStyle(fontSize: 12))),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () => setState(() {
+                      _googleKeyWarning = null;
+                      _googleKeyWarningDismissed = true;
+                    }),
+                  ),
+                ]),
+              ),
+            ),
+          )),
+      ]);
     }
 
     if (_isLoading) {

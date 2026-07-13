@@ -55,7 +55,9 @@ Legend: 🔑 = a secret/file you supply · 📍 = where it goes in this repo/pro
 
 ## 6. Google Maps API key for iOS — 🔑📍
 - **Get it:** <https://console.cloud.google.com/apis/credentials> → **Create credentials → API key**.
-  Enable **Maps SDK for iOS** (APIs & Services → Library). Restrict the key: **iOS apps** → add both
+  ⚠️ The project **must have Billing enabled** (confirmed: the current shared key's project has no
+  billing, so Google rejects all Maps requests → grey tiles). Enable **Maps SDK for iOS** (APIs &
+  Services → Library). Restrict the key: **iOS apps** → add both
   bundle IDs. (Use a **separate** key from the Android one, each restricted to its platform.)
 - 📍 Paste into `ios/Runner/AppDelegate.swift` → `GMSServices.provideAPIKey("...")` in **both** apps.
   (Runtime map tiles for the Mapbox provider come from backend config, same as Android.)

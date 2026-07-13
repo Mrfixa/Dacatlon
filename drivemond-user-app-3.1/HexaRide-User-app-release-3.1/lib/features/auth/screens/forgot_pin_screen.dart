@@ -134,6 +134,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
       return;
     }
     final bool sent = await authController.forgotPinSendOtp(username);
+    if (!mounted) return;
     if (sent) {
       setState(() => _otpSent = true);
     }

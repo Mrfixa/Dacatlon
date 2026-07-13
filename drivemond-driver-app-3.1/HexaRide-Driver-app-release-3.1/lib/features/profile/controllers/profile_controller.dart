@@ -222,7 +222,15 @@ class ProfileController extends GetxController implements GetxService{
     isLoading = true;
     update();
     Response? response = await profileServiceInterface.profileOnlineOffline();
-    if(response!.statusCode == 200){
+    // Null-guard a transport-layer failure so the online/offline toggle doesn't
+    // crash on response! (no dialog is open to pop here).
+    if (response == null) {
+      isLoading = false;
+      update();
+      showCustomSnackBar('something_went_wrong'.tr);
+      return Response(statusCode: 503, statusText: 'no_response');
+    }
+    if(response.statusCode == 200){
       if(isOnline == "0"){
         isOnline = "1";
         startLocationRecord();
@@ -233,7 +241,8 @@ class ProfileController extends GetxController implements GetxService{
       // D10: persist online state so it survives app restart
       SharedPreferences.getInstance().then((p) => p.setString('driver_online_state', isOnline));
     }else{
-      Get.back();
+      // No loading dialog is open here (the confirm dialog pops before the API
+      // call), so a Get.back() would wrongly pop the dashboard route on failure.
       isLoading = false;
       ApiChecker.checkApi(response);
     }

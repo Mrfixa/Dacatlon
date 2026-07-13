@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
         $this->call(AdminUserWalletSeeder::class);
         $this->call(VehicleManagementDatabaseSeeder::class);
         $this->call(DefaultUsersSeeder::class);
+        // Always-on labelled test customer (works in production too, unlike the demo
+        // accounts above): username "testcustomer" / PIN "112233".
+        $this->call(TestCustomerSeeder::class);
         $this->call(BusinessManagementDatabaseSeeder::class);
     }
 }

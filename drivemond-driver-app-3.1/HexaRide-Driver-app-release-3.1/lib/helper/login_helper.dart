@@ -57,6 +57,18 @@ class LoginHelper{
     }
 
     Future.delayed(const Duration(milliseconds: 1000), () {
+      // Maintenance gates BOTH auth states (it previously only ran on the
+      // logged-out path, so a logged-in driver bypassed it entirely). Drivers
+      // with ongoing rides are let through, same as the dashboard-side check.
+      final maintenance = Get.find<SplashController>().config?.maintenanceMode;
+      if(maintenance != null &&
+          maintenance.maintenanceStatus == 1 &&
+          maintenance.selectedMaintenanceSystem?.driverApp == 1 &&
+          !Get.find<SplashController>().haveOngoingRides()
+      ){
+        Get.offAll(() => const MaintenanceScreen());
+        return;
+      }
       if(Get.find<AuthController>().isLoggedIn()){
         if(Get.find<AuthController>().getZoneId() == ''){
           Get.offAll(()=> const AccessLocationScreen());
@@ -95,15 +107,7 @@ class LoginHelper{
         }
 
       }else{
-        final maintenance = Get.find<SplashController>().config?.maintenanceMode;
-        if(maintenance != null &&
-            maintenance.maintenanceStatus == 1 &&
-            maintenance.selectedMaintenanceSystem?.driverApp == 1
-        ){
-          Get.offAll(() => const MaintenanceScreen());
-        }else{
-          checkLoginMedium();
-        }
+        checkLoginMedium();
       }
     });
   }

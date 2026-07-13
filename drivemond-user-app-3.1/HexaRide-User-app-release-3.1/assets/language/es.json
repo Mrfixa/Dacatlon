@@ -1183,7 +1183,7 @@
   "featured_products": "Productos destacados",
   "popular_products": "Productos populares",
   "all_products": "Todos los productos",
-  "search_loaded_trips_hint": "Busca en los viajes cargados hasta ahora \u2014 despl\u00e1zate para cargar m\u00e1s",
+  "search_loaded_trips_hint": "Busca en los viajes cargados hasta ahora — desplázate para cargar más",
   "search_trips": "Buscar viajes",
   "select_on_map": "Seleccionar en el mapa",
   "saved_addresses": "Direcciones guardadas",
@@ -1210,5 +1210,7 @@
   "get": "Obtén",
   "no_category_found": "No se encontró ninguna categoría",
   "thanks_for_your_review": "¡Gracias por tu reseña!",
-  "this_field_is_required": "Este campo es obligatorio"
+  "this_field_is_required": "Este campo es obligatorio",
+  "map_token_not_configured": "El token del mapa no está configurado",
+  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps"
 }

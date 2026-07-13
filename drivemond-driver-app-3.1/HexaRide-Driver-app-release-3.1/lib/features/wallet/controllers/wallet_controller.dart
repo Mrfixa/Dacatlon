@@ -244,7 +244,15 @@ class WalletController extends GetxController implements GetxService {
       note,
     );
 
-    if (response!.statusCode == 200) {
+    // Null-guard a transport-layer failure so withdraw doesn't crash on response!.
+    if (response == null) {
+      isLoading = false;
+      update();
+      showCustomSnackBar('something_went_wrong'.tr);
+      return Response(statusCode: 503, statusText: 'no_response');
+    }
+
+    if (response.statusCode == 200) {
       Get.back();
       inputValueList.clear();
       inputFieldControllerList.clear();

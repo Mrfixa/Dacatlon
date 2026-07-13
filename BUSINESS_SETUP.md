@@ -1,0 +1,46 @@
+# Vito — Business Setup (backend)
+
+Everything the backend needs to present as a configured "Vito" business is now
+seeded. Applying it on the live server is **one command** (the seeders are
+idempotent — safe to re-run; they `updateOrInsert` existing rows).
+
+## What's seeded
+
+**Business information** (`business_settings`, type `business_information`)
+- Name **Vito**, address *Cartagena de Indias, Bolívar, Colombia*
+- Contact/support email `info@dacatlon.store` / `support@dacatlon.store`, phone `+57…`
+- Currency **COP** (`$`, 0 decimals), country code `+57`, timezone `America/Bogota`
+- Header logo `vito-logo.png`, favicon `vito-favicon.png`
+
+**Brand logos** — committed under `public/business/` (tracked) and copied to the
+runtime disk `storage/app/public/business/` by the seeder:
+`vito-logo.png` (header), `vito-favicon.png` (favicon), `vito-logo-square.png`
+(256² app/social). Derived from the Vito app artwork. The admin default logo
+(`public/assets/admin-module/img/logo.png`) + `public/favicon.*` were refreshed too.
+
+**Google Maps** (`google_map_api`) — the supplied key
+`AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0` is set for server/android/ios and
+`map_provider=google`. Override per-env with `GOOGLE_MAPS_API_KEY` in `.env`.
+> ⚠️ This key's Cloud project has **no billing** — Google rejects Maps requests
+> (grey tiles / failed geocoding) until you enable Billing + Maps SDK/Geocoding/
+> Places/Directions/Distance-Matrix on it (or point `GOOGLE_MAPS_API_KEY` at a
+> billed key). See `CREDENTIALS_CHECKLIST.md` A3.
+
+**Test customer** (always seeded, incl. production) — customer app login:
+`username: testcustomer` · `PIN: 112233`. (The demo `customer`/`driver` accounts
+remain gated to non-prod unless `SEED_DEMO_USERS=true`.)
+
+## Apply on the server
+
+```bash
+cd /var/www/vito/drivemond-admin-new-install-3.1
+git pull                                    # pulls the seeders + public/business logos
+php artisan storage:link                    # if not already linked
+php artisan db:seed --class=Database\\Seeders\\TestCustomerSeeder --force
+php artisan db:seed --class=Modules\\BusinessManagement\\Database\\Seeders\\BusinessManagementDatabaseSeeder --force
+php artisan optimize:clear                  # flush cached config/business settings
+```
+
+Then log into the admin panel → **Business → Business Setup** to review, and the
+customer app with `testcustomer` / `112233`. Change the seeded contact details,
+currency, and test-customer PIN to your real values before public launch.

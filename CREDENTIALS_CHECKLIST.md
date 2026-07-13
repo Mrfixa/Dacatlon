@@ -43,9 +43,17 @@ The server already has a working `.env` from deployment. Remaining items:
 |---|--------|--------|-----------------|---------------|
 | A1 | 2× **google-services.json** (user + driver, your Firebase) | ⚠️ vendor | Firebase → the two Android apps (§0) | `…/android/app/google-services.json` (each app) |
 | A2 | **Upload keystore** (`.jks`) + alias + passwords | ❌ | generate once: `keytool -genkey -v -keystore upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000` | `…/android/key.properties` + the `.jks` (**not committed**) |
-| A3 | **Google Maps Android key** (restrict to package + release SHA-1) | ✅ fallback set | Google Cloud → Credentials → Android key (enable *Maps SDK for Android*) | `build.gradle.kts` / CI secret `MAPS_API_KEY` |
+| A3 | **Google Maps Android key** (restrict to package + release SHA-1) | ❌ **billing** | Google Cloud → new project → **enable Billing** → enable *Maps SDK for Android* → key | `build.gradle.kts` / CI secret `MAPS_API_KEY` |
 | A4 | **Stripe publishable key** | ✅ via build | dashboard.stripe.com → API keys | `--dart-define`/CI secret `STRIPE_PUBLISHABLE_KEY` |
 | A5 | **Play Console** account ($25 one-time) | ❌ (to publish) | play.google.com/console | upload the AAB/APK |
+
+> **A3 grey-map root cause (confirmed 2026-07-13):** the committed fallback key's Cloud project has
+> **no billing account** — Google rejects every Maps request ("You must enable Billing…"), which
+> renders solid grey tiles in both apps. Fix: create your own Cloud project, **enable billing**
+> ($200/mo free credit), enable *Maps SDK for Android* + *Maps SDK for iOS*, create a key, restrict
+> it (Android: both package names + release SHA-1; iOS: both bundle IDs), then hand it over — it
+> goes into both `build.gradle.kts` fallbacks, both `ios/Runner/AppDelegate.swift`, and the
+> `MAPS_API_KEY` repo secret. No code change can work around missing billing.
 
 > Without **A2** the release APK is **debug-signed** and Play Store will reject it. The keystore must be
 > generated once and kept safe — losing it means you can't update the app.

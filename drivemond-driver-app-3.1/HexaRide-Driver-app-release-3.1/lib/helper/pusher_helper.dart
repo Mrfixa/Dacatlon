@@ -119,77 +119,66 @@ class PusherHelper{
 
   }
 
-  late PrivateChannel customerInitialTripCancelChannel;
+  // Static registries: PusherHelper is instantiated fresh at each call site, so
+  // instance fields can neither dedupe a same-trip resubscribe (handlers used to
+  // stack) nor be reached by pusherDisconnectPusher(). Keyed by channel name —
+  // different trips coexist; rebinding the same trip cancels the old binding.
+  static final Map<String, PrivateChannel> _tripChannels = {};
+  static final Map<String, StreamSubscription> _tripChannelSubs = {};
+
+  void _bindTripChannel(String channelName, String eventName, void Function(dynamic event) onEvent){
+    final String? wsUrl = Get.find<SplashController>().config?.webSocketUrl;
+    if (Get.find<SplashController>().pusherConnectionStatus != 'Connected' || pusherClient == null || wsUrl == null) return;
+    try { _tripChannelSubs.remove(channelName)?.cancel(); } catch (_) {}
+    try { _tripChannels.remove(channelName)?.unsubscribe(); } catch (_) {}
+    final channel = pusherClient!.privateChannel(channelName, authorizationDelegate:
+    EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
+      authorizationEndpoint: Uri.parse('${Get.find<SplashController>().config?.websocketScheme ?? 'https'}://$wsUrl/broadcasting/auth'),
+      headers:  {
+        "Accept": "application/json",
+        "Authorization": "Bearer ${Get.find<AuthController>().getUserToken()}",
+        "Access-Control-Allow-Origin": "*",
+        'Access-Control-Allow-Methods':"PUT, GET, POST, DELETE, OPTIONS"
+      },
+    ));
+    channel.subscribe();
+    _tripChannels[channelName] = channel;
+    _tripChannelSubs[channelName] = channel.bind(eventName).listen(onEvent);
+  }
 
   void customerInitialTripCancel(String tripId, String userId){
-    if (Get.find<SplashController>().pusherConnectionStatus == 'Connected' && pusherClient != null){
-      customerInitialTripCancelChannel = pusherClient!.privateChannel("private-customer-trip-cancelled.$tripId.$userId", authorizationDelegate:
-      EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
-        authorizationEndpoint: Uri.parse('${Get.find<SplashController>().config?.websocketScheme ?? 'https'}://${Get.find<SplashController>().config!.webSocketUrl}/broadcasting/auth'),
-        headers:  {
-          "Accept": "application/json",
-          "Authorization": "Bearer ${Get.find<AuthController>().getUserToken()}",
-          "Access-Control-Allow-Origin": "*",
-          'Access-Control-Allow-Methods':"PUT, GET, POST, DELETE, OPTIONS"
-        },
-      ));
-
-      if(customerInitialTripCancelChannel.currentStatus == null){
-        customerInitialTripCancelChannel.subscribe();
-        customerInitialTripCancelChannel.bind("customer-trip-cancelled.$tripId.$userId").listen((event) {
-          if(Get.find<RideController>().tripDetail?.id == jsonDecode(event.data!)['trip_id']){
-            Get.find<SafetyAlertController>().cancelDriverNeedSafetyStream();
-            Get.find<RideController>().getPendingRideRequestList(1).then((value) {
-              if (value.statusCode == 200) {
-                Get.find<RiderMapController>().setRideCurrentState(RideState.initial);
-                Get.offAll(() => const DashboardScreen());
-              }
-            });
-          }else{
-            Get.find<RideController>().ongoingTripList();
-            Get.find<RideController>().getPendingRideRequestList(1,limit: 100);
+    _bindTripChannel("private-customer-trip-cancelled.$tripId.$userId", "customer-trip-cancelled.$tripId.$userId", (event) {
+      if(Get.find<RideController>().tripDetail?.id == jsonDecode(event.data!)['trip_id']){
+        Get.find<SafetyAlertController>().cancelDriverNeedSafetyStream();
+        Get.find<RideController>().getPendingRideRequestList(1).then((value) {
+          if (value.statusCode == 200) {
+            Get.find<RiderMapController>().setRideCurrentState(RideState.initial);
+            Get.offAll(() => const DashboardScreen());
           }
-
         });
+      }else{
+        Get.find<RideController>().ongoingTripList();
+        Get.find<RideController>().getPendingRideRequestList(1,limit: 100);
       }
-    }
-
+    });
   }
 
 
-  late PrivateChannel anotherDriverAcceptedTripChannel;
-
   void anotherDriverAcceptedTrip(String tripId, String userId){
-    if (Get.find<SplashController>().pusherConnectionStatus == 'Connected' && pusherClient != null){
-      anotherDriverAcceptedTripChannel = pusherClient!.privateChannel("private-another-driver-trip-accepted.$tripId.$userId", authorizationDelegate:
-      EndpointAuthorizableChannelTokenAuthorizationDelegate.forPrivateChannel(
-        authorizationEndpoint: Uri.parse('${Get.find<SplashController>().config?.websocketScheme ?? 'https'}://${Get.find<SplashController>().config!.webSocketUrl}/broadcasting/auth'),
-        headers:  {
-          "Accept": "application/json",
-          "Authorization": "Bearer ${Get.find<AuthController>().getUserToken()}",
-          "Access-Control-Allow-Origin": "*",
-          'Access-Control-Allow-Methods':"PUT, GET, POST, DELETE, OPTIONS"
-        },
-      ));
-
-      if(anotherDriverAcceptedTripChannel.currentStatus == null){
-        anotherDriverAcceptedTripChannel.subscribe();
-        anotherDriverAcceptedTripChannel.bind("another-driver-trip-accepted.$tripId.$userId").listen((event) {
-          if(Get.find<RideController>().tripDetail?.id == jsonDecode(event.data!)['trip_id']){
-            Get.find<SafetyAlertController>().cancelDriverNeedSafetyStream();
-            Get.find<RideController>().getPendingRideRequestList(1).then((value) {
-              if (value.statusCode == 200) {
-                Get.find<RiderMapController>().setRideCurrentState(RideState.initial);
-                Get.offAll(() => const DashboardScreen());
-              }
-            });
-          }else{
-            Get.find<RideController>().ongoingTripList();
-            Get.find<RideController>().getPendingRideRequestList(1,limit: 100);
+    _bindTripChannel("private-another-driver-trip-accepted.$tripId.$userId", "another-driver-trip-accepted.$tripId.$userId", (event) {
+      if(Get.find<RideController>().tripDetail?.id == jsonDecode(event.data!)['trip_id']){
+        Get.find<SafetyAlertController>().cancelDriverNeedSafetyStream();
+        Get.find<RideController>().getPendingRideRequestList(1).then((value) {
+          if (value.statusCode == 200) {
+            Get.find<RiderMapController>().setRideCurrentState(RideState.initial);
+            Get.offAll(() => const DashboardScreen());
           }
         });
+      }else{
+        Get.find<RideController>().ongoingTripList();
+        Get.find<RideController>().getPendingRideRequestList(1,limit: 100);
       }
-    }
+    });
   }
 
   PrivateChannel? tripCancelAfterOngoingChannel;
@@ -299,8 +288,10 @@ class PusherHelper{
     // deliberate: the `late` channels throw LateInitializationError when a session
     // ends before they were ever subscribed — expected, not worth a breadcrumb.
     try { driverTripSubscribe.unsubscribe(); } catch (_) {}
-    try { customerInitialTripCancelChannel.unsubscribe(); } catch (_) {}
-    try { anotherDriverAcceptedTripChannel.unsubscribe(); } catch (_) {}
+    for (final s in _tripChannelSubs.values) { try { s.cancel(); } catch (_) {} }
+    _tripChannelSubs.clear();
+    for (final c in _tripChannels.values) { try { c.unsubscribe(); } catch (_) {} }
+    _tripChannels.clear();
     try { _tripCancelAfterOngoingSub?.cancel(); } catch (_) {}
     try { tripCancelAfterOngoingChannel?.unsubscribe(); } catch (_) {}
     try { _tripPaymentSuccessfulSub?.cancel(); } catch (_) {}

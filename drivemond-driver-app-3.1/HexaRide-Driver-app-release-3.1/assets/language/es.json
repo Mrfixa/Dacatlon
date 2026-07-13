@@ -1130,7 +1130,7 @@
   "search_vehicle_brand": "Buscar marca de vehículo",
   "search_vehicle_model": "Buscar modelo de vehículo",
   "search_vehicle_category": "Buscar categoría de vehículo",
-  "no_models_for_this_brand": "No hay modelos disponibles para esta marca \u2014 selecciona la marca \"Other\" en su lugar",
+  "no_models_for_this_brand": "No hay modelos disponibles para esta marca — selecciona la marca \"Other\" en su lugar",
   "no_match_found": "No se encontraron coincidencias",
   "forgot_pin": "¿Olvidaste tu PIN?",
   "forgot_pin_hint": "Ingresa tu nombre de usuario y enviaremos un código de un solo uso al número de teléfono de tu cuenta.",
@@ -1168,5 +1168,7 @@
   "night_mode": "Modo nocturno",
   "enable_night_mode_for_driving": "Activar el modo nocturno para conducir",
   "save_preferences": "Guardar preferencias",
-  "preferences_saved": "Preferencias guardadas"
+  "preferences_saved": "Preferencias guardadas",
+  "map_token_not_configured": "El token del mapa no está configurado",
+  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps"
 }

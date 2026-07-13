@@ -100,7 +100,7 @@ class _PointToWalletMoneyWidgetState extends State<PointToWalletMoneyWidget> {
             Text('${'convertible_amount'.tr}: '
                 '${PriceConverter.convertPrice(context,
                 _convertDouble(amountController.text) /
-                    Get.find<SplashController>().config!.conversionRate!)}',
+                    (Get.find<SplashController>().config?.conversionRate ?? 0))}',
               style: textRobotoRegular,
               textAlign: TextAlign.center,
             ),
@@ -177,9 +177,9 @@ class _PointToWalletMoneyWidgetState extends State<PointToWalletMoneyWidget> {
                   if((Get.find<ProfileController>().profileInfo?.loyaltyPoint ?? 0) >= 0){
                     if(point.isEmpty) {
                       showCustomSnackBar('please_input_point'.tr,);
-                    }else if((double.tryParse(point) ?? 0) < Get.find<SplashController>().config!.conversionRate!) {
+                    }else if((double.tryParse(point) ?? 0) < (Get.find<SplashController>().config?.conversionRate ?? 0)) {
                       showCustomSnackBar('${'minimum_conversion_point'.tr}: '
-                          '${Get.find<SplashController>().config!.conversionRate!}',
+                          '${Get.find<SplashController>().config?.conversionRate ?? 0}',
                       );
                     }else{
                       walletController.convertPoint(point).then((value) {
