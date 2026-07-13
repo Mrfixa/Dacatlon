@@ -36,7 +36,7 @@ class ProfileLevelWidgetWidget extends StatelessWidget {
             ),
             const SizedBox(height: Dimensions.paddingSizeExtraSmall),
 
-            if(Get.find<SplashController>().config!.levelStatus!)
+            if(Get.find<SplashController>().config?.levelStatus ?? false)
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,

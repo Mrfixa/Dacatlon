@@ -31,7 +31,7 @@ class WalletMoneyAmountWidget extends StatelessWidget {
           child: InkWell(
               onTap: (){
                 if(walletController.walletTypeIndex == 1){
-                  if(Get.find<SplashController>().config!.conversionStatus!){
+                  if(Get.find<SplashController>().config?.conversionStatus ?? false){
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,

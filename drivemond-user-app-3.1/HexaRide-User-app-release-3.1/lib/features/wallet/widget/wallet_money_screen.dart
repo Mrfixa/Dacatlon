@@ -51,8 +51,7 @@ class _WalletMoneyScreenState extends State<WalletMoneyScreen> {
             ),
             itemCount: walletController.addFundPromotionalModel?.data?.length ?? 0,
             itemBuilder: (context, index, _) {
-              return InkWell(
-                onTap: (){},
+              return Container(
                 child: Container(
                   padding: EdgeInsets.all(Dimensions.paddingSizeDefault),
                   margin: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),

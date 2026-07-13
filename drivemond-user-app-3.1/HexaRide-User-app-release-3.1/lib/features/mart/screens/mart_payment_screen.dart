@@ -63,11 +63,13 @@ class _MartPaymentScreenState extends State<MartPaymentScreen> {
         ),
       );
 
+      if (!mounted) return;
       setState(() {
         _clientSecret = clientSecret;
         _isInitializing = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _initError = 'payment_failed'.tr;
         _isInitializing = false;

@@ -1183,7 +1183,7 @@
   "featured_products": "Featured Products",
   "popular_products": "Popular Products",
   "all_products": "All Products",
-  "search_loaded_trips_hint": "Searches trips loaded so far \u2014 scroll to load more",
+  "search_loaded_trips_hint": "Searches trips loaded so far — scroll to load more",
   "search_trips": "Search trips",
   "select_on_map": "Select on map",
   "saved_addresses": "Saved addresses",
@@ -1210,5 +1210,7 @@
   "get": "Get",
   "no_category_found": "No category found",
   "thanks_for_your_review": "Thanks for your review!",
-  "this_field_is_required": "This field is required"
+  "this_field_is_required": "This field is required",
+  "map_token_not_configured": "Map token is not configured",
+  "maps_key_rejected": "Map could not load: Google rejected the Maps key"
 }
