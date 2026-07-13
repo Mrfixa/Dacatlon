@@ -10,6 +10,8 @@ class BusinessManagementDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->copyBrandAssets();
+
         foreach ($this->rows() as $row) {
             DB::table('business_settings')->updateOrInsert(
                 ['key_name' => $row['key_name'], 'settings_type' => $row['settings_type']],
@@ -30,24 +32,49 @@ class BusinessManagementDatabaseSeeder extends Seeder
         }
     }
 
+    /**
+     * Brand logos ship committed under public/business/ (tracked) but must live in
+     * storage/app/public/business/ (gitignored, the runtime disk onErrorImage reads).
+     * Copy them across on seed so header_logo/favicon resolve on a fresh deploy.
+     */
+    private function copyBrandAssets(): void
+    {
+        $srcDir  = public_path('business');
+        $destDir = storage_path('app/public/business');
+        if (!is_dir($destDir)) {
+            @mkdir($destDir, 0775, true);
+        }
+        foreach (['vito-logo.png', 'vito-favicon.png', 'vito-logo-square.png'] as $file) {
+            $src = $srcDir . DIRECTORY_SEPARATOR . $file;
+            $dest = $destDir . DIRECTORY_SEPARATOR . $file;
+            if (is_file($src) && !is_file($dest)) {
+                @copy($src, $dest);
+            }
+        }
+    }
+
     private function rows(): array
     {
         return [
             // ── Business Information ──────────────────────────────────────────
             ['key_name' => 'business_name',            'settings_type' => 'business_information', 'value' => 'Vito'],
-            ['key_name' => 'business_address',         'settings_type' => 'business_information', 'value' => ''],
-            ['key_name' => 'business_contact_phone',   'settings_type' => 'business_information', 'value' => ''],
-            ['key_name' => 'business_contact_email',   'settings_type' => 'business_information', 'value' => ''],
-            ['key_name' => 'business_support_phone',   'settings_type' => 'business_information', 'value' => ''],
-            ['key_name' => 'business_support_email',   'settings_type' => 'business_information', 'value' => ''],
-            ['key_name' => 'country_code',             'settings_type' => 'business_information', 'value' => '+1'],
-            ['key_name' => 'currency_code',            'settings_type' => 'business_information', 'value' => 'USD'],
+            ['key_name' => 'business_address',         'settings_type' => 'business_information', 'value' => 'Cartagena de Indias, Bolívar, Colombia'],
+            ['key_name' => 'business_contact_phone',   'settings_type' => 'business_information', 'value' => '+573000000000'],
+            ['key_name' => 'business_contact_email',   'settings_type' => 'business_information', 'value' => 'info@dacatlon.store'],
+            ['key_name' => 'business_support_phone',   'settings_type' => 'business_information', 'value' => '+573000000000'],
+            ['key_name' => 'business_support_email',   'settings_type' => 'business_information', 'value' => 'support@dacatlon.store'],
+            ['key_name' => 'country_code',             'settings_type' => 'business_information', 'value' => '+57'],
+            ['key_name' => 'currency_code',            'settings_type' => 'business_information', 'value' => 'COP'],
             ['key_name' => 'currency_symbol',          'settings_type' => 'business_information', 'value' => '$'],
             ['key_name' => 'currency_symbol_position', 'settings_type' => 'business_information', 'value' => 'left'],
-            ['key_name' => 'currency_decimal_point',   'settings_type' => 'business_information', 'value' => '2'],
+            ['key_name' => 'currency_decimal_point',   'settings_type' => 'business_information', 'value' => '0'],
             ['key_name' => 'copyright_text',           'settings_type' => 'business_information', 'value' => '© ' . date('Y') . ' Vito. All rights reserved.'],
-            ['key_name' => 'time_zone',                'settings_type' => 'business_information', 'value' => 'UTC'],
-            ['key_name' => 'header_logo',              'settings_type' => 'business_information', 'value' => ''],
+            ['key_name' => 'time_zone',                'settings_type' => 'business_information', 'value' => 'America/Bogota'],
+            // Bare filenames: onErrorImage()/dynamicStorage() resolve these under
+            // storage/app/public/business/. copyBrandAssets() (run() below) copies the
+            // committed source PNGs from public/business/ into that runtime dir.
+            ['key_name' => 'header_logo',              'settings_type' => 'business_information', 'value' => 'vito-logo.png'],
+            ['key_name' => 'favicon',                  'settings_type' => 'business_information', 'value' => 'vito-favicon.png'],
             ['key_name' => 'websocket_url',            'settings_type' => 'business_information', 'value' => env('APP_URL', '')],
             ['key_name' => 'websocket_port',           'settings_type' => 'business_information', 'value' => '6015'],
 
@@ -126,10 +153,16 @@ class BusinessManagementDatabaseSeeder extends Seeder
             ['key_name' => 'legal',               'settings_type' => 'pages_settings', 'value' => ''],
 
             // ── Google Maps ───────────────────────────────────────────────────
+            // Google Maps key supplied by the business owner. NOTE: the Cloud project
+            // behind this key must have Billing enabled + Maps SDK / Geocoding / Places /
+            // Directions / Distance Matrix APIs turned on, or Google returns REQUEST_DENIED
+            // and tiles render grey — see CREDENTIALS_CHECKLIST.md (A3). Read server-side by
+            // MapProviderService; the android/ios values are informational (native tiles use
+            // the manifest/AppDelegate key). Overridable per-env via GOOGLE_MAPS_API_KEY.
             ['key_name' => 'google_map_api', 'settings_type' => 'google_map_api', 'value' => [
-                'map_api_key_server'  => '',
-                'map_api_key_android' => '',
-                'map_api_key_ios'     => '',
+                'map_api_key_server'  => env('GOOGLE_MAPS_API_KEY', 'AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0'),
+                'map_api_key_android' => env('GOOGLE_MAPS_API_KEY', 'AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0'),
+                'map_api_key_ios'     => env('GOOGLE_MAPS_API_KEY', 'AIzaSyCKoitvi1c7k_TRdynDVid68qk5W-vosr0'),
                 'map_provider'        => 'google',
                 'mapbox_access_token' => '',
             ]],
