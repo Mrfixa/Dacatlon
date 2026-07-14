@@ -631,8 +631,8 @@ class VitoFlowTest extends TestCase
         $genResponse->assertOk();
         $token = $genResponse->json('data.token');
         $this->assertNotNull($token);
-        // Customer tokens are 16 characters as per controller logic
-        $this->assertEquals(16, strlen($token));
+        // Tokens are 64 characters minimum (pinRegister validates with size:64)
+        $this->assertEquals(64, strlen($token));
 
         $valResponse = $this->postJson('/api/qr-token/validate', ['token' => $token]);
         $valResponse->assertOk();
@@ -4077,6 +4077,13 @@ class VitoFlowTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
+        // Give customer a wallet with sufficient balance for wallet payment
+        DB::table('user_accounts')->insert([
+            'id' => Str::uuid()->toString(),
+            'user_id' => $customer->id, 'wallet_balance' => 100.00,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
         $product = MartProduct::create([
             'name' => 'Journey Item', 'price' => 25.00, 'stock' => 10, 'is_active' => true, 'category' => 'food',
         ]);
@@ -4094,11 +4101,12 @@ class VitoFlowTest extends TestCase
         $promo->assertOk();
         $this->assertEquals(5.00, $promo->json('data.discount'));
 
-        // 3. Create the order with a chosen payment method (card) — must persist.
+        // 3. Create the order with wallet payment (immediately sets payment_status='paid').
+        // Note: Card orders require async Stripe webhook to confirm payment before acceptance.
         $orderResp = $this->postJson('/api/customer/mart/order', [
             'items' => [['product_id' => $product->id, 'quantity' => 2]],
             'delivery_address' => '1 Journey St',
-            'payment_method' => 'card',
+            'payment_method' => 'wallet',
             'promo_code' => 'JOURNEY5',
             'tip_amount' => 3.00,
         ]);
@@ -4106,7 +4114,8 @@ class VitoFlowTest extends TestCase
         $orderId = $orderResp->json('data.id');
         $order = MartOrder::find($orderId);
         $this->assertEquals('48.00', $order->total_amount); // 50 - 5 promo + 3 tip
-        $this->assertEquals('card', $order->payment_method);
+        $this->assertEquals('wallet', $order->payment_method);
+        $this->assertEquals('paid', $order->payment_status);
 
         // 4. Driver sees the order and accepts it.
         Passport::actingAs($driver, ['AccessToDriver']);
@@ -4449,11 +4458,16 @@ class VitoFlowTest extends TestCase
         // invalid role → 422
         $this->postJson('/api/qr-token/generate', ['role' => 'banana'])->assertStatus(422);
 
-        // explicit length honoured
+        // length below 64 is floored to 64 (pinRegister validates with size:64)
         $resp = $this->postJson('/api/qr-token/generate', ['role' => 'driver', 'length' => 40]);
         $resp->assertOk();
-        $this->assertEquals(40, $resp->json('data.length'));
+        $this->assertEquals(64, $resp->json('data.length'));
         $this->assertEquals('driver', $resp->json('data.role'));
+
+        // length above 64 is respected
+        $resp2 = $this->postJson('/api/qr-token/generate', ['role' => 'driver', 'length' => 80]);
+        $resp2->assertOk();
+        $this->assertEquals(80, $resp2->json('data.length'));
     }
 
     public function test_qr_validate_error_branches(): void

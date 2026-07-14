@@ -134,10 +134,10 @@ class _AddFundDialogState extends State<AddFundDialog> {
                                 Text('${paymentController.paymentGateways![index].gatewayTitle}', style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall))
                               ]),
 
-                              RadioGroup(
+                              Radio<int>(
+                                value: index,
                                 groupValue: paymentController.paymentGatewayIndex,
-                                onChanged: (value)=> paymentController.setDigitalPaymentType(index, paymentController.paymentGateways![index].gateway ?? ''),
-                                child: Radio(value: index),
+                                onChanged: (value) => paymentController.setDigitalPaymentType(index, paymentController.paymentGateways![index].gateway ?? ''),
                               )
                             ]),
                           );
