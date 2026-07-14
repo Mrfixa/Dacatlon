@@ -155,7 +155,7 @@ class LocationController extends GetxController implements GetxService {
             Get.back();
           }, icon: Images.logo,
         ),
-        barrierDismissible: false,
+        barrierDismissible: true,
       );
       return false;
     }

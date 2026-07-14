@@ -87,7 +87,7 @@ class HomeScreenHelper {
         backgroundColor: Colors.transparent,
         isScrollControlled: true,
         context: Get.context!,
-        isDismissible: false,
+        isDismissible: true,
         builder: (_) => const HomeVehicleAddBottomSheet(),
         );
 
@@ -114,7 +114,7 @@ class HomeScreenHelper {
           backgroundColor: Colors.transparent,
           isScrollControlled: true,
           context: Get.context!,
-          isDismissible: false,
+          isDismissible: true,
           builder: (_) => const HomeFaceVerificationBottomSheet(),
         );
 
