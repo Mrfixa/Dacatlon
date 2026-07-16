@@ -82,6 +82,13 @@ jobs:
           # version against each plugin's minimum, not just the Podfile platform).
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g" \
             ios/Runner.xcodeproj/project.pbxproj
+          # The driver app's Google ML Kit pods ship static frameworks without an
+          # arm64-simulator slice, so on the arm64 macos runner the Pods_Runner
+          # framework is never produced for the simulator destination ("Framework
+          # 'Pods_Runner' not found" at link). Exclude arm64 for simulator builds
+          # (Runner here, Pods via post_install) so both sides build/link x86_64.
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/IPHONEOS_DEPLOYMENT_TARGET = 16.0; "EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64; ONLY_ACTIVE_ARCH = NO;/g' \
+            ios/Runner.xcodeproj/project.pbxproj
 
       - name: Write Podfile (iOS 16, use_frameworks for stripe/firebase)
         run: |
@@ -122,6 +129,10 @@ jobs:
               flutter_additional_ios_build_settings(target)
               target.build_configurations.each do |config|
                 config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+                # Match the Runner's simulator arch exclusion (ML Kit has no
+                # arm64-simulator slice); keep every pod building x86_64 too.
+                config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+                config.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
               end
             end
           end
