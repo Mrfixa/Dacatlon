@@ -282,11 +282,16 @@ Subscribe in the controller method, bind the event, and check `id == eventData['
 The mart feature follows the standard GetX layering: `lib/features/mart/{controllers,domain/{models,
 repositories,services}}` with a `MartController` registered (all four layers) in `di_container.dart`.
 Customer endpoints (products, categories, orders, cancel, review) live in the user app's
-`MartController`; driver endpoints (pending/my-orders, accept, status) in the driver app's. Older
-mart screens (`mart_store_screen`, `mart_order_tracking_screen`, `mart_delivery_screen`) still carry
-significant inline state — migrate them onto the controller incrementally (method-by-method behind
-`GetBuilder`), keeping each step `flutter analyze`-clean. New screens (`mart_order_history_screen`,
-`mart_product_details_screen`) already consume the controller.
+`MartController`; driver endpoints (pending/my-orders, accept, status) in the driver app's.
+
+**User-app storefront (v3.8.0 redesign):** all mart screens consume `MartController` behind
+`GetBuilder`. `mart_store_screen` is the scan-first home (promo banner, icon category rail,
+"Deals today"/"Popular near you" shelves, sticky cart bar); cart + checkout live in
+`mart_cart_screen`, category browsing in `mart_categories_screen`. Shared UI pieces are under
+`lib/features/mart/widgets/` (`mart_product_card`, `mart_category_tile`, `mart_qty_stepper`,
+`mart_cart_bar`) — reuse them instead of ad-hoc cards. All mart prices render through
+`PriceConverter`. The driver app's `mart_delivery_screen` still carries inline state — migrate
+incrementally, keeping each step `flutter analyze`-clean.
 
 ### Mart Order Chat (User App)
 

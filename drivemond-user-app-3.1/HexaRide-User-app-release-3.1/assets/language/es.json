@@ -1212,5 +1212,12 @@
   "thanks_for_your_review": "¡Gracias por tu reseña!",
   "this_field_is_required": "Este campo es obligatorio",
   "map_token_not_configured": "El token del mapa no está configurado",
-  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps"
+  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps",
+  "deals_today": "Ofertas de hoy",
+  "popular_near_you": "Popular cerca de ti",
+  "view_cart": "Ver carrito",
+  "free_delivery_today": "Envío gratis hoy",
+  "mart_banner_subtitle": "Productos frescos del día, entrega rápida",
+  "left_in_stock": "quedan",
+  "all_categories": "Todas las categorías"
 }
