@@ -1212,5 +1212,12 @@
   "thanks_for_your_review": "Thanks for your review!",
   "this_field_is_required": "This field is required",
   "map_token_not_configured": "Map token is not configured",
-  "maps_key_rejected": "Map could not load: Google rejected the Maps key"
+  "maps_key_rejected": "Map could not load: Google rejected the Maps key",
+  "deals_today": "Deals today",
+  "popular_near_you": "Popular near you",
+  "view_cart": "View cart",
+  "free_delivery_today": "Free delivery today",
+  "mart_banner_subtitle": "Fresh daily essentials, delivered fast",
+  "left_in_stock": "left",
+  "all_categories": "All categories"
 }

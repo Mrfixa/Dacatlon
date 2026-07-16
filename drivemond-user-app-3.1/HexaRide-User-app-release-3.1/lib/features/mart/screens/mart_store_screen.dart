@@ -1,28 +1,28 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
+import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
+import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_cart_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_categories_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_favorites_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_order_history_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/widgets/mart_cart_bar.dart';
+import 'package:ride_sharing_user_app/features/mart/widgets/mart_category_tile.dart';
+import 'package:ride_sharing_user_app/features/mart/widgets/mart_product_card.dart';
+import 'package:ride_sharing_user_app/helper/display_helper.dart';
+import 'package:ride_sharing_user_app/helper/price_converter.dart';
+import 'package:ride_sharing_user_app/util/app_colors.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
-import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
-import 'package:ride_sharing_user_app/features/mart/domain/models/mart_product_model.dart';
-import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
-import 'package:ride_sharing_user_app/features/mart/screens/mart_order_history_screen.dart';
-import 'package:ride_sharing_user_app/features/mart/screens/mart_favorites_screen.dart';
-import 'package:ride_sharing_user_app/features/mart/screens/mart_product_details_screen.dart';
-import 'package:ride_sharing_user_app/features/mart/screens/mart_payment_screen.dart';
-import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
-import 'package:ride_sharing_user_app/util/app_colors.dart';
-import 'package:ride_sharing_user_app/features/profile/controllers/profile_controller.dart';
-import 'package:ride_sharing_user_app/features/location/view/pick_map_screen.dart';
-import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
-import 'package:ride_sharing_user_app/features/address/controllers/address_controller.dart';
-import 'package:ride_sharing_user_app/helper/display_helper.dart';
 
+/// VitoMart storefront: scan-first home with a promo banner, icon category
+/// rail, "Deals today" shelf, "Popular near you" shelf and the product grid,
+/// plus a sticky live cart bar. All state lives on [MartController].
 class MartStoreScreen extends StatefulWidget {
   const MartStoreScreen({super.key});
 
@@ -41,7 +41,6 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure categories and products are loaded
     if (_martController.categories.isEmpty) {
       _martController.getCategories();
     }
@@ -82,22 +81,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     return Scaffold(
       appBar: AppBarWidget(title: 'vito_mart', showLogo: true),
       body: _isOffline ? _buildOfflineBody(context) : _buildBody(context),
-      floatingActionButton: GetBuilder<MartController>(
-        builder: (controller) => controller.cartItems.isNotEmpty
-            ? FloatingActionButton.extended(
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  _navigateToCart();
-                },
-                backgroundColor: Theme.of(context).primaryColor,
-                icon: Icon(Icons.shopping_cart, color: Theme.of(context).colorScheme.onPrimary),
-                label: Text(
-                  '${'cart'.tr} (${controller.cartItemCount}) • \$${controller.cartTotal.toStringAsFixed(2)}',
-                  style: textMedium.copyWith(color: Theme.of(context).colorScheme.onPrimary),
-                ),
-              )
-            : const SizedBox.shrink(),
-      ),
+      bottomNavigationBar: MartCartBar(onTap: _navigateToCart),
     );
   }
 
@@ -126,11 +110,8 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     return Column(
       children: [
         _buildSearchBar(context),
-        _buildCategoryFilter(context),
-        _buildSortChips(context),
-        Expanded(
-          child: _buildAnimatedContent(context), // B12: animated switcher with loading handled inside
-        ),
+        _buildCategoryRail(context),
+        Expanded(child: _buildAnimatedContent(context)),
       ],
     );
   }
@@ -142,37 +123,10 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     ('popular', 'most_popular'),
   ];
 
-  Widget _buildSortChips(BuildContext context) {
-    return GetBuilder<MartController>(
-      builder: (controller) => SizedBox(
-        height: 40,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
-          itemCount: _sortOptions.length,
-          itemBuilder: (context, index) {
-            final (value, labelKey) = _sortOptions[index];
-            return Padding(
-              padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall, top: Dimensions.paddingSizeExtraSmall),
-              child: ChoiceChip(
-                label: Text(labelKey.tr, style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall)),
-                selected: controller.selectedSort == value,
-                onSelected: (_) {
-                  HapticFeedback.selectionClick();
-                  controller.setSort(value);
-                },
-                selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+      padding: const EdgeInsets.fromLTRB(Dimensions.paddingSizeDefault,
+          Dimensions.paddingSizeDefault, Dimensions.paddingSizeDefault, Dimensions.paddingSizeSmall),
       child: Row(
         children: [
           Expanded(
@@ -187,11 +141,13 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
                   duration: const Duration(milliseconds: 200),
                   child: IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: _searchController.text.isEmpty ? null : () {
-                      _searchDebounce?.cancel();
-                      _searchController.clear();
-                      setState(() {});
-                    },
+                    onPressed: _searchController.text.isEmpty
+                        ? null
+                        : () {
+                            _searchDebounce?.cancel();
+                            _searchController.clear();
+                            setState(() {});
+                          },
                   ),
                 ),
                 border: OutlineInputBorder(
@@ -204,8 +160,7 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
               ),
             ),
           ),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
-          // Entry point to the customer's mart order history.
+          const SizedBox(width: Dimensions.paddingSizeExtraSmall),
           IconButton(
             tooltip: 'favorites'.tr,
             onPressed: () => Get.to(() => const MartFavoritesScreen()),
@@ -221,31 +176,45 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     );
   }
 
-  Widget _buildCategoryFilter(BuildContext context) {
+  /// Horizontal icon-tile rail: "all" first, then the live categories, with a
+  /// trailing "See all" tile opening the full categories grid.
+  Widget _buildCategoryRail(BuildContext context) {
     return GetBuilder<MartController>(
       builder: (controller) {
-        final categories = controller.categoryList;
+        final categories = controller.categories
+            .where((c) => c.name != null && c.name!.isNotEmpty)
+            .toList();
         return SizedBox(
-          height: 40,
+          height: 96,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
-            itemCount: categories.length,
+            padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
+            itemCount: categories.length + 2,
             itemBuilder: (context, index) {
-              final category = categories[index];
-              final isSelected = category == controller.selectedCategory;
-              return Padding(
-                padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
-                child: FilterChip(
-                  label: Text(category.tr),
-                  selected: isSelected,
-                  onSelected: (selected) {
+              if (index == 0) {
+                return MartCategoryTile(
+                  name: 'all',
+                  selected: controller.selectedCategory == 'all',
+                  iconSeed: 0,
+                  onTap: () {
                     HapticFeedback.selectionClick();
-                    controller.setCategory(category);
+                    controller.setCategory('all');
                   },
-                  selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                  checkmarkColor: Theme.of(context).primaryColor,
-                ),
+                );
+              }
+              if (index == categories.length + 1) {
+                return _seeAllTile(context);
+              }
+              final category = categories[index - 1];
+              return MartCategoryTile(
+                name: category.name!,
+                image: category.image,
+                selected: controller.selectedCategory == category.name,
+                iconSeed: index,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  controller.setCategory(category.name!);
+                },
               );
             },
           ),
@@ -254,45 +223,75 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     );
   }
 
-  // B12: AnimatedSwitcher keyed by category + live search query
+  Widget _seeAllTile(BuildContext context) {
+    final primary = Theme.of(context).primaryColor;
+    return InkWell(
+      onTap: () => Get.to(() => const MartCategoriesScreen()),
+      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+      child: SizedBox(
+        width: 78,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(Dimensions.radiusDefault + 4),
+                border: Border.all(color: primary.withValues(alpha: 0.3)),
+              ),
+              child: Icon(Icons.grid_view_rounded, color: primary, size: 26),
+            ),
+            const SizedBox(height: 5),
+            Text('see_all'.tr,
+                style: textMedium.copyWith(
+                    fontSize: Dimensions.fontSizeExtraSmall, color: primary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAnimatedContent(BuildContext context) {
     return GetBuilder<MartController>(
       builder: (controller) {
         final query = _searchController.text.trim().toLowerCase();
         final selectedCategory = controller.selectedCategory;
 
-        // Convert products from model to map for filtering
-        var filtered = controller.products.map((p) => p.toJson()).toList();
-
+        var filtered = controller.products;
         if (selectedCategory != 'all') {
-          filtered = filtered.where((p) => p['category'] == selectedCategory).toList();
+          filtered = filtered.where((p) => p.category == selectedCategory).toList();
         }
-
         if (query.isNotEmpty) {
           filtered = filtered
-              .where((p) => (p['name']?.toString().toLowerCase() ?? '').contains(query))
+              .where((p) => (p.name ?? '').toLowerCase().contains(query))
               .toList();
         }
 
-        // Shelves only make sense on the unfiltered default view.
-        final showShelves = selectedCategory == 'all' && query.isEmpty && controller.selectedSort == 'default' &&
-            (controller.featuredProducts.isNotEmpty || controller.popularProducts.isNotEmpty);
+        // The banner + Deals + Popular shelves only make sense on the
+        // unfiltered default view.
+        final defaultView =
+            selectedCategory == 'all' && query.isEmpty && controller.selectedSort == 'default';
 
         final stateKey = '${selectedCategory}_${query}_${controller.selectedSort}';
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
           child: controller.isLoading
               ? _buildShimmerGrid(context)
-              : filtered.isEmpty
+              : (filtered.isEmpty && !defaultView)
                   ? _buildEmptyState(context, key: ValueKey('empty_$stateKey'))
-                  : _buildProductGrid(context, filtered, showShelves: showShelves, key: ValueKey('grid_$stateKey')),
+                  : _buildStorefront(context, controller, filtered,
+                      showShelves: defaultView, key: ValueKey('grid_$stateKey')),
         );
       },
     );
   }
 
-  // B18: shimmer skeleton loading grid
   Widget _buildShimmerGrid(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GridView.builder(
@@ -306,30 +305,14 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
       itemCount: 6,
       itemBuilder: (ctx, index) => Shimmer.fromColors(
         baseColor: isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBaseLight,
-        highlightColor: isDark ? AppColors.shimmerHighlightDark : AppColors.shimmerHighlightLight,
+        highlightColor:
+            isDark ? AppColors.shimmerHighlightDark : AppColors.shimmerHighlightLight,
         child: Container(
           decoration: BoxDecoration(
             color: isDark ? AppColors.shimmerBaseDark : AppColors.shimmerBaseLight,
             borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
           ),
         ),
-      ),
-    );
-  }
-
-  // B20: error state with retry
-  Widget _buildErrorState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-          const SizedBox(height: Dimensions.paddingSizeSmall),
-          Text('something_went_wrong'.tr,
-              style: textMedium.copyWith(fontSize: Dimensions.fontSizeDefault)),
-          const SizedBox(height: Dimensions.paddingSizeExtraSmall),
-          TextButton(onPressed: _loadProducts, child: Text('retry'.tr)),
-        ],
       ),
     );
   }
@@ -366,9 +349,14 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     );
   }
 
-  Widget _buildProductGrid(BuildContext context, List<Map<String, dynamic>> filtered,
-      {bool showShelves = false, Key? key}) {
-    // B17: RefreshIndicator on the product grid
+  Widget _buildStorefront(BuildContext context, MartController controller,
+      List<MartProductModel> filtered,
+      {required bool showShelves, Key? key}) {
+    final deals = controller.products.where((p) => p.onSale).take(10).toList();
+    final popular = controller.popularProducts.isNotEmpty
+        ? controller.popularProducts
+        : controller.featuredProducts;
+
     return RefreshIndicator(
       onRefresh: _loadProducts,
       color: Theme.of(context).primaryColor,
@@ -376,8 +364,9 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
         key: key,
         slivers: [
           if (showShelves) ...[
-            _buildShelf(context, 'featured_products', _martController.featuredProducts),
-            _buildShelf(context, 'popular_products', _martController.popularProducts),
+            SliverToBoxAdapter(child: _buildPromoBanner(context, controller)),
+            if (deals.isNotEmpty) _buildShelf(context, 'deals_today', deals),
+            if (popular.isNotEmpty) _buildShelf(context, 'popular_near_you', popular),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(Dimensions.paddingSizeDefault,
@@ -387,41 +376,130 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
               ),
             ),
           ],
+          SliverToBoxAdapter(child: _buildSortChips(context, controller)),
           SliverPadding(
             padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: Dimensions.paddingSizeSmall,
-                mainAxisSpacing: Dimensions.paddingSizeSmall,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _ProductCard(
-                  product: filtered[index],
-                  isOffline: _isOffline,
-                  onAdd: _addToCart,
-                ),
-                childCount: filtered.length,
-              ),
-            ),
+            sliver: filtered.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
+                      child: Text(
+                        'no_products_available'.tr,
+                        style: textRegular.copyWith(color: Theme.of(context).hintColor),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: Dimensions.paddingSizeSmall,
+                      mainAxisSpacing: Dimensions.paddingSizeSmall,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => MartProductCard(
+                        product: filtered[index],
+                        isOffline: _isOffline,
+                        onAdd: _addToCart,
+                      ),
+                      childCount: filtered.length,
+                    ),
+                  ),
           ),
+          // Keep the last row clear of the sticky cart bar.
+          const SliverToBoxAdapter(child: SizedBox(height: Dimensions.paddingSizeLarge)),
         ],
       ),
     );
   }
 
-  /// A horizontal product shelf (Featured / Popular) shown above the main grid.
+  /// Free-delivery / delivery-fee promo banner at the top of the default view.
+  Widget _buildPromoBanner(BuildContext context, MartController controller) {
+    final primary = Theme.of(context).primaryColor;
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final fee = controller.deliveryFee;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(Dimensions.paddingSizeDefault,
+          Dimensions.paddingSizeSmall, Dimensions.paddingSizeDefault, Dimensions.paddingSizeExtraSmall),
+      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primary, primary.withValues(alpha: 0.8)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fee <= 0
+                      ? 'free_delivery_today'.tr
+                      : '${'delivery_fee'.tr}: ${PriceConverter.convertPrice(fee)}',
+                  style: textBold.copyWith(
+                      color: onPrimary, fontSize: Dimensions.fontSizeLarge),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'mart_banner_subtitle'.tr,
+                  style: textRegular.copyWith(
+                      color: onPrimary.withValues(alpha: 0.9),
+                      fontSize: Dimensions.fontSizeSmall),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.delivery_dining, color: onPrimary.withValues(alpha: 0.85), size: 44),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortChips(BuildContext context, MartController controller) {
+    return SizedBox(
+      height: 44,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
+        itemCount: _sortOptions.length,
+        itemBuilder: (context, index) {
+          final (value, labelKey) = _sortOptions[index];
+          return Padding(
+            padding: const EdgeInsets.only(
+                right: Dimensions.paddingSizeSmall, top: Dimensions.paddingSizeExtraSmall),
+            child: ChoiceChip(
+              label: Text(labelKey.tr,
+                  style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall)),
+              selected: controller.selectedSort == value,
+              onSelected: (_) {
+                HapticFeedback.selectionClick();
+                controller.setSort(value);
+              },
+              selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// A horizontal product shelf (Deals today / Popular near you).
   Widget _buildShelf(BuildContext context, String titleKey, List<MartProductModel> items) {
-    if (items.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(Dimensions.paddingSizeDefault,
-                Dimensions.paddingSizeSmall, Dimensions.paddingSizeDefault, Dimensions.paddingSizeExtraSmall),
-            child: Text(titleKey.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeLarge)),
+                Dimensions.paddingSizeSmall, Dimensions.paddingSizeDefault,
+                Dimensions.paddingSizeExtraSmall),
+            child: Text(titleKey.tr,
+                style: textBold.copyWith(fontSize: Dimensions.fontSizeLarge)),
           ),
           SizedBox(
             height: 230,
@@ -433,8 +511,8 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
                 width: 160,
                 child: Padding(
                   padding: const EdgeInsets.only(right: Dimensions.paddingSizeSmall),
-                  child: _ProductCard(
-                    product: items[index].toJson(),
+                  child: MartProductCard(
+                    product: items[index],
                     isOffline: _isOffline,
                     onAdd: _addToCart,
                   ),
@@ -447,931 +525,17 @@ class _MartStoreScreenState extends State<MartStoreScreen> {
     );
   }
 
-  void _addToCart(Map<String, dynamic> product) {
-    // Items are always available — addToCart always succeeds.
-    _martController.addToCart(product);
+  void _addToCart(MartProductModel product) {
+    _martController.addToCart({
+      'id': product.id,
+      'name': product.name,
+      'price': product.effectivePrice,
+      'image': product.image,
+    });
     showCustomSnackBar('item_added_to_cart'.tr, isError: false);
   }
 
   void _navigateToCart() {
-    Get.to(() => MartCartScreen(cartItems: _martController.cartItems));
-  }
-}
-
-// Stateful product card: AnimatedScale tap feedback, CachedNetworkImage, offline disable.
-class _ProductCard extends StatefulWidget {
-  final Map<String, dynamic> product;
-  final bool isOffline;
-  final void Function(Map<String, dynamic>) onAdd;
-
-  const _ProductCard({
-    required this.product,
-    required this.isOffline,
-    required this.onAdd,
-  });
-
-  @override
-  State<_ProductCard> createState() => _ProductCardState();
-}
-
-class _ProductCardState extends State<_ProductCard> {
-  bool _isAdding = false;
-
-  void _handleAdd() {
-    if (widget.isOffline) {
-      Get.snackbar('warning'.tr, 'you_are_offline'.tr);
-      return;
-    }
-    setState(() => _isAdding = true);
-    HapticFeedback.mediumImpact();
-    widget.onAdd(widget.product);
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _isAdding = false);
-    });
-  }
-
-  void _openDetails() {
-    final id = widget.product['id']?.toString();
-    if (id == null || id.isEmpty) return;
-    Get.to(() => MartProductDetailsScreen(
-          productId: id,
-          initialProduct: MartProductModel.fromJson(Map<String, dynamic>.from(widget.product)),
-          onAddToCart: widget.isOffline ? null : (_) => widget.onAdd(widget.product),
-        ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final imageUrl = widget.product['image'] as String?;
-    final product = MartProductModel.fromJson(
-        Map<String, dynamic>.from(widget.product));
-    final unit = product.unit;
-
-    Widget card = Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // B13: product image (tap to view details)
-          Expanded(
-            flex: 3,
-            child: InkWell(
-              onTap: _openDetails,
-              child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(Dimensions.radiusDefault),
-                topRight: Radius.circular(Dimensions.radiusDefault),
-              ),
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Theme.of(context).hintColor.withValues(alpha: 0.1)),
-                      errorWidget: (_, __, ___) => Container(
-                        color: Theme.of(context).hintColor.withValues(alpha: 0.1),
-                        child: Center(
-                          child: Icon(
-                            Icons.inventory_2_outlined,
-                            size: 40,
-                            color: Theme.of(context).hintColor,
-                          ),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Theme.of(context).hintColor.withValues(alpha: 0.1),
-                      child: Center(
-                        child: Icon(
-                          Icons.inventory_2_outlined,
-                          size: 40,
-                          color: Theme.of(context).hintColor,
-                        ),
-                      ),
-                    ),
-            ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.product['name'] ?? '',
-                    style: textMedium.copyWith(fontSize: Dimensions.fontSizeDefault),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (unit != null && unit.isNotEmpty)
-                    Text(
-                      unit,
-                      style: textRegular.copyWith(
-                        fontSize: Dimensions.fontSizeExtraSmall,
-                        color: Theme.of(context).hintColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Effective (sale) price, with the original struck through when on sale.
-                      Flexible(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                '\$${product.effectivePrice.toStringAsFixed(2)}',
-                                style: textBold.copyWith(
-                                  fontSize: Dimensions.fontSizeDefault,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (product.onSale) ...[
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
-                                  style: textRegular.copyWith(
-                                    fontSize: Dimensions.fontSizeExtraSmall,
-                                    color: Theme.of(context).hintColor,
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      // B14: AnimatedScale add button (items are always available)
-                      AnimatedScale(
-                        scale: _isAdding ? 0.88 : 1.0,
-                        duration: const Duration(milliseconds: 100),
-                        child: InkWell(
-                          onTap: _handleAdd,
-                          child: Opacity(
-                            opacity: widget.isOffline ? 0.5 : 1.0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                borderRadius:
-                                    BorderRadius.circular(Dimensions.radiusSmall),
-                              ),
-                              child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary, size: Dimensions.iconSizeSmall),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return card;
-  }
-}
-
-class MartCartScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
-
-  const MartCartScreen({super.key, required this.cartItems});
-
-  @override
-  State<MartCartScreen> createState() => _MartCartScreenState();
-}
-
-class _MartCartScreenState extends State<MartCartScreen> {
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
-  final TextEditingController _promoController = TextEditingController();
-  bool _isOrdering = false;
-  double _tipAmount = 0.0;
-  double? _deliveryLat;
-  double? _deliveryLng;
-
-  // B25: payment method state
-  String _paymentMethod = 'cash';
-
-  // B27: checkout error state
-  String? _checkoutError;
-
-  MartController get _martController => Get.find<MartController>();
-
-  // Cart contents, promo state and mutations live on the controller so
-  // SharedPreferences persistence and other screens stay in sync.
-  List<Map<String, dynamic>> get _cartItems => _martController.cartItems;
-
-  final List<double> _tipOptions = [0, 2, 5, 10];
-
-  double get _subtotal {
-    double total = 0;
-    for (final item in _cartItems) {
-      final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
-      total += price * (item['quantity'] as int? ?? 1);
-    }
-    return total;
-  }
-
-  double get _totalAmount => _subtotal - _martController.promoDiscount + _tipAmount + _martController.deliveryFee;
-
-  @override
-  void dispose() {
-    _addressController.dispose();
-    _notesController.dispose();
-    _promoController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBarWidget(title: 'cart'.tr),
-      body: GetBuilder<MartController>(
-        builder: (controller) => controller.cartItems.isEmpty
-            ? _buildEmptyCart(context)
-            : Column(
-                children: [
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-                      children: [
-                        // B22: Dismissible cart items
-                        ...List.generate(controller.cartItems.length,
-                            (index) => _buildCartItem(context, index)),
-                        const SizedBox(height: Dimensions.paddingSizeDefault),
-                        _buildPromoSection(context),
-                        const SizedBox(height: Dimensions.paddingSizeDefault),
-                        _buildTipSection(context),
-                      ],
-                    ),
-                  ),
-                  _buildOrderSummary(context),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyCart(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: Theme.of(context).hintColor.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: Dimensions.paddingSizeDefault),
-          Text(
-            'cart_is_empty'.tr,
-            style: textMedium.copyWith(
-              fontSize: Dimensions.fontSizeLarge,
-              color: Theme.of(context).hintColor,
-            ),
-          ),
-          const SizedBox(height: Dimensions.paddingSizeDefault),
-          TextButton.icon(
-            onPressed: () => Get.back(),
-            icon: Icon(Icons.storefront_outlined, color: Theme.of(context).primaryColor),
-            label: Text(
-              'browse_products'.tr,
-              style: textMedium.copyWith(color: Theme.of(context).primaryColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // B22: Dismissible + product image in cart
-  Widget _buildCartItem(BuildContext context, int index) {
-    final item = _cartItems[index];
-    final imageUrl = item['image'] as String?;
-
-    return Dismissible(
-      key: Key(item['id']?.toString() ?? item['product_id']?.toString() ?? '$index'),
-      direction: DismissDirection.endToStart,
-      background: Builder(
-        builder: (ctx) => Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 16),
-          color: Theme.of(ctx).colorScheme.error,
-          child: const Icon(Icons.delete_outline, color: Colors.white),
-        ),
-      ),
-      confirmDismiss: (_) async {
-        return await Get.dialog<bool>(
-              AlertDialog(
-                title: Text('remove_item'.tr),
-                content: Text('remove_item_confirmation'.tr),
-                actions: [
-                  TextButton(onPressed: () => Get.back(result: false), child: Text('no'.tr)),
-                  TextButton(onPressed: () => Get.back(result: true), child: Text('yes'.tr)),
-                ],
-              ),
-            ) ??
-            false;
-      },
-      onDismissed: (_) {
-        // Controller removal also clears any applied promo and persists.
-        _martController.removeFromCart(item['id']?.toString() ?? '');
-        _promoController.clear();
-      },
-      child: Card(
-        margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
-        child: ListTile(
-          leading: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Theme.of(context).hintColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-            ),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Theme.of(context).hintColor.withValues(alpha: 0.1)),
-                      errorWidget: (_, __, ___) =>
-                          Icon(Icons.inventory_2_outlined, color: Theme.of(context).hintColor),
-                    ),
-                  )
-                : Icon(Icons.inventory_2_outlined, color: Theme.of(context).hintColor),
-          ),
-          title: Text(item['name'] ?? '', style: textMedium),
-          subtitle: Text(
-            '\$${item['price'] ?? '0.00'}',
-            style: textRegular.copyWith(color: Theme.of(context).primaryColor),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: () {
-                  final current = item['quantity'] as int? ?? 1;
-                  // Quantity 0 removes the line; controller clears the promo
-                  // and persists the cart in both cases.
-                  _martController.updateCartItemQuantity(
-                      item['id']?.toString() ?? '', current - 1);
-                  _promoController.clear();
-                },
-                icon: const Icon(Icons.remove_circle_outline),
-              ),
-              Text('${item['quantity'] ?? 1}', style: textMedium),
-              IconButton(
-                onPressed: () {
-                  final current = item['quantity'] as int? ?? 1;
-                  if (current < 100) {
-                    _martController.updateCartItemQuantity(
-                        item['id']?.toString() ?? '', current + 1);
-                    _promoController.clear();
-                  }
-                },
-                icon: const Icon(Icons.add_circle_outline),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPromoSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('promo_code'.tr, style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
-            const SizedBox(height: Dimensions.paddingSizeSmall),
-            if (_martController.appliedPromoCode != null) ...[
-              Container(
-                padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Theme.of(context).colorScheme.tertiary, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${'promo_applied'.tr}: ${_martController.appliedPromoCode} (-\$${_martController.promoDiscount.toStringAsFixed(2)})',
-                        style: textMedium.copyWith(
-                            color: Theme.of(context).colorScheme.tertiary,
-                            fontSize: Dimensions.fontSizeSmall),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        _martController.clearPromo();
-                        _promoController.clear();
-                      },
-                      icon: const Icon(Icons.close, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _promoController,
-                      decoration: InputDecoration(
-                        hintText: 'enter_promo_code'.tr,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: Dimensions.paddingSizeSmall,
-                          vertical: Dimensions.paddingSizeSmall,
-                        ),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: Dimensions.paddingSizeSmall),
-                  SizedBox(
-                    height: 40,
-                    child: ElevatedButton(
-                      onPressed: _martController.isApplyingPromo ? null : _applyPromoCode,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                        ),
-                      ),
-                      child: _martController.isApplyingPromo
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary))
-                          : Text('apply'.tr,
-                              style: textMedium.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  fontSize: Dimensions.fontSizeSmall)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTipSection(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('tip_driver'.tr,
-                style: textBold.copyWith(fontSize: Dimensions.fontSizeDefault)),
-            const SizedBox(height: Dimensions.paddingSizeSmall),
-            Text(
-              'show_appreciation'.tr,
-              style: textRegular.copyWith(
-                  color: Theme.of(context).hintColor,
-                  fontSize: Dimensions.fontSizeSmall),
-            ),
-            const SizedBox(height: Dimensions.paddingSizeSmall),
-            Row(
-              children: _tipOptions.map((tip) {
-                final isSelected = _tipAmount == tip;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeThree),
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _tipAmount = tip);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).primaryColor
-                              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).primaryColor
-                                : Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            tip == 0 ? 'no_tip'.tr : '\$${tip.toInt()}',
-                            style: textMedium.copyWith(
-                              color:
-                                  isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).primaryColor,
-                              fontSize: Dimensions.fontSizeSmall,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderSummary(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).hintColor.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _addressController,
-                  readOnly: true,
-                  onTap: _pickAddressOnMap,
-                  decoration: InputDecoration(
-                    hintText: 'delivery_address'.tr,
-                    prefixIcon: const Icon(Icons.location_on_outlined),
-                    suffixIcon: _deliveryLat != null
-                        ? const Icon(Icons.gps_fixed, color: AppColors.successGreen, size: 18)
-                        : const Icon(Icons.map_outlined, size: 18),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: Dimensions.paddingSizeSmall),
-              SizedBox(
-                height: 56,
-                child: IconButton.outlined(
-                  tooltip: 'saved_addresses'.tr,
-                  icon: const Icon(Icons.bookmark_border),
-                  onPressed: _pickSavedAddress,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.paddingSizeSmall),
-          TextField(
-            controller: _notesController,
-            decoration: InputDecoration(
-              hintText: 'order_notes'.tr,
-              prefixIcon: const Icon(Icons.notes),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-              ),
-            ),
-          ),
-          const SizedBox(height: Dimensions.paddingSizeDefault),
-
-          // B25: payment method selector
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text('payment_method'.tr,
-                style: textBold.copyWith(fontSize: 14)),
-          ),
-          const SizedBox(height: 4),
-          ...['cash', 'card', 'wallet'].map((method) => RadioListTile<String>(
-                value: method,
-                groupValue: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v!),
-                title: Text(method == 'cash'
-                    ? 'cash_on_delivery'.tr
-                    : method == 'card'
-                        ? 'card'.tr
-                        : 'wallet'.tr),
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-              )),
-          const SizedBox(height: Dimensions.paddingSizeSmall),
-
-          // Price breakdown
-          _buildPriceLine('subtotal'.tr, _subtotal),
-          if (_martController.promoDiscount > 0) _buildPriceLine('discount'.tr, -_martController.promoDiscount, isDiscount: true),
-          _buildPriceLine('delivery_fee'.tr, _martController.deliveryFee),
-          if (_tipAmount > 0) _buildPriceLine('tip'.tr, _tipAmount),
-          const Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('total'.tr,
-                  style: textBold.copyWith(fontSize: Dimensions.fontSizeLarge)),
-              Text(
-                '\$${_totalAmount.toStringAsFixed(2)}',
-                style: textBold.copyWith(
-                  fontSize: Dimensions.fontSizeLarge,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Dimensions.paddingSizeDefault),
-
-          // B27: checkout error banner
-          if (_checkoutError != null)
-            Container(
-              padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-              margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 16),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _checkoutError!,
-                      style: textRegular.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                        fontSize: Dimensions.fontSizeSmall,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 16),
-                    onPressed: () => setState(() => _checkoutError = null),
-                  ),
-                ],
-              ),
-            ),
-
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isOrdering
-                  ? null
-                  : () {
-                      HapticFeedback.mediumImpact();
-                      _placeOrder();
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                ),
-              ),
-              child: _isOrdering
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
-                    )
-                  : Text('place_order'.tr,
-                      style: textBold.copyWith(
-                          fontSize: Dimensions.fontSizeDefault,
-                          color: Theme.of(context).colorScheme.onPrimary)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceLine(String label, double amount, {bool isDiscount = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall)),
-          Text(
-            '${isDiscount ? '-' : ''}\$${amount.abs().toStringAsFixed(2)}',
-            style: textMedium.copyWith(
-              fontSize: Dimensions.fontSizeSmall,
-              color: isDiscount ? Theme.of(context).colorScheme.tertiary : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _applyPromoCode() async {
-    final code = _promoController.text.trim();
-    if (code.isEmpty) return;
-    // Validation, state and user feedback live on the controller (single
-    // promo source of truth shared with the rest of the mart flow).
-    await _martController.applyPromo(code, _subtotal);
-    if (mounted && _martController.appliedPromoCode != null) {
-      _promoController.clear();
-    }
-  }
-
-  /// Opens the same map picker the ride/address flows use (pin confirm +
-  /// Places search + current-location FAB) and stores the confirmed
-  /// human-readable address with its coordinates.
-  void _pickAddressOnMap() {
-    Get.to(() => PickMapScreen(
-      type: LocationType.location,
-      onLocationPicked: (Position position, String address) {
-        // Reject the "null island" (0,0) fix — a GPS/emulator glitch, not a
-        // real location — rather than silently sending it to the backend.
-        if (position.latitude == 0.0 && position.longitude == 0.0) {
-          Get.snackbar('error'.tr, 'location_fetch_failed'.tr);
-          return;
-        }
-        if (mounted) {
-          setState(() {
-            _addressController.text = address;
-            _deliveryLat = position.latitude;
-            _deliveryLng = position.longitude;
-          });
-        }
-      },
-    ));
-  }
-
-  /// Quick pick from the customer's saved addresses (home/work/etc.).
-  void _pickSavedAddress() {
-    final addressController = Get.find<AddressController>();
-    if (addressController.addressList == null) {
-      addressController.getAddressList(1);
-    }
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(Dimensions.radiusLarge)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: GetBuilder<AddressController>(
-          builder: (controller) {
-            final addresses = controller.addressList ?? [];
-            if (addresses.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
-                child: Text('no_data_found'.tr, style: textRegular, textAlign: TextAlign.center),
-              );
-            }
-            return ListView.separated(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-              itemCount: addresses.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (_, index) {
-                final address = addresses[index];
-                return ListTile(
-                  leading: Icon(
-                    address.addressLabel == 'home' ? Icons.home_outlined
-                        : address.addressLabel == 'office' ? Icons.work_outline
-                        : Icons.place_outlined,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  title: Text((address.addressLabel ?? '').tr, style: textMedium),
-                  subtitle: Text(address.address ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: textRegular),
-                  onTap: () {
-                    setState(() {
-                      _addressController.text = address.address ?? '';
-                      _deliveryLat = address.latitude;
-                      _deliveryLng = address.longitude;
-                    });
-                    Navigator.of(ctx).pop();
-                  },
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _placeOrder() async {
-    if (_cartItems.isEmpty) {
-      Get.snackbar('error'.tr, 'cart_is_empty'.tr);
-      return;
-    }
-    if (_addressController.text.trim().isEmpty) {
-      Get.snackbar('error'.tr, 'please_enter_delivery_address'.tr);
-      return;
-    }
-
-    // FIX 2: check wallet balance before submitting a wallet order
-    if (_paymentMethod == 'wallet') {
-      final profileController = Get.find<ProfileController>();
-      final walletBalance =
-          profileController.profileModel?.data?.wallet?.walletBalance ?? 0.0;
-      if (walletBalance < _totalAmount) {
-        showCustomSnackBar('insufficient_wallet_balance'.tr);
-        return;
-      }
-    }
-
-    if (_isOrdering) return; // guard against double submit
-
-    setState(() {
-      _isOrdering = true;
-      _checkoutError = null;
-    });
-
-    final items = _cartItems
-        .map((item) => {
-              'product_id': item['id'],
-              'quantity': item['quantity'] ?? 1,
-            })
-        .toList();
-
-    // Use service layer through MartController
-    final result = await _martController.createOrder(
-      items: items,
-      deliveryAddress: _addressController.text,
-      notes: _notesController.text,
-      paymentMethod: _paymentMethod,
-      deliveryLat: _deliveryLat,
-      deliveryLng: _deliveryLng,
-      tipAmount: _tipAmount > 0 ? _tipAmount : null,
-      promoCode: _martController.appliedPromoCode,
-    );
-
-    if (!mounted) return;
-
-    if (result.success) {
-      Get.back();
-      // Clear the cart after successful order placement
-      _martController.clearCart();
-      Get.snackbar('success'.tr, 'order_placed_successfully'.tr);
-      if (_paymentMethod == 'card') {
-        // FIX 1: use the backend-computed total, not the locally computed one
-        final paymentTotal = result.serverTotal > 0 ? result.serverTotal : _totalAmount;
-        Get.to(() => MartPaymentScreen(orderId: result.orderId!, totalAmount: paymentTotal));
-      } else {
-        Get.to(() => MartOrderTrackingScreen(orderId: result.orderId!));
-      }
-    } else {
-      setState(() => _checkoutError = result.error);
-    }
-
-    if (mounted) setState(() => _isOrdering = false);
-  }
-
-  // Pulls a human-readable message out of any backend error shape.
-  String _extractErrorMessage(dynamic body) {
-    try {
-      if (body is Map) {
-        final errors = body['errors'];
-        if (errors is List && errors.isNotEmpty) {
-          final first = errors.first;
-          if (first is Map && first['message'] != null) {
-            return first['message'].toString();
-          }
-        }
-        if (body['message'] is String && (body['message'] as String).isNotEmpty) {
-          return body['message'];
-        }
-      }
-    } catch (_) {/* fall through to default */}
-    return 'order_failed'.tr;
+    Get.to(() => const MartCartScreen());
   }
 }
