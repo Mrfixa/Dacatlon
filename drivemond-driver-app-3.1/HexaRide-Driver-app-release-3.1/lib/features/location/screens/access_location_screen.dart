@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/features/out_of_zone/controllers/out_of_zone_controller.dart';
 import 'package:ride_sharing_user_app/helper/login_helper.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
@@ -65,23 +67,34 @@ class BottomButton extends StatelessWidget {
           ButtonWidget(buttonText: 'use_current_location'.tr,
             fontSize: Dimensions.fontSizeSmall,
             onPressed: () async {
-              Get.find<LocationController>().checkPermission().then((permission){
-               if(permission){
-                 Get.dialog(const LoaderWidget(), barrierDismissible: false);
-                 Get.find<LocationController>().getCurrentLocation().then((value){
-                   Get.back();
-                   if(value.latitude != 0 && value.longitude != 0){
-                     if(Get.find<AuthController>().isLoggedIn()){
-                       Get.find<OutOfZoneController>().getZoneList();
-                       Get.offAll(()=> const DashboardScreen());
-                     }else{
-                       LoginHelper.checkLoginMedium();
-                     }
-                   }
-                 });
-               }
-              });
+              final locationController = Get.find<LocationController>();
+              final granted = await locationController.checkPermission();
+              if (!granted) return;
 
+              Get.dialog(const LoaderWidget(), barrierDismissible: false);
+              Position value;
+              try {
+                // Bound the fetch so the loader can never become a stuck
+                // full-screen grey overlay; fall back to the last position.
+                value = await locationController
+                    .getCurrentLocation()
+                    .timeout(const Duration(seconds: 12), onTimeout: () => locationController.position);
+              } catch (_) {
+                value = locationController.position;
+              } finally {
+                if (Get.isDialogOpen ?? false) Get.back(); // always dismiss the loader
+              }
+
+              if (value.latitude != 0 && value.longitude != 0) {
+                if (Get.find<AuthController>().isLoggedIn()) {
+                  Get.find<OutOfZoneController>().getZoneList();
+                  Get.offAll(() => const DashboardScreen());
+                } else {
+                  LoginHelper.checkLoginMedium();
+                }
+              } else {
+                showCustomSnackBar('location_fetch_failed'.tr);
+              }
             }, icon: Icons.my_location,
           ),
           const SizedBox(height: Dimensions.paddingSizeSmall),

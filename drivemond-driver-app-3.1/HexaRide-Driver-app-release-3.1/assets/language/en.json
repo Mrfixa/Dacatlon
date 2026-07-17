@@ -1170,5 +1170,6 @@
   "save_preferences": "Save preferences",
   "preferences_saved": "Preferences saved",
   "map_token_not_configured": "Map token is not configured",
-  "maps_key_rejected": "Map could not load: Google rejected the Maps key"
+  "maps_key_rejected": "Map could not load: Google rejected the Maps key",
+  "location_fetch_failed": "Could not get your location. Please try again."
 }
