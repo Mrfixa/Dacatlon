@@ -1170,5 +1170,6 @@
   "save_preferences": "Guardar preferencias",
   "preferences_saved": "Preferencias guardadas",
   "map_token_not_configured": "El token del mapa no está configurado",
-  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps"
+  "maps_key_rejected": "No se pudo cargar el mapa: Google rechazó la clave de Maps",
+  "location_fetch_failed": "No se pudo obtener tu ubicación. Inténtalo de nuevo."
 }

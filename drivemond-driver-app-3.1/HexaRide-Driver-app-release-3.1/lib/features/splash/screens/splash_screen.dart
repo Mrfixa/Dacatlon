@@ -46,6 +46,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     Get.find<TripController>().parcelCancellationReasonList();
     Get.find<AuthController>().remainingTime();
     Get.find<WalletController>().getPaymentGetWayList();
+    // Ask for location permission as soon as the app launches, so the driver
+    // reaches the dashboard already granted (no mid-flow permission gate).
+    Get.find<LocationController>().ensureLocationPermission();
     LoginHelper().handleIncomingLinks(widget.notificationData);
 
   }

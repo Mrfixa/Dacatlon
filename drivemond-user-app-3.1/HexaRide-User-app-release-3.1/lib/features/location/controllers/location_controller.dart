@@ -532,6 +532,17 @@ class LocationController extends GetxController implements GetxService {
   }
 
 
+  /// Fire-and-forget: request the location permission at app launch so the map
+  /// and nearby-driver search are ready without a mid-flow prompt. Never throws.
+  Future<void> ensureLocationPermission() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {/* best-effort at launch */}
+  }
+
   Future<bool> checkPermission(Function onTap) async {
     LocationPermission permission = await Geolocator.checkPermission();
     if(permission == LocationPermission.denied) {

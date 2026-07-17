@@ -139,26 +139,45 @@ class LocationController extends GetxController implements GetxService {
   Future<bool> checkPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
 
-    if(GetPlatform.isIOS) {
-     await Geolocator.requestPermission();
+    // Show the native permission prompt on BOTH platforms when nothing is
+    // granted yet. Previously the prompt only fired on iOS, so a fresh Android
+    // driver login never saw it and dead-ended on the settings dialog below.
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
 
-    if(permission == LocationPermission.always){
+    // "While using the app" is enough to start finding rides — accept it as
+    // well as "always" (background). Previously only `always` counted, so a
+    // normal grant was wrongly treated as a denial.
+    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
       return true;
-    }else{
-      Get.dialog(
-        ConfirmationDialogWidget(
-          description: 'you_have_to_allow'.tr,
-          fromOpenLocation: true,
-          onYesPressed: () async {
-            await Geolocator.openAppSettings();
-            Get.back();
-          }, icon: Images.logo,
-        ),
-        barrierDismissible: false,
-      );
-      return false;
     }
+
+    // Denied (incl. denied-forever): guide to settings, but keep the dialog
+    // DISMISSIBLE so it can never become a full-screen grey trap.
+    Get.dialog(
+      ConfirmationDialogWidget(
+        description: 'you_have_to_allow'.tr,
+        fromOpenLocation: true,
+        onYesPressed: () async {
+          Get.back();
+          await Geolocator.openAppSettings();
+        }, icon: Images.logo,
+      ),
+      barrierDismissible: true,
+    );
+    return false;
+  }
+
+  /// Fire-and-forget: request the location permission at app launch so the
+  /// driver never hits the permission gate mid-flow. Never throws or blocks.
+  Future<void> ensureLocationPermission() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {/* permission prompt best-effort at launch */}
   }
 
   Future<LatLng?> getCurrentPosition() async {

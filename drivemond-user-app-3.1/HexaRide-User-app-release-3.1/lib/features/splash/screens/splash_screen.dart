@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:ride_sharing_user_app/helper/login_helper.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
+import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/splash/controllers/config_controller.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,6 +36,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _lottieController.repeat();
 
     Get.find<ConfigController>().initSharedData();
+    // Ask for location permission as soon as the app launches so the map and
+    // nearby-driver search work immediately, without a mid-flow prompt.
+    Get.find<LocationController>().ensureLocationPermission();
 
     _checkConnectivity();
   }
