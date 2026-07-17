@@ -48,8 +48,11 @@ class ClientOtpAuthController extends Controller
             );
         }
 
-        // Generate 6-digit OTP
-        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        // Test-only predictable OTP: for the single configured test number, use
+        // the fixed code and skip the SMS. Every other number gets a secure
+        // random OTP. See config('services.vito_test_otp').
+        $testCode = $this->testOtpFor($phone);
+        $otp = $testCode ?? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         DB::table('vito_otps')->insert([
             'id'         => (string) Str::uuid(),
@@ -60,12 +63,16 @@ class ClientOtpAuthController extends Controller
             'updated_at' => now()->toDateTimeString(),
         ]);
 
-        $this->dispatchSms($phone, $otp);
+        if ($testCode === null) {
+            $this->dispatchSms($phone, $otp);
+        }
 
         $resp = ['message' => 'OTP sent successfully'];
 
-        // Expose OTP only in testing / local – never in production
-        if (app()->environment('testing', 'local')) {
+        // Expose the OTP only when it's the fixed test code (a value the operator
+        // chose, for a fake number) or in local/testing — never a real random
+        // code in production.
+        if ($testCode !== null || app()->environment('testing', 'local')) {
             $resp['otp'] = $otp;
         }
 
@@ -229,6 +236,23 @@ class ClientOtpAuthController extends Controller
     // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
+
+    /**
+     * Returns the fixed test OTP code when $phone is the configured test number
+     * (config('services.vito_test_otp')), else null. Disabled when the test
+     * phone is empty. Used to give the owner a predictable code for a fake test
+     * number without weakening real users' OTP.
+     */
+    private function testOtpFor(string $phone): ?string
+    {
+        $testPhone = trim((string) config('services.vito_test_otp.phone', ''));
+        if ($testPhone === '' || $phone !== $testPhone) {
+            return null;
+        }
+        $code = (string) config('services.vito_test_otp.code', '123456');
+        // Must be a 6-digit string to pass the verify-otp `size:6` validation.
+        return preg_match('/^\d{6}$/', $code) ? $code : '123456';
+    }
 
     private function userArray(User $user): array
     {
