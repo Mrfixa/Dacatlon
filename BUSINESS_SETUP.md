@@ -30,6 +30,22 @@ runtime disk `storage/app/public/business/` by the seeder:
 `username: testcustomer` · `PIN: 112233`. (The demo `customer`/`driver` accounts
 remain gated to non-prod unless `SEED_DEMO_USERS=true`.)
 
+**Test phone login (predictable OTP)** — the customer app's *phone-number* login
+sends a random SMS OTP you can't see without an SMS gateway. For testing, one
+configured number gets a fixed code instead (no SMS). Defaults (override in
+`.env`):
+
+```
+VITO_TEST_OTP_PHONE=+18885550000   # this number only
+VITO_TEST_OTP_CODE=123456          # its fixed code
+```
+
+Log in on the phone-number screen with **`+18885550000`** and code **`123456`**.
+The `TestCustomerSeeder` puts that number on the `testcustomer` account, so the
+OTP login lands straight in a ready customer. Every other number still gets a
+secure random OTP. **Disable before public launch** by setting
+`VITO_TEST_OTP_PHONE=` (empty) and re-running `php artisan config:clear`.
+
 ## Apply on the server
 
 ```bash

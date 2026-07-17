@@ -61,6 +61,17 @@ class TestCustomerSeeder extends Seeder
             $data['ref_code'] = $existing->ref_code ?? strtoupper(Str::random(8));
         }
 
+        // Give the test customer the configured test phone number so the phone +
+        // predictable-OTP login (config('services.vito_test_otp')) lands directly
+        // in this complete-profile account. Only claim the number if it's free.
+        $testPhone = trim((string) config('services.vito_test_otp.phone', ''));
+        if ($testPhone !== '' && Schema::hasColumn('users', 'phone')) {
+            $owner = DB::table('users')->where('phone', $testPhone)->first();
+            if (!$owner || ($existing && $owner->id === $existing->id)) {
+                $data['phone'] = $testPhone;
+            }
+        }
+
         if ($existing) {
             DB::table('users')->where('id', $existing->id)->update($data);
             return $existing->id;

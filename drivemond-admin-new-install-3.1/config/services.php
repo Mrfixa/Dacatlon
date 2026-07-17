@@ -46,4 +46,15 @@ return [
         'from' => env('TWILIO_FROM_NUMBER'),
     ],
 
+    // Test-only predictable OTP for the phone-login path. When 'phone' is a
+    // non-empty number, that ONE number always receives the fixed 'code'
+    // (no SMS is sent), so the owner can log into the customer app while
+    // testing without a live SMS gateway. Every other number keeps the secure
+    // random OTP. Disable for a public launch by setting VITO_TEST_OTP_PHONE=
+    // (empty) in .env. Read via config() so it survives `php artisan config:cache`.
+    'vito_test_otp' => [
+        'phone' => env('VITO_TEST_OTP_PHONE', '+18885550000'),
+        'code'  => env('VITO_TEST_OTP_CODE', '123456'),
+    ],
+
 ];

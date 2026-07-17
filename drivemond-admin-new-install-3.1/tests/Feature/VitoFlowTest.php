@@ -710,6 +710,46 @@ class VitoFlowTest extends TestCase
         $retry->assertStatus(400);
     }
 
+    public function test_test_number_uses_fixed_predictable_otp(): void
+    {
+        $phone = '+18885550000';
+        config(['services.vito_test_otp.phone' => $phone, 'services.vito_test_otp.code' => '135790']);
+
+        // An existing complete-profile customer on the test number logs straight in.
+        $this->createUser('customer', [
+            'username'   => 'testotpcustomer',
+            'phone'      => $phone,
+            'first_name' => 'Test',
+            'last_name'  => 'Customer',
+        ]);
+
+        // send-otp returns the fixed code for the test number (no SMS).
+        $send = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => $phone]);
+        $send->assertOk();
+        $this->assertSame('135790', $send->json('otp'));
+
+        // The wrong code is still rejected — verification is not bypassed.
+        $this->postJson('/api/customer/auth/otp-verification', ['phone_or_email' => $phone, 'otp' => '000000'])
+            ->assertStatus(400);
+
+        // The fixed code logs in and returns a token.
+        $verify = $this->postJson('/api/customer/auth/otp-verification', ['phone_or_email' => $phone, 'otp' => '135790']);
+        $verify->assertOk();
+        $this->assertNotEmpty($verify->json('data.token'));
+    }
+
+    public function test_non_test_number_gets_random_hidden_otp(): void
+    {
+        config(['services.vito_test_otp.phone' => '+18885550000', 'services.vito_test_otp.code' => '135790']);
+
+        // A different number never receives the fixed code, and outside
+        // local/testing the raw OTP is not echoed. (APP_ENV is 'testing' here,
+        // so the echo is present but must NOT equal the test code.)
+        $send = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => '+19995551234']);
+        $send->assertOk();
+        $this->assertNotSame('135790', $send->json('otp'));
+    }
+
     // ========================================================================
     // 3. Driver Registration with Onboarding Token
     // ========================================================================
