@@ -136,7 +136,7 @@ class ProfileController extends GetxController implements GetxService{
               Get.back();
               _checkPermission(() => startLocationRecord());
             },
-          ), barrierDismissible: false);
+          ), barrierDismissible: true);
         }else {
           startLocationRecord();
         }
@@ -507,13 +507,13 @@ class ProfileController extends GetxController implements GetxService{
         Get.back();
         await Geolocator.requestPermission();
         _checkPermission(callback);
-      }, icon: Images.logo,), barrierDismissible: false);
+      }, icon: Images.logo,), barrierDismissible: true);
     }else if(permission == LocationPermission.deniedForever) {
       Get.dialog(ConfirmationDialogWidget(description: 'you_denied_forever'.tr, onYesPressed: () async {
         Get.back();
         await Geolocator.openAppSettings();
         _checkPermission(callback);
-      }, icon: Images.logo,), barrierDismissible: false);
+      }, icon: Images.logo,), barrierDismissible: true);
     }else {
       callback();
     }
