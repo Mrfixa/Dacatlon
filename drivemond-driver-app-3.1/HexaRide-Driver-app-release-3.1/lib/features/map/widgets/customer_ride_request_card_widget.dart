@@ -224,11 +224,17 @@ class CustomerRideRequestCardWidget extends StatelessWidget {
                             Get.find<RideController>().remainingDistance(rideRequest.id!,mapBound: true);
                             Get.find<RideController>().getPendingRideRequestList(1);
                             Get.to(()=> const MapScreen());
-                          }else{
-                            if(value.body['response_code'] == 'maximum_amount_to_hold_cash_exceeds'){
+                          }else if(value.statusCode != 0){
+                            // statusCode 0 = a second tap while the first accept is
+                            // still in flight (D9 guard) — its spinner is already
+                            // showing, so no extra feedback. body may be null or
+                            // non-JSON on transport errors; never index it blindly.
+                            final body = value.body;
+                            if(body is Map && body['response_code'] == 'maximum_amount_to_hold_cash_exceeds'){
                               _customSnackBar();
                             }else{
-                              Get.dialog(TripAcceptWarningDialogWidget(errorText: value.body['message']));
+                              Get.dialog(TripAcceptWarningDialogWidget(
+                                  errorText: (body is Map ? body['message']?.toString() : null) ?? 'something_went_wrong'.tr));
                             }
 
                           }
@@ -388,9 +394,14 @@ class CustomerRideRequestCardWidget extends StatelessWidget {
                                         }
                                       });
                                     }else{
+                                      // finally guarantees the non-dismissible dialog
+                                      // is closed even if something below throws.
                                       Get.dialog(const BidAcceptingDialogueWidget(), barrierDismissible: false);
-                                      await Future.delayed( const Duration(seconds: 5));
-                                      Get.back();
+                                      try {
+                                        await Future.delayed( const Duration(seconds: 5));
+                                      } finally {
+                                        if (Get.isDialogOpen ?? false) Get.back();
+                                      }
                                       if(rideRequest.type == AppConstants.scheduleRequest){
                                         Get.find<RiderMapController>().setRideCurrentState(RideState.accepted);
                                       }else{
@@ -408,11 +419,15 @@ class CustomerRideRequestCardWidget extends StatelessWidget {
 
                               });
 
-                            }else{
-                              if(value.body['response_code'] == 'maximum_amount_to_hold_cash_exceeds'){
+                            }else if(value.statusCode != 0){
+                              // See the mirrored guard above: skip the in-flight
+                              // double-tap, and never index a null/non-Map body.
+                              final body = value.body;
+                              if(body is Map && body['response_code'] == 'maximum_amount_to_hold_cash_exceeds'){
                                 _customSnackBar();
                               }else{
-                                Get.dialog(TripAcceptWarningDialogWidget(errorText: value.body['message']));
+                                Get.dialog(TripAcceptWarningDialogWidget(
+                                    errorText: (body is Map ? body['message']?.toString() : null) ?? 'something_went_wrong'.tr));
                               }
                             }
 

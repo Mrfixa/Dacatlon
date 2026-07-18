@@ -6,6 +6,7 @@ import 'package:ride_sharing_user_app/common_widgets/button_widget.dart';
 import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
+import 'package:ride_sharing_user_app/helper/price_converter.dart';
 import 'package:ride_sharing_user_app/util/app_constants.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/images.dart';
@@ -128,7 +129,7 @@ class _MartPaymentScreenState extends State<MartPaymentScreen> {
                 const SizedBox(height: Dimensions.paddingSizeSmall),
 
                 Text(
-                  '\$${widget.totalAmount.toStringAsFixed(2)}',
+                  PriceConverter.convertPrice(widget.totalAmount),
                   style: textBold.copyWith(
                     fontSize: 32,
                     color: Theme.of(context).primaryColor,

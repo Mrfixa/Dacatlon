@@ -105,6 +105,9 @@ class MartController extends GetxController implements GetxService {
     if (response.statusCode == 200 && response.body['data'] != null) {
       return Map<String, dynamic>.from(response.body['data']);
     }
+    // Surface the failure like every other method here (token expiry, 4xx/5xx
+    // snackbar) instead of silently handing the screen a null.
+    ApiChecker.checkApi(response);
     return null;
   }
 

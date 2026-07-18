@@ -107,10 +107,16 @@ class AddressController extends GetxController implements GetxService {
   void updateLastLocation(){
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) async{
-      var location = await Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(accuracy: LocationAccuracy.high)
-      );
-      await addressServiceInterface.updateLastLocation(location.latitude.toString(), location.longitude.toString(), Get.find<LocationController>().zoneID ?? '');
+      // Bounded below the 10s tick so slow fixes can't stack concurrent calls;
+      // a failed fix just skips this tick.
+      try {
+        var location = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 8))
+        );
+        await addressServiceInterface.updateLastLocation(location.latitude.toString(), location.longitude.toString(), Get.find<LocationController>().zoneID ?? '');
+      } catch (_) {
+        // ignore: transient fix failure — retried on the next tick
+      }
     });
   }
 

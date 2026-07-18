@@ -33,4 +33,6 @@ Route::group(['prefix' => 'customer/stripe', 'middleware' => ['auth:api', 'maint
     Route::middleware(['idempotent', 'throttle:10,1'])->post('order-payment-intent', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'createOrderPaymentIntent']);
 });
 
-Route::post('stripe/webhook', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'webhook']);
+// Throttled for DoS hygiene only — signature verification is the real gate.
+// 120/min comfortably covers legitimate Stripe event bursts.
+Route::middleware('throttle:120,1')->post('stripe/webhook', [\Modules\Gateways\Http\Controllers\Api\VitoStripeController::class, 'webhook']);

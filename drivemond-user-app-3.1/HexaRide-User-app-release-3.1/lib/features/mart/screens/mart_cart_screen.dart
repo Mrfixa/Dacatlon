@@ -661,12 +661,19 @@ class _MartCartScreenState extends State<MartCartScreen> {
       return;
     }
 
-    // Check wallet balance before submitting a wallet order.
+    // Check wallet balance before submitting a wallet order. If the profile
+    // hasn't loaded yet, fetch it first — defaulting an unloaded balance to 0
+    // would falsely block funded users. If the balance is still unknown after
+    // the fetch, skip the pre-check: the backend validates atomically anyway.
     if (_paymentMethod == 'wallet') {
       final profileController = Get.find<ProfileController>();
+      if (profileController.profileModel?.data?.wallet == null) {
+        await profileController.getProfileInfo();
+        if (!mounted) return;
+      }
       final walletBalance =
-          profileController.profileModel?.data?.wallet?.walletBalance ?? 0.0;
-      if (walletBalance < _totalAmount) {
+          profileController.profileModel?.data?.wallet?.walletBalance;
+      if (walletBalance != null && walletBalance < _totalAmount) {
         showCustomSnackBar('insufficient_wallet_balance'.tr);
         return;
       }

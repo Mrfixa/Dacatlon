@@ -750,6 +750,30 @@ class VitoFlowTest extends TestCase
         $this->assertNotSame('135790', $send->json('otp'));
     }
 
+    public function test_test_otp_is_disabled_in_production_unless_opted_in(): void
+    {
+        $phone = '+18885550000';
+        config(['services.vito_test_otp.phone' => $phone, 'services.vito_test_otp.code' => '135790']);
+
+        // Fail-closed: under APP_ENV=production the test number gets a normal
+        // random OTP and nothing is echoed, even though the config ships a
+        // non-empty default test number.
+        $this->app['env'] = 'production';
+        $send = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => $phone]);
+        $send->assertOk();
+        $this->assertNull($send->json('otp'));
+
+        // Explicit opt-in re-enables the fixed code in production.
+        config(['services.vito_test_otp.allow_production' => true]);
+        // Skip the 30s resend cooldown between the two send-otp calls.
+        DB::table('vito_otps')->where('phone', $phone)->delete();
+        $send2 = $this->postJson('/api/customer/auth/send-otp', ['phone_or_email' => $phone]);
+        $send2->assertOk();
+        $this->assertSame('135790', $send2->json('otp'));
+
+        $this->app['env'] = 'testing';
+    }
+
     // ========================================================================
     // 3. Driver Registration with Onboarding Token
     // ========================================================================

@@ -170,7 +170,11 @@ class LocationController extends GetxController implements GetxService {
         }
 
 
-        Position newLocalData = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+        // timeLimit bounds the fix acquisition — without it a device that never
+        // gets a GPS fix leaves this await (and any spinner behind it) hanging
+        // forever. TimeoutException lands in the catch below.
+        Position newLocalData = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 12)));
         _position = newLocalData;
         _initialPosition = LatLng(_position.latitude, _position.longitude);
         if(isAnimate && mapController != null) {
@@ -218,7 +222,8 @@ class LocationController extends GetxController implements GetxService {
     LatLng? latLng;
     if(isSuccess) {
       try {
-        Position newLocalData = await Geolocator.getCurrentPosition(locationSettings: LocationSettings(accuracy: LocationAccuracy.high));
+        Position newLocalData = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 12)));
         latLng = LatLng(newLocalData.latitude, newLocalData.longitude);
       }catch(e){
         if (kDebugMode) {

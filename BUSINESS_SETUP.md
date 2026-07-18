@@ -36,15 +36,22 @@ configured number gets a fixed code instead (no SMS). Defaults (override in
 `.env`):
 
 ```
-VITO_TEST_OTP_PHONE=+18885550000   # this number only
-VITO_TEST_OTP_CODE=123456          # its fixed code
+VITO_TEST_OTP_PHONE=+18885550000        # this number only
+VITO_TEST_OTP_CODE=123456               # its fixed code
+VITO_TEST_OTP_ALLOW_PRODUCTION=false    # must be true to work under APP_ENV=production
 ```
 
 Log in on the phone-number screen with **`+18885550000`** and code **`123456`**.
 The `TestCustomerSeeder` puts that number on the `testcustomer` account, so the
 OTP login lands straight in a ready customer. Every other number still gets a
-secure random OTP. **Disable before public launch** by setting
-`VITO_TEST_OTP_PHONE=` (empty) and re-running `php artisan config:clear`.
+secure random OTP.
+
+**Fail-closed in production (v3.8.3+):** under `APP_ENV=production` the feature
+is OFF regardless of the phone setting, unless you explicitly set
+`VITO_TEST_OTP_ALLOW_PRODUCTION=true` (then `php artisan config:clear`). So to
+use the test login on the live server you must add that flag — and **remove it
+before public launch**. Outside production, disable with `VITO_TEST_OTP_PHONE=`
+(empty).
 
 ## Apply on the server
 

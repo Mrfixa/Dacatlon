@@ -5,6 +5,7 @@ import 'package:ride_sharing_user_app/common_widgets/empty_state_widget.dart';
 import 'package:ride_sharing_user_app/features/mart/controllers/mart_controller.dart';
 import 'package:ride_sharing_user_app/features/mart/domain/models/mart_order_model.dart';
 import 'package:ride_sharing_user_app/features/mart/screens/mart_order_tracking_screen.dart';
+import 'package:ride_sharing_user_app/features/mart/screens/mart_store_screen.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
 import 'package:ride_sharing_user_app/helper/price_converter.dart';
 import 'package:ride_sharing_user_app/util/dimensions.dart';
@@ -54,7 +55,9 @@ class _MartOrderHistoryScreenState extends State<MartOrderHistoryScreen> {
               title: 'no_orders_yet'.tr,
               description: 'start_shopping_to_see_orders_here'.tr,
               buttonText: 'browse_mart'.tr,
-              onButtonPressed: () => Get.offAllNamed('/mart'),
+              // No named routes exist in this app — navigate with Get.off so the
+              // store replaces this empty history screen on the stack.
+              onButtonPressed: () => Get.off(() => const MartStoreScreen()),
             );
           }
           return RefreshIndicator(

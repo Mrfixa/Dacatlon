@@ -140,7 +140,9 @@ class VitoMartController extends Controller
                 if (!$product) {
                     return response()->json(responseFormatter(constant: DEFAULT_404, errors: [['message' => 'One or more products not found']]), 404);
                 }
-                $subtotal += $product->price * (int) $item['quantity'];
+                // Preview with the effective (sale) price so the previewed
+                // discount matches what createOrder actually charges.
+                $subtotal += $product->effective_price * (int) $item['quantity'];
             }
         } else {
             $subtotal = (float) $request->subtotal;
@@ -222,8 +224,9 @@ class VitoMartController extends Controller
                         ->lockForUpdate()
                         ->first();
 
-                    // Items are always available — no stock gating. Only verify the
-                    // product exists and is active.
+                    // Items are always available — no stock gating (deliberate v1.0
+                    // semantic, codified in VitoFlowTest). Only verify the product
+                    // exists and is active.
                     if (!$product) {
                         throw new \RuntimeException('One or more products are unavailable.');
                     }

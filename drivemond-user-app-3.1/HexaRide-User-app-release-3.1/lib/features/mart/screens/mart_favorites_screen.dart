@@ -29,6 +29,23 @@ class _MartFavoritesScreenState extends State<MartFavoritesScreen> {
       appBar: AppBarWidget(title: 'favorites'.tr),
       body: GetBuilder<MartController>(builder: (martController) {
         final items = martController.favorites;
+        if (items.isEmpty && martController.favoritesLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (items.isEmpty && martController.favoritesFailed) {
+          // A failed fetch is not "no favorites" — offer a retry.
+          return Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('something_went_wrong'.tr,
+                  style: textRegular.copyWith(color: Theme.of(context).disabledColor)),
+              const SizedBox(height: Dimensions.paddingSizeSmall),
+              TextButton(
+                onPressed: () => martController.getFavorites(),
+                child: Text('retry'.tr),
+              ),
+            ]),
+          );
+        }
         if (items.isEmpty) {
           return Center(
             child: Text('no_favorites_yet'.tr,

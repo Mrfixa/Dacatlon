@@ -223,14 +223,25 @@ class MartController extends GetxController implements GetxService {
     if (notify) update();
   }
 
+  // Distinguish "fetch failed" from "genuinely no categories" so the browse
+  // screen can offer a retry instead of a misleading empty state.
+  bool categoriesLoading = false;
+  bool categoriesFailed = false;
+
   Future<void> getCategories({bool notify = true}) async {
+    categoriesLoading = true;
+    if (notify) update();
     final response = await martServiceInterface.getCategories();
     if (response.statusCode == 200) {
       categories = _extractList(response.body)
           .whereType<Map<String, dynamic>>()
           .map(MartCategoryModel.fromJson)
           .toList();
+      categoriesFailed = false;
+    } else {
+      categoriesFailed = true;
     }
+    categoriesLoading = false;
     if (notify) update();
   }
 
@@ -289,14 +300,25 @@ class MartController extends GetxController implements GetxService {
 
   bool isFavorite(String? id) => id != null && favoriteIds.contains(id);
 
+  // See categoriesLoading/-Failed: same failed-vs-empty distinction for the
+  // favorites screen.
+  bool favoritesLoading = false;
+  bool favoritesFailed = false;
+
   Future<void> getFavorites({bool notify = true}) async {
+    favoritesLoading = true;
+    if (notify) update();
     final response = await martServiceInterface.getFavorites();
     if (response.statusCode == 200 && response.body['data'] != null) {
       favorites = (response.body['data'] as List).map((e) => MartProductModel.fromJson(e)).toList();
       favoriteIds
         ..clear()
         ..addAll(favorites.map((p) => p.id ?? ''));
+      favoritesFailed = false;
+    } else {
+      favoritesFailed = true;
     }
+    favoritesLoading = false;
     if (notify) update();
   }
 

@@ -94,7 +94,12 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
           _isOffline = false;
         });
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        // A clean non-200 must not render a fake-ready page: keep the offline
+        // banner + retry visible, same as the exception path below.
+        if (mounted) setState(() {
+          _isOffline = true;
+          _isLoading = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() {
@@ -112,6 +117,25 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
       appBar: AppBarWidget(title: 'delivery_details'.tr, regularAppbar: true, showLogo: true),
       body: _isLoading
           ? _buildLoadingSkeleton(context)
+          : _orderData.isEmpty
+          // The order never loaded — a retry view, not a fake-ready page with
+          // an enabled status button.
+          ? Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.wifi_off, size: 40, color: Theme.of(context).hintColor),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                Text('something_went_wrong'.tr,
+                    style: textRegular.copyWith(color: Theme.of(context).hintColor)),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _isLoading = true);
+                    _fetchOrderDetails();
+                  },
+                  child: Text('try_again'.tr),
+                ),
+              ]),
+            )
           : Column(
               children: [
                 if (_isOffline) _buildOfflineBanner(context),
@@ -621,8 +645,19 @@ class _MartDeliveryScreenState extends State<MartDeliveryScreen> {
                 };
         }
         break;
-      default:
+      case 'delivered':
         buttonText = 'completed'.tr;
+        onPressed = null;
+        break;
+      case 'cancelled':
+        // Rendering a cancelled order as "completed" is misleading — say so.
+        buttonText = 'order_cancelled'.tr;
+        onPressed = null;
+        break;
+      default:
+        // Unknown/unexpected status from the server: show it verbatim rather
+        // than a fake "completed" dead-end.
+        buttonText = _orderStatus.tr;
         onPressed = null;
     }
 

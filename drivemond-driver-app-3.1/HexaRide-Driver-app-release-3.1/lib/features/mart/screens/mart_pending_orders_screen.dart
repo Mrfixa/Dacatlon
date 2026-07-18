@@ -9,6 +9,7 @@ import 'package:ride_sharing_user_app/util/dimensions.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 import 'package:ride_sharing_user_app/common_widgets/app_bar_widget.dart';
 import 'package:ride_sharing_user_app/helper/display_helper.dart';
+import 'package:ride_sharing_user_app/helper/price_converter.dart';
 
 class MartPendingOrdersScreen extends StatefulWidget {
   const MartPendingOrdersScreen({super.key});
@@ -160,7 +161,7 @@ class _MartPendingOrdersScreenState extends State<MartPendingOrdersScreen> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('$itemCount ${'items_ordered'.tr}',
                   style: textRegular.copyWith(fontSize: Dimensions.fontSizeSmall)),
-              Text('\$$total',
+              Text(PriceConverter.convertPrice(context, double.tryParse(total.toString()) ?? 0),
                   style: textBold.copyWith(
                     color: Theme.of(context).primaryColor,
                     fontSize: Dimensions.fontSizeDefault,

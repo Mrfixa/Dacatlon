@@ -192,9 +192,12 @@ class RideController extends GetxController implements GetxService{
     if (accepting) return Response(statusCode: 0, statusText: 'already_accepting');
     onPressedTripId = tripId;
 
-      accepting = true;
-      update();
+    accepting = true;
+    update();
     final Response response;
+    // The finally below guarantees `accepting` resets even if the service
+    // layer throws — otherwise the accept spinner never clears.
+    try {
     if (action == 'accepted') {
       response = type == 'parcel'
           ? await rideServiceInterface.atomicAcceptParcel(tripId)
@@ -204,7 +207,6 @@ class RideController extends GetxController implements GetxService{
     }
     if (response.statusCode == 200) {
 
-      accepting = false;
       Get.find<RiderMapController>().getPickupToDestinationPolyline();
       if(action == 'rejected'){
         await rideServiceInterface.ignoreMessage(tripId);
@@ -250,13 +252,12 @@ class RideController extends GetxController implements GetxService{
 
       }
 
-    }else{
-
-      accepting = false;
     }
-    accepting = false;
-    onPressedTripId = null;
-    update();
+    } finally {
+      accepting = false;
+      onPressedTripId = null;
+      update();
+    }
     return response;
   }
 
