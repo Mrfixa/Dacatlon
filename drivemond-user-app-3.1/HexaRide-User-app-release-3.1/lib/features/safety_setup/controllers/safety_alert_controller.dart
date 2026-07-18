@@ -227,16 +227,26 @@ class SafetyAlertController extends GetxController implements GetxService {
     final bool hasPermission = await Get.find<LocationController>().checkPermission(() {});
     if(!hasPermission) return;
 
-    oldPosition = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(accuracy: LocationAccuracy.low)
-    );
+    // Bounded fix acquisition: without timeLimit a device that never gets a
+    // fix hangs this await and safety monitoring silently never starts.
+    try {
+      oldPosition = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.low, timeLimit: Duration(seconds: 10))
+      );
+    } catch (_) {
+      return;
+    }
 
     _timer?.cancel();
 
     _timer = Timer.periodic(Duration(seconds: Get.find<ConfigController>().config?.safetyFeatureMinimumTripDelayTime ?? 60), (_) async{
-      newLocation = await Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(accuracy: LocationAccuracy.low)
-      );
+      try {
+        newLocation = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.low, timeLimit: Duration(seconds: 10))
+        );
+      } catch (_) {
+        return; // skip this tick; the next one retries
+      }
 
       double distance = Geolocator.distanceBetween(oldPosition?.latitude ?? 0, oldPosition?.longitude ?? 0, newLocation?.latitude ?? 0, newLocation?.longitude ?? 0);
 

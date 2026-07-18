@@ -32,6 +32,23 @@ class _MartCategoriesScreenState extends State<MartCategoriesScreen> {
       appBar: AppBarWidget(title: 'all_categories'.tr),
       body: GetBuilder<MartController>(
         builder: (controller) {
+          if (controller.categories.isEmpty && controller.categoriesLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (controller.categories.isEmpty && controller.categoriesFailed) {
+            // A failed fetch is not "no categories" — offer a retry.
+            return Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('something_went_wrong'.tr,
+                    style: textRegular.copyWith(color: Theme.of(context).hintColor)),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                TextButton(
+                  onPressed: () => controller.getCategories(),
+                  child: Text('retry'.tr),
+                ),
+              ]),
+            );
+          }
           if (controller.categories.isEmpty) {
             return Center(
               child: Padding(

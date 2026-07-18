@@ -242,9 +242,19 @@ class ClientOtpAuthController extends Controller
      * (config('services.vito_test_otp')), else null. Disabled when the test
      * phone is empty. Used to give the owner a predictable code for a fake test
      * number without weakening real users' OTP.
+     *
+     * Fail-closed in production: the default config ships a non-empty test
+     * number, so a deploy that copies .env.example verbatim would otherwise
+     * expose a fixed-credential account. Under APP_ENV=production the feature
+     * is refused unless VITO_TEST_OTP_ALLOW_PRODUCTION=true is set explicitly.
      */
     private function testOtpFor(string $phone): ?string
     {
+        if (app()->environment('production')
+            && !config('services.vito_test_otp.allow_production', false)) {
+            return null;
+        }
+
         $testPhone = trim((string) config('services.vito_test_otp.phone', ''));
         if ($testPhone === '' || $phone !== $testPhone) {
             return null;

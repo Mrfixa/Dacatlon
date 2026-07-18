@@ -50,11 +50,16 @@ return [
     // non-empty number, that ONE number always receives the fixed 'code'
     // (no SMS is sent), so the owner can log into the customer app while
     // testing without a live SMS gateway. Every other number keeps the secure
-    // random OTP. Disable for a public launch by setting VITO_TEST_OTP_PHONE=
-    // (empty) in .env. Read via config() so it survives `php artisan config:cache`.
+    // random OTP. Read via config() so it survives `php artisan config:cache`.
+    //
+    // Fail-closed in production: under APP_ENV=production the feature is OFF
+    // regardless of 'phone' unless 'allow_production' is explicitly true
+    // (VITO_TEST_OTP_ALLOW_PRODUCTION=true). Unset that flag before a public
+    // launch. Outside production, disable with VITO_TEST_OTP_PHONE= (empty).
     'vito_test_otp' => [
-        'phone' => env('VITO_TEST_OTP_PHONE', '+18885550000'),
-        'code'  => env('VITO_TEST_OTP_CODE', '123456'),
+        'phone'            => env('VITO_TEST_OTP_PHONE', '+18885550000'),
+        'code'             => env('VITO_TEST_OTP_CODE', '123456'),
+        'allow_production' => env('VITO_TEST_OTP_ALLOW_PRODUCTION', false),
     ],
 
 ];

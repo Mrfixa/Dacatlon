@@ -61,7 +61,7 @@ class VitoParcelController extends Controller
         // Notify customer that driver accepted the parcel
         try {
             $push = getNotification('parcel_accepted');
-            if ($push) {
+            if ($push && $trip?->customer?->fcm_token) {
                 sendDeviceNotification(
                     fcm_token: $trip->customer->fcm_token,
                     title: translate(key: $push['title'], locale: $trip->customer->current_language_key),
