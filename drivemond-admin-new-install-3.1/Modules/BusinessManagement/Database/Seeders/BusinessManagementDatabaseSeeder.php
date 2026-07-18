@@ -75,6 +75,10 @@ class BusinessManagementDatabaseSeeder extends Seeder
             // committed source PNGs from public/business/ into that runtime dir.
             ['key_name' => 'header_logo',              'settings_type' => 'business_information', 'value' => 'vito-logo.png'],
             ['key_name' => 'favicon',                  'settings_type' => 'business_information', 'value' => 'vito-favicon.png'],
+            // footer_logo is the third (and last) brand-image slot on the business-setup
+            // form; unseeded it falls back to the stock landing-page logo. Same runtime
+            // dir as header_logo, so copyBrandAssets() already covers the file.
+            ['key_name' => 'footer_logo',              'settings_type' => 'business_information', 'value' => 'vito-logo.png'],
             ['key_name' => 'websocket_url',            'settings_type' => 'business_information', 'value' => env('APP_URL', '')],
             ['key_name' => 'websocket_port',           'settings_type' => 'business_information', 'value' => '6015'],
 

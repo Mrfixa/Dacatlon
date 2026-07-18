@@ -36,7 +36,8 @@ class SignUpScreen extends StatelessWidget {
 
               Expanded(
                 child: SingleChildScrollView(child: Column(children: [
-                  SvgPicture.asset(Images.logoWithNameSvg, height: 40),
+                  // Vito wordmark (PNG) — the old SVG is the vendor's logo.
+                  Image.asset(Images.logoWithName, height: 40),
                   const SizedBox(height: Dimensions.paddingSizeSignUp),
 
                   FutureBuilder<String>(
