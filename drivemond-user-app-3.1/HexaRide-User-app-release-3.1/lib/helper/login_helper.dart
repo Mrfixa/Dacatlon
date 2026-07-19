@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:ride_sharing_user_app/features/auth/controllers/auth_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/sign_in_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/otp_log_in_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/token_gate_screen.dart';
 import 'package:ride_sharing_user_app/features/auth/domain/enums/verification_from_enum.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
@@ -36,13 +37,20 @@ class LoginHelper{
     Get.find<PaymentController>().getPaymentGetWayList();
     FirebaseHelper().subscribeFirebaseTopic();
     FirebaseHelper().listenForTokenRefresh();
-    String? path = await initDynamicLinks();
+    final Uri? link = await initDynamicLinks();
+    // Invite links carry ?token= (landing page → /locate-user?token=...); any
+    // other App Link path is a live-location share link.
+    final String? inviteToken = link?.queryParameters['token'];
+    final String? path =
+        (inviteToken == null && link != null && link.path.isNotEmpty) ? link.path : null;
 
     Get.find<ConfigController>().getConfigData()
         .timeout(const Duration(seconds: 15), onTimeout: () => false)
         .then((value){
       if(_isForceUpdate(Get.find<ConfigController>().config)) {
         Get.offAll(()=> const AppVersionWarningScreen());
+      }else if(inviteToken != null && inviteToken.isNotEmpty && !Get.find<AuthController>().isLoggedIn()){
+        Get.offAll(()=> TokenGateScreen(initialToken: inviteToken));
       }else if(path != null){
         Get.offAll(()=> LiveLocationScreen(trackingUrl: path));
       }else{
@@ -50,7 +58,9 @@ class LoginHelper{
       }
     }).catchError((_){
       // Never get stuck on splash if config fails to load.
-      if(path != null){
+      if(inviteToken != null && inviteToken.isNotEmpty && !Get.find<AuthController>().isLoggedIn()){
+        Get.offAll(()=> TokenGateScreen(initialToken: inviteToken));
+      }else if(path != null){
         Get.offAll(()=> LiveLocationScreen(trackingUrl: path));
       }else{
         route(notificationData);
@@ -59,18 +69,9 @@ class LoginHelper{
 
   }
 
-  Future<String?> initDynamicLinks() async {
+  Future<Uri?> initDynamicLinks() async {
     final appLinks = AppLinks();
-    final uri = await appLinks.getInitialLink();
-    String? path;
-    if (uri != null) {
-      path = uri.path;
-
-    }else{
-      path = null;
-    }
-    return path;
-
+    return appLinks.getInitialLink();
   }
 
   bool _isForceUpdate(ConfigModel? config) {

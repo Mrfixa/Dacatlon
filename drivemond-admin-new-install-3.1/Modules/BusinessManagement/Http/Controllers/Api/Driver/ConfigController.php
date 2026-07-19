@@ -89,8 +89,13 @@ class ConfigController extends Controller
             'conversion_status' => (bool)($loyaltyPoints['status'] ?? false),
             'conversion_rate' => (double)($loyaltyPoints['points'] ?? 0),
             'base_url' => url('/') . '/api/v1/',
-            'websocket_url' => $info->firstWhere('key_name', 'websocket_url')?->value ?? null,
-            'websocket_port' => (string)$info->firstWhere('key_name', 'websocket_port')?->value ?? 6001,
+            // Business-setting overrides win; otherwise fall back to the broadcast
+            // connection env config (PUSHER_* mirrors REVERB_*) — see the customer
+            // ConfigController for the cast/precedence rationale.
+            'websocket_url' => $info->firstWhere('key_name', 'websocket_url')?->value
+                ?? config('broadcasting.connections.pusher.options.host'),
+            'websocket_port' => (string)($info->firstWhere('key_name', 'websocket_port')?->value
+                ?? config('broadcasting.connections.pusher.options.port', 6001)),
             'websocket_key' => config('broadcasting.connections.pusher.key'),
             'websocket_scheme' => config('broadcasting.connections.pusher.options.scheme'),
             'review_status' => (bool)$info->firstWhere('key_name', DRIVER_REVIEW)?->value ?? null,

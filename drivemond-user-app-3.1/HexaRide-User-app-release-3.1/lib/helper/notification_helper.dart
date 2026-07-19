@@ -44,6 +44,17 @@ class NotificationHelper {
     },
     onDidReceiveBackgroundNotificationResponse: myBackgroundMessageReceiver);
 
+    // Create the 'vito' channel up front — background FCM notification-messages
+    // (delivered by the system, not this plugin) target it via the manifest
+    // default_notification_channel_id and would otherwise land in a fallback
+    // channel with default importance.
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          'vito', 'Vito',
+          importance: Importance.max,
+        ));
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       AndroidInitializationSettings androidInitialize = const AndroidInitializationSettings('notification_icon');
       var iOSInitialize = const DarwinInitializationSettings();

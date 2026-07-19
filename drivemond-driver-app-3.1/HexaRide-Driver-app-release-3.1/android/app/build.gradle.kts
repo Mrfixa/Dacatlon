@@ -57,6 +57,11 @@ android {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
+                logger.warn(
+                    "WARNING: key.properties not found — release APK will be DEBUG-signed. " +
+                    "Fine for sideloading, but Google Play will reject it. " +
+                    "Provide a keystore (KEYSTORE_BASE64 secret in CI) before any Play submission."
+                )
                 signingConfigs.getByName("debug")
             }
             isMinifyEnabled = false

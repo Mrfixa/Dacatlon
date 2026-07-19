@@ -198,7 +198,8 @@ function fetchAndCacheAccessToken($key)
             'expires_at' => $expiresAt
         ];
 
-        Cache::put('firebase_access_token', $data, 55);
+        // TTL is in seconds — cache just short of the token's 3600s validity.
+        Cache::put('firebase_access_token', $data, 3300);
         return $accessTokenData['data'];
     }
 

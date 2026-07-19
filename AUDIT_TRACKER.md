@@ -213,3 +213,36 @@ defects — they are the boundary of what's checkable here, recorded so nothing 
 | V3 | Push notifications on iOS | Firebase no-ops on iOS until `GoogleService-Info.plist` + APNs key are added. |
 | V4 | Signed iOS → TestFlight (`release-ios.yml`) | Manual-dispatch; runs only once the Apple secrets (see IOS_BUILD.md) are set. |
 | W4 | Mart-screen → `MartController` migration | Deferred: large refactor of a polling-heavy live flow; needs device verification (tracked above). |
+
+## v3.8.5 — native Android/iOS + integration-seam audit (2026-07-19)
+
+Fresh discovery over the surfaces earlier audits skipped (native app layers, push/realtime/landing
+seams). Fixed in this release: invite links end-to-end (landing page targeted a non-existent
+`com.vito.app` package and an unregistered `vito://` scheme; apps dropped the `?token=` query from
+App Links — now `/locate-user|/locate-driver?token=` opens the token-gate screen pre-validated),
+websocket host/port env fallback (apps previously received an empty port unless an admin set a DB
+business setting), FCM OAuth token cached 55 s → 3300 s, stale `6amTech` notification-channel
+meta-data removed + `vito` channel created at startup (both apps), user app now applies the
+`google-services` Gradle plugin, driver app dropped unused `ACCESS_BACKGROUND_LOCATION`/
+`FOREGROUND_SERVICE` (kills the Play background-location review), debug-signing + missing-Stripe-key
+CI warnings, user iOS `NSLocationAlwaysAndWhenInUse` string + duplicate mic key, pbxproj versions
+now track `$(FLUTTER_BUILD_NAME)`/`$(FLUTTER_BUILD_NUMBER)`.
+
+### Deliberate no-fixes (decision record)
+
+| Item | Why left as-is |
+|------|----------------|
+| `minifyEnabled=false` (both apps) | Enabling R8 without device QA risks runtime breakage (Stripe/Pusher/Firebase reflection). Revisit with a device pass. |
+| `aps-environment = development` in entitlements | Not a bug — App Store/TestFlight export rewrites it to `production` via the provisioning profile. |
+| Committed Google Maps key fallback in `build.gradle.kts` | It is the owner's own key; the action is restricting it (package + SHA-1) in Google Cloud Console, not removing the fallback. |
+| Google map tile key not runtime-switchable | Impossible: the native manifest key is baked at build time. Server-side geocoding/routing keys ARE admin-switchable. |
+| Apps pinned to Firebase project `drivevalley-fdb7f` | Owner decision. The admin-uploaded FCM service account MUST belong to this project, or the apps must be rebuilt with the `FIREBASE_*` dart-defines + replaced `google-services.json`/`GoogleService-Info.plist`. |
+
+### New owner actions (beyond the standing caveats above)
+
+| ID | Item |
+|----|------|
+| V5 | Create an Android upload keystore and set `KEYSTORE_BASE64`/`KEYSTORE_PASS`/`KEY_ALIAS`/`KEY_PASS` repo secrets before any Play Store submission (CI now warns on every debug-signed build). |
+| V6 | Restrict the committed Maps key by package name + release SHA-1 in Google Cloud Console. |
+| V7 | Set the `STRIPE_PUBLISHABLE_KEY` repo secret (CI now warns when empty). |
+| V8 | FCM service account uploaded in the admin panel must belong to Firebase project `drivevalley-fdb7f` (see decision record). |

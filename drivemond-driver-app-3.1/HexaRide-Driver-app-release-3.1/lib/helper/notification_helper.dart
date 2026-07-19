@@ -70,6 +70,17 @@ class NotificationHelper {
       onDidReceiveBackgroundNotificationResponse: myBackgroundMessageReceiver,
     );
 
+    // Create the 'vito' channel up front — background FCM notification-messages
+    // (delivered by the system, not this plugin) target it via the manifest
+    // default_notification_channel_id and would otherwise land in a fallback
+    // channel with default importance.
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+          'vito', 'Vito Driver',
+          importance: Importance.max,
+        ));
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       // D20: plugin already initialized above; do not re-initialize on every message
 
