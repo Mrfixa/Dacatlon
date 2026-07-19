@@ -58,6 +58,9 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
             printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
               "$KEYSTORE_PASS" "$KEY_PASS" "$KEY_ALIAS" > android/key.properties
+          else
+            echo "::warning::KEYSTORE_BASE64 secret missing/placeholder — this APK will be DEBUG-signed (sideload-only, not Play Store-ready)."
+            echo "⚠️ **APK is DEBUG-signed** — set the \`KEYSTORE_BASE64\`/\`KEYSTORE_PASS\`/\`KEY_ALIAS\`/\`KEY_PASS\` secrets before any Play Store submission." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Build release APK
@@ -160,6 +163,19 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
             printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=app/release.jks\n' \
               "$KEYSTORE_PASS" "$KEY_PASS" "$KEY_ALIAS" > android/key.properties
+          else
+            echo "::warning::KEYSTORE_BASE64 secret missing/placeholder — this APK will be DEBUG-signed (sideload-only, not Play Store-ready)."
+            echo "⚠️ **APK is DEBUG-signed** — set the \`KEYSTORE_BASE64\`/\`KEYSTORE_PASS\`/\`KEY_ALIAS\`/\`KEY_PASS\` secrets before any Play Store submission." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+
+      - name: Check Stripe key secret
+        env:
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$STRIPE_PUBLISHABLE_KEY" ]; then
+            echo "::warning::STRIPE_PUBLISHABLE_KEY secret is empty — card payments will fail in this user APK."
+            echo "⚠️ **STRIPE_PUBLISHABLE_KEY secret is empty** — card payments (ride + mart) will fail in this user APK." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Build release APK

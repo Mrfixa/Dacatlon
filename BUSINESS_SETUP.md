@@ -53,6 +53,23 @@ use the test login on the live server you must add that flag — and **remove it
 before public launch**. Outside production, disable with `VITO_TEST_OTP_PHONE=`
 (empty).
 
+## Realtime (websocket) config — v3.8.5+
+
+The apps read the websocket host/port from `GET configuration`. Since v3.8.5 those
+values fall back to your `.env` (`PUSHER_HOST`/`PUSHER_PORT`, which mirror
+`REVERB_HOST`/`REVERB_PORT`) — so with a correct `.env` realtime works with **no**
+admin-panel websocket setting. The admin business settings `websocket_url` /
+`websocket_port` still win if set; clear them (or keep them correct) after changing
+the env values, and run `php artisan config:clear`.
+
+## Invite links — v3.8.5+
+
+`https://dacatlon.store/landing/?token=<64-char-token>` now works end-to-end: the page
+validates the token, then offers "Open in Vito App" (Android intent that opens the
+installed customer or driver app by the token's role and pre-validates it on the token
+screen) with a Play Store fallback. iOS buttons stay hidden until the iOS apps are
+published (`IOS_AVAILABLE` flag in `landing/index.html`).
+
 ## Apply on the server
 
 ```bash

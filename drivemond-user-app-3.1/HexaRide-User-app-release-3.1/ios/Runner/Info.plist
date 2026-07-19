@@ -38,10 +38,10 @@
     <string>This app needs access to location for pick location for creating a ride request, Then driver can pickup you.</string>
     <key>NSLocationAlwaysUsageDescription</key>
         <string>This app needs access to location for pick location for creating a ride request, Then driver can pickup you</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs access to location for pick location for creating a ride request, Then driver can pickup you</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app need photo gallery access for taking photo for user profile picture.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Need microphone access for uploading photos</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>Permission required to record audio for speech recognition</string>
     <key>NSMicrophoneUsageDescription</key>

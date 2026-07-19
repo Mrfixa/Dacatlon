@@ -16,7 +16,9 @@ import 'package:ride_sharing_user_app/util/images.dart';
 import 'package:ride_sharing_user_app/util/styles.dart';
 
 class TokenGateScreen extends StatefulWidget {
-  const TokenGateScreen({super.key});
+  /// Prefilled invite token from a deep link (landing page → /locate-user?token=...).
+  final String? initialToken;
+  const TokenGateScreen({super.key, this.initialToken});
 
   @override
   State<TokenGateScreen> createState() => _TokenGateScreenState();
@@ -34,6 +36,11 @@ class _TokenGateScreenState extends State<TokenGateScreen> {
   void initState() {
     super.initState();
     _loadTokenHistory();
+    final initial = widget.initialToken;
+    if (initial != null && initial.isNotEmpty) {
+      _tokenController.text = initial;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _validateToken());
+    }
   }
 
   @override

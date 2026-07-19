@@ -6,6 +6,7 @@ import 'package:ride_sharing_user_app/features/realtime_location_trac/screens/li
 import 'package:ride_sharing_user_app/localization/language_selection_screen.dart';
 import 'package:ride_sharing_user_app/localization/localization_controller.dart';
 import 'package:ride_sharing_user_app/features/auth/screens/sign_in_screen.dart';
+import 'package:ride_sharing_user_app/features/auth/screens/token_gate_screen.dart';
 import 'package:ride_sharing_user_app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ride_sharing_user_app/features/location/controllers/location_controller.dart';
 import 'package:ride_sharing_user_app/features/location/screens/access_location_screen.dart';
@@ -28,19 +29,24 @@ class LoginHelper{
 
     final appLinks = AppLinks();
     final Uri? initialLink = await appLinks.getInitialLink();
-    final String? deepLinkPath = initialLink?.path;
+    // Invite links carry ?token= (landing page → /locate-driver?token=...); any
+    // other App Link path is a live-location share link.
+    final String? inviteToken = initialLink?.queryParameters['token'];
+    final String? deepLinkPath = inviteToken == null ? initialLink?.path : null;
 
     Get.find<SplashController>().getConfigData()
         .timeout(const Duration(seconds: 15), onTimeout: () => false)
-        .then((isSuccess) => _routeAfterConfig(notificationData, deepLinkPath))
-        .catchError((_) => _routeAfterConfig(notificationData, deepLinkPath));
+        .then((isSuccess) => _routeAfterConfig(notificationData, deepLinkPath, inviteToken))
+        .catchError((_) => _routeAfterConfig(notificationData, deepLinkPath, inviteToken));
   }
 
   // Routes once config has loaded (or failed/timed out) — never hangs on splash,
   // and language selection is the first screen when none is saved.
-  void _routeAfterConfig(Map<String, dynamic>? notificationData, String? deepLinkPath){
+  void _routeAfterConfig(Map<String, dynamic>? notificationData, String? deepLinkPath, String? inviteToken){
     if (_isForceUpdate(Get.find<SplashController>().config)) {
       Get.offAll(() => const AppVersionWarningScreen());
+    } else if (inviteToken != null && inviteToken.isNotEmpty && !Get.find<AuthController>().isLoggedIn()) {
+      Get.offAll(() => TokenGateScreen(initialToken: inviteToken));
     } else if (deepLinkPath != null && deepLinkPath.isNotEmpty) {
       Get.offAll(() => LiveLocationScreen(trackingUrl: deepLinkPath));
     } else if (!Get.find<LocalizationController>().haveLocalLanguageCode()) {
