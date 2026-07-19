@@ -51,6 +51,17 @@ android {
             storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
             storePassword = keystoreProperties["storePassword"] as String?
         }
+        // Committed keystore used when no key.properties is provided. It gives
+        // sideloaded builds a STABLE signature (updates install over previous
+        // versions instead of failing signature-mismatch, as the per-runner
+        // debug key did) and anchors .well-known/assetlinks.json. It provides
+        // no security — never use it for a Play Store submission.
+        create("sideload") {
+            keyAlias = "vito"
+            keyPassword = "vito-sideload"
+            storeFile = file("sideload-keystore.jks")
+            storePassword = "vito-sideload"
+        }
     }
 
     buildTypes {
@@ -59,11 +70,11 @@ android {
                 signingConfigs.getByName("release")
             } else {
                 logger.warn(
-                    "WARNING: key.properties not found — release APK will be DEBUG-signed. " +
-                    "Fine for sideloading, but Google Play will reject it. " +
-                    "Provide a keystore (KEYSTORE_BASE64 secret in CI) before any Play submission."
+                    "WARNING: key.properties not found — release APK signed with the committed " +
+                    "sideload keystore. Fine for sideloading, but Google Play will reject it. " +
+                    "Provide a private keystore (KEYSTORE_BASE64 secret in CI) before any Play submission."
                 )
-                signingConfigs.getByName("debug")
+                signingConfigs.getByName("sideload")
             }
             isMinifyEnabled = false
             isShrinkResources = false
