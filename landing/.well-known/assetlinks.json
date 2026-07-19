@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sixamtech.hexarideuser",
+      "sha256_cert_fingerprints": [
+        "D2:DB:1B:E8:62:2B:D1:FB:8E:74:C7:49:50:57:9F:07:AC:49:38:0A:0C:C4:1D:63:43:BA:E5:33:5D:92:F0:38"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sixamtech.hexariderider",
+      "sha256_cert_fingerprints": [
+        "D2:DB:1B:E8:62:2B:D1:FB:8E:74:C7:49:50:57:9F:07:AC:49:38:0A:0C:C4:1D:63:43:BA:E5:33:5D:92:F0:38"
+      ]
+    }
+  }
+]

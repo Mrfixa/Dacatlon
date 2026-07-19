@@ -43,6 +43,7 @@ class LoginHelper{
     final String? inviteToken = link?.queryParameters['token'];
     final String? path =
         (inviteToken == null && link != null && link.path.isNotEmpty) ? link.path : null;
+    _listenForWarmLinks(link);
 
     Get.find<ConfigController>().getConfigData()
         .timeout(const Duration(seconds: 15), onTimeout: () => false)
@@ -72,6 +73,22 @@ class LoginHelper{
   Future<Uri?> initDynamicLinks() async {
     final appLinks = AppLinks();
     return appLinks.getInitialLink();
+  }
+
+  static StreamSubscription<Uri>? _linkSub;
+
+  // Invite links tapped while the app is already running (warm start). The
+  // stream may replay the initial link on some platforms — skip it, the
+  // cold-start path above already handled it.
+  void _listenForWarmLinks(Uri? initialLink) {
+    _linkSub?.cancel();
+    _linkSub = AppLinks().uriLinkStream.listen((uri) {
+      if (uri.toString() == initialLink?.toString()) return;
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty && !Get.find<AuthController>().isLoggedIn()) {
+        Get.to(() => TokenGateScreen(initialToken: token));
+      }
+    });
   }
 
   bool _isForceUpdate(ConfigModel? config) {

@@ -68,7 +68,23 @@ the env values, and run `php artisan config:clear`.
 validates the token, then offers "Open in Vito App" (Android intent that opens the
 installed customer or driver app by the token's role and pre-validates it on the token
 screen) with a Play Store fallback. iOS buttons stay hidden until the iOS apps are
-published (`IOS_AVAILABLE` flag in `landing/index.html`).
+published (`IOS_AVAILABLE` flag in `landing/index.html`). Links tapped while an app is
+already running also open the token screen (warm-start handling, v3.8.6+).
+
+**App Link auto-verification (v3.8.6+):** deploy `landing/.well-known/assetlinks.json`
+to `https://dacatlon.store/.well-known/assetlinks.json` (must be served at the domain
+root with `Content-Type: application/json`). Its fingerprint matches the committed
+sideload signing keystore, so once deployed, plain `https://dacatlon.store/locate-*`
+links open the apps directly. If you later switch to a private Play keystore, replace
+the fingerprint (`keytool -list -v -keystore <jks>` → SHA256).
+
+**Stable sideload signing (v3.8.6+):** release APKs without a `KEYSTORE_BASE64` secret
+are now signed with the committed `android/app/sideload-keystore.jks` (same key every
+build) instead of a per-CI-run debug key — so APK updates install over the previous
+version instead of failing with "App not installed". **One-time migration:** the first
+v3.8.6 install still needs an uninstall of the old build (signature change). This
+keystore provides no security and must never be used for a Play submission — for Play,
+create a private keystore and set the CI secrets.
 
 ## Apply on the server
 

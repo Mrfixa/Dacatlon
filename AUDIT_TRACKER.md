@@ -246,3 +246,20 @@ now track `$(FLUTTER_BUILD_NAME)`/`$(FLUTTER_BUILD_NUMBER)`.
 | V6 | Restrict the committed Maps key by package name + release SHA-1 in Google Cloud Console. |
 | V7 | Set the `STRIPE_PUBLISHABLE_KEY` repo secret (CI now warns when empty). |
 | V8 | FCM service account uploaded in the admin panel must belong to Firebase project `drivevalley-fdb7f` (see decision record). |
+
+## v3.8.6 — invite-link + sideload-signing follow-through (2026-07-19)
+
+- **Stable sideload signing:** without a keystore secret, CI previously signed each release
+  with a per-runner debug key — every APK update failed signature match (uninstall/reinstall
+  each release). A committed `sideload-keystore.jks` (alias `vito`, password `vito-sideload`,
+  deliberately public — provides update continuity, not security) is now the fallback signer
+  in both apps. One-time uninstall needed when moving to v3.8.6; stable thereafter. Play
+  submission still requires a private keystore (owner action V5 unchanged).
+- **App Link auto-verify:** `landing/.well-known/assetlinks.json` ships with the sideload
+  cert's SHA-256 for both packages; owner deploys it to the domain root (V9).
+- **Warm-start invite links:** both apps now also handle `?token=` links tapped while the
+  app is running (`uriLinkStream`), not just cold start.
+
+| ID | New owner action |
+|----|------------------|
+| V9 | Serve `landing/.well-known/assetlinks.json` at `https://dacatlon.store/.well-known/assetlinks.json` (JSON content-type) so https App Links open the apps without the chooser. |

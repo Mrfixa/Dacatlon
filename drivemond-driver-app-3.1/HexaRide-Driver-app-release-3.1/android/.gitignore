@@ -11,3 +11,7 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# The sideload keystore is deliberately committed (update continuity for
+# sideloaded builds; provides no security and is NOT for Play submission).
+!app/sideload-keystore.jks

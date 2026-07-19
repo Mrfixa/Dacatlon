@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:get/get.dart';
@@ -33,6 +34,7 @@ class LoginHelper{
     // other App Link path is a live-location share link.
     final String? inviteToken = initialLink?.queryParameters['token'];
     final String? deepLinkPath = inviteToken == null ? initialLink?.path : null;
+    _listenForWarmLinks(initialLink);
 
     Get.find<SplashController>().getConfigData()
         .timeout(const Duration(seconds: 15), onTimeout: () => false)
@@ -130,5 +132,21 @@ class LoginHelper{
 
   static void checkLoginMedium(){
     Get.offAll(()=> const SignInScreen());
+  }
+
+  static StreamSubscription<Uri>? _linkSub;
+
+  // Invite links tapped while the app is already running (warm start). The
+  // stream may replay the initial link on some platforms — skip it, the
+  // cold-start path above already handled it.
+  void _listenForWarmLinks(Uri? initialLink) {
+    _linkSub?.cancel();
+    _linkSub = AppLinks().uriLinkStream.listen((uri) {
+      if (uri.toString() == initialLink?.toString()) return;
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty && !Get.find<AuthController>().isLoggedIn()) {
+        Get.to(() => TokenGateScreen(initialToken: token));
+      }
+    });
   }
 }
